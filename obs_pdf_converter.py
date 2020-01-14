@@ -45,7 +45,7 @@ class ObsPdfConverter(PdfConverter):
             obs_chapter_data = obs_tools.get_obs_chapter_data(self.main_resource.repo_dir, chapter_num)
             chapter_title = obs_chapter_data['title']
             obs_html += f'''
-<article class="obs-chapter-title-page no-header">
+<article class="obs-chapter-title-page no-header obs-page">
     <h1 id="{self.lang_code}-obs-{chapter_num}" class="section-header">{chapter_title}</h1>
 </article>
 '''
