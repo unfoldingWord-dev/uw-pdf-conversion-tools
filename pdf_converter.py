@@ -389,8 +389,9 @@ class PdfConverter:
                     if bad_highlights[key]:
                         bad_highlights_html += f'''
             <li>
-                <strong><em>{key}</em></strong>
-                <br/>{bad_highlights[key]} (QUOTE ISSUE)
+                {key} <em>(phrase to match)</em>
+                <br/>
+                {bad_highlights[key]} <em>(QUOTE ISSUE - closest phrase found in text)</em>
             </li>
 '''
                     else:
