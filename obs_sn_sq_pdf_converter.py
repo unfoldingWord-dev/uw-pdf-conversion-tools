@@ -75,7 +75,7 @@ class ObsSnSqPdfConverter(PdfConverter):
                     <div class="bible-reference" class="no-break">{obs_chapter_data['bible_reference']}</div>
             '''
             frames = obs_chapter_data['frames']
-            for frame_idx, frame in enumerate(frames):
+            for frame_idx, obs_text in enumerate(frames):
                 image = obs_chapter_data['images'][frame_idx]
                 frame_num = str(frame_idx + 1).zfill(2)
                 frame_title = f'{chapter_num}:{frame_num}'
