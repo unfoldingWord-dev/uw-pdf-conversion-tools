@@ -379,7 +379,7 @@ class PdfConverter:
             {source_rc.rc_link}
         </a>:
         <br/>
-        <i>{self.bad_highlights[source_rc_link]['text']}</i>
+        {self.bad_highlights[source_rc_link]['text']}
         <br/>
         <ul>
 '''
@@ -388,14 +388,14 @@ class PdfConverter:
                     if bad_highlights[key]:
                         bad_highlights_html += f'''
             <li>
-                <b><i>{key}</i></b>
+                <strong><em>{key}</em></strong>
                 <br/>{bad_highlights[key]} (QUOTE ISSUE)
             </li>
 '''
                     else:
                         bad_highlights_html += f'''
             <li>
-                <b><i>{key}</i></b>
+                <strong><em>{key}</em></strong>
             </li>
 '''
             bad_highlights_html += '''
