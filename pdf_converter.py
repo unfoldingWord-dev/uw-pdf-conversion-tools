@@ -36,8 +36,9 @@ DEFAULT_LANG_CODE = 'en'
 DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_TAG = 'master'
 LANGUAGE_FILES = {
+    'en': 'English-en_US.json',
     'fr': 'French-fr_FR.json',
-    'en': 'English-en_US.json'
+    'kn': 'Kannada-kn_IN.json'
 }
 APPENDIX_LINKING_LEVEL = 1
 APPENDIX_RESOURCES = ['ta', 'tw']
