@@ -138,7 +138,7 @@ class PdfConverter:
             if self.lang_code not in LANGUAGE_FILES:
                 self.logger.error(f'No locale file for {self.lang_code}.')
                 exit(1)
-            locale_file = os.path.join(self.converters_dir, '..', 'locale', LANGUAGE_FILES[self.lang_code])
+            locale_file = os.path.join(self.converters_dir, 'locale', LANGUAGE_FILES[self.lang_code])
             if not os.path.isfile(locale_file):
                 self.logger.error(f'No locale file found at {locale_file} for {self.lang_code}.')
                 exit(1)
