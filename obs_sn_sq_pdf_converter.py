@@ -80,7 +80,6 @@ class ObsSnSqPdfConverter(PdfConverter):
                 frame_num = str(frame_idx + 1).zfill(2)
                 frame_title = f'{chapter_num}:{frame_num}'
                 obs_sn_file = os.path.join(sn_chapter_dir, f'{frame_num}.md')
-                obs_text = re.sub(r'[\n\s]+', ' ', frame, flags=re.MULTILINE)
 
                 if os.path.isfile(obs_sn_file):
                     notes_html = markdown2.markdown_path(obs_sn_file)
