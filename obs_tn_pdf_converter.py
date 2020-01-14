@@ -14,9 +14,9 @@ import os
 import re
 import markdown2
 from glob import glob
-from .pdf_converter import PdfConverter, run_converter
-from ..general_tools.file_utils import load_json_object
-from ..general_tools import obs_tools
+from pdf_converter import PdfConverter, run_converter
+from general_tools.file_utils import load_json_object
+from general_tools import obs_tools
 
 # Enter ignores in lowercase
 TN_TITLES_TO_IGNORE = {

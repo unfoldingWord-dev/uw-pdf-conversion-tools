@@ -13,9 +13,9 @@ This script generates the HTML and PDF TN documents
 import os
 import re
 from datetime import datetime
-from ..general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
-from ..general_tools.usfm_utils import usfm3_to_usfm2
-from .pdf_converter import PdfConverter, run_converter
+from general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
+from general_tools.usfm_utils import usfm3_to_usfm2
+from pdf_converter import PdfConverter, run_converter
 
 
 class TnPdfConverter(PdfConverter):

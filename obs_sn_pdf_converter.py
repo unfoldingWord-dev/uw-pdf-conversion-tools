@@ -12,9 +12,9 @@ This script generates the HTML and PDF OBS SN documents
 """
 import os
 import markdown2
-from .pdf_converter import run_converter
-from .obs_sn_sq_pdf_converter import ObsSnSqPdfConverter
-from ..general_tools import obs_tools
+from pdf_converter import run_converter
+from obs_sn_sq_pdf_converter import ObsSnSqPdfConverter
+from general_tools import obs_tools
 
 
 class ObsSnPdfConverter(ObsSnSqPdfConverter):

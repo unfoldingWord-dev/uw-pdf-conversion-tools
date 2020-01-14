@@ -13,8 +13,8 @@ This script generates the HTML and PDF OBS SN & SQ documents
 import os
 import re
 import markdown2
-from .pdf_converter import PdfConverter, run_converter
-from ..general_tools import obs_tools
+from pdf_converter import PdfConverter, run_converter
+from general_tools import obs_tools
 
 
 class ObsSnSqPdfConverter(PdfConverter):

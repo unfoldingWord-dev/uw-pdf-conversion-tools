@@ -12,8 +12,8 @@ This script generates the HTML and PDF TA documents
 """
 import os
 import yaml
-from .pdf_converter import PdfConverter, run_converter
-from ..general_tools.file_utils import read_file
+from pdf_converter import PdfConverter, run_converter
+from general_tools.file_utils import read_file
 
 
 class TaPdfConverter(PdfConverter):

@@ -15,9 +15,9 @@ import re
 import markdown2
 from glob import glob
 from bs4 import BeautifulSoup
-from .pdf_converter import run_converter
-from ..general_tools import obs_tools
-from .obs_sn_sq_pdf_converter import ObsSnSqPdfConverter
+from pdf_converter import run_converter
+from general_tools import obs_tools
+from obs_sn_sq_pdf_converter import ObsSnSqPdfConverter
 
 
 class ObsSqPdfConverter(ObsSnSqPdfConverter):
