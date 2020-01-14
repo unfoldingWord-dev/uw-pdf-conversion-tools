@@ -397,7 +397,7 @@ class PdfConverter:
                     else:
                         bad_highlights_html += f'''
             <li>
-                <strong><em>{key}</em></strong>
+                {key}
             </li>
 '''
             bad_highlights_html += '''
