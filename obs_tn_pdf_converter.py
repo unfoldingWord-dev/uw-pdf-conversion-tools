@@ -114,7 +114,7 @@ class ObsTnPdfConverter(PdfConverter):
         <h2 class="section-header">{chapter_data['title']}</h2>
 '''
                 frames = [''] + chapter_data['frames']  # first item of '' if there are intro notes from the 00.md file
-                for frame_idx, frame_html in enumerate(frames):
+                for frame_idx, obs_text in enumerate(frames):
                     frame_num = str(frame_idx).zfill(2)
                     frame_title = f'{chapter_num}:{frame_num}'
                     notes_file = os.path.join(obs_tn_chapter_dir, f'{frame_num}.md')
@@ -122,7 +122,7 @@ class ObsTnPdfConverter(PdfConverter):
                     if os.path.isfile(notes_file):
                         notes_html = markdown2.markdown_path(notes_file)
                         notes_html = self.increase_headers(notes_html, 3)
-                    if not frame_html and not notes_html:
+                    if not obs_text and not notes_html:
                         continue
 
                     # HANDLE RC LINKS FOR OBS FRAME
@@ -132,13 +132,12 @@ class ObsTnPdfConverter(PdfConverter):
                     notes_rc_link = f'rc://{self.lang_code}/obs-tn/help/{chapter_num}/{frame_num}'
                     notes_rc = self.add_rc(notes_rc_link, title=frame_title, article=notes_html)
 
-                    if frame_html:
-                        frame_html = re.sub(r'[\n\s]+', ' ', frame_html, flags=re.MULTILINE)
+                    if obs_text:
                         if notes_html:
                             phrases = self.get_phrases_to_highlight(notes_html, 'h4')
                             if phrases:
-                                frame_html = self.highlight_text_with_phrases(frame_html, phrases, notes_rc,
-                                                                              TN_TITLES_TO_IGNORE[self.lang_code])
+                                obs_text = self.highlight_text_with_phrases(obs_text, phrases, notes_rc,
+                                                                            TN_TITLES_TO_IGNORE[self.lang_code])
 
                     if frame_idx == len(frames) - 1:
                         if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
@@ -162,10 +161,10 @@ class ObsTnPdfConverter(PdfConverter):
 '''
                     notes_rc.set_article(notes_html)
 
-                    if frame_html:
-                        frame_html = f'''
+                    if obs_text:
+                        obs_text = f'''
             <div id="{frame_rc.article_id}" class="frame-text">
-                {frame_html}
+                {obs_text}
             </div>
 '''
                     if notes_html:
@@ -178,7 +177,7 @@ class ObsTnPdfConverter(PdfConverter):
                     obs_tn_html += f'''
         <div id="{notes_rc.article_id}">
             <h3>{frame_title}</h3>
-            {frame_html}
+            {obs_text}
             {notes_html}
         </div>
 '''
