@@ -1030,10 +1030,7 @@ class PdfConverter:
             rc.set_title(self.get_title_from_html(tw_article_html))
             rc.set_article(tw_article_html)
         else:
-            if source_rc.rc_link not in self.bad_links:
-                self.bad_links[source_rc.rc_link] = {}
-            if rc.rc_link not in self.bad_links[source_rc.rc_link]:
-                self.bad_links[source_rc.rc_link][rc.rc_link] = None
+            self.add_bad_link(source_rc, rc.rc_link)
 
     def fix_tw_links(self, text, group):
         text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', rf'href="rc://{self.lang_code}/tw/dict/bible/{group}/\1"', text,
