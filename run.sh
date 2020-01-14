@@ -9,7 +9,6 @@
 #  Richard Mahn <richard_mahn@wyciffeassociates.org>
 
 set -e
-set -x
 
 my_dir=$(cd $(dirname "$0") && pwd)
 
