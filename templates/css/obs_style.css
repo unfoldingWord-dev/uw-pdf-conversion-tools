@@ -50,7 +50,7 @@ html, body {
 }
 
 .obs-text,
-#license,
+#front,
 #back {
     line-height: 1.2em;
     text-align: justify;

@@ -94,7 +94,7 @@ class ObsPdfConverter(PdfConverter):
         front_path = os.path.join(self.main_resource.repo_dir, 'content', 'front', 'intro.md')
         front_html = markdown2.markdown_path(front_path)
         license_html = f'''
-<article id="license" class="no-footer">
+<article id="front" class="no-footer">
   {front_html}
 </article>
 '''
