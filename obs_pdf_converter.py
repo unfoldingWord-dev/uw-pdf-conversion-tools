@@ -51,6 +51,7 @@ class ObsPdfConverter(PdfConverter):
 '''
             frames = obs_chapter_data['frames']
             for frame_idx in range(0, len(frames), 2):
+                end_of_chapter = frame_idx + 2 > len(frames)
                 frame_image1 = obs_chapter_data['images'][frame_idx]
                 frame_text1 = frames[frame_idx]
                 frame_image2 = None
@@ -59,8 +60,10 @@ class ObsPdfConverter(PdfConverter):
                     frame_image2 = obs_chapter_data['images'][frame_idx + 1]
                     frame_text2 = frames[frame_idx + 1]
                 classes = 'obs-page'
-                if frame_text2 and len(frame_text1 + frame_text2) > 750:
-                    classes += ' smaller-font'
+                if frame_text2:
+                    text_len = len(frame_text1 + frame_text2)
+                    if (text_len > 750 and end_of_chapter) or text_len > 900:
+                        classes += ' smaller-font'
                 obs_html += f'''
 <article class="{classes}">
 '''
