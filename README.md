@@ -8,7 +8,8 @@ NOTE: Python 3 Only
 ```bash
 cd /opt && git clone https://github.com/unfoldingWord-dev/uw-pdf-conversion-tools.git
 cd /opt/uw-pdf-conversion-tools && pip3 install -r requirements.txt
-cd /opt/uw-pdf-conversion-tools && ./run.sh <converter> [-hr] [-l <lang>] [-w <working_dir>] [-o <output_dir>] [-p <project>] [--owner <owner>] [--<resource>-tag <tag>] 
+cd /opt/uw-pdf-conversion-tools
+./run.sh <converter> [-hr] [-l <lang>] [-w <working_dir>] [-o <output_dir>] [-p <project>] [--owner <owner>] [--<resource>-tag <tag>] 
 ```
 
 `<converter>` can be the following:
