@@ -8,10 +8,10 @@ NOTE: Python 3 Only
 ```bash
 cd /opt && git clone https://github.com/unfoldingWord-dev/uw-pdf-conversion-tools.git
 cd /opt/uw-pdf-conversion-tools && pip3 install -r requirements.txt
-cd /opt/uw-pdf-conversion-tools && ./run.sh <resource converter> <arguments>
+cd /opt/uw-pdf-conversion-tools && ./run.sh <converter> [-hr] [-l <lang>] [-
 ```
 
-`resource_converter` can be the following:
+`<converter>` can be the following:
   - obs_pdf_converter
   - obs_sn_pdf_converter
   - obs_sn_sq_pdf_converter
@@ -24,30 +24,38 @@ cd /opt/uw-pdf-conversion-tools && ./run.sh <resource converter> <arguments>
 
 optional arguments:
 ```
-  -h, --help            show this help message and exit
-  -l LANG_CODES, --lang_code LANG_CODES
-                        Language Code(s)
-  -p PROJECT_IDS, --project_id PROJECT_IDS
-                        Project ID(s)
+  -h, --help             show this help message and exit
   -w WORKING_DIR, --working WORKING_DIR
-                        Working Directory
+                         Working Directory. Default: a temp directory that gets
+                        deleted
   -o OUTPUT_DIR, --output OUTPUT_DIR
-                        Output Directory
-  --owner OWNER         Owner
-  -r, --regenerate      Regenerate PDF even if exists
-  --obs-tag OBS
+                         Output Directory. Default: ./
+  -l LANG_CODES, --lang_code LANG_CODES
+                         Language Code(s). Default: en
+  -p PROJECT_IDS, --project_id PROJECT_IDS
+                         Project ID(s) for resources with projects, such as a
+                        Bible book. Default: all
+  --owner OWNER          Owner of the resource repo on GitHub. Default:
+                        unfoldingWord
+  -r, --regenerate       Regenerate PDF even if exists: Default: false
+  --<resource>-tag <tag> For every resource used, you can specify a branch or tag.
+                         Default: master (run `./run.sh <converter> -h` for posible tags)
 ```
 
 # Example
 
-- Run the OBS TN PDF converter for English (default language) but don't generate if already exists in the output dir:
+- Run the OBS SN PDF converter for English (default language) but don't generate if PDF already exists in the output dir:
 
-    `./run.sh obs_tn_pdf_converter -w ~/working -o ~/output`
+    `./run.sh obs_sn_pdf_converter -w ~/working -o ~/output`
 
-- Run the TA PDF converter for English and French and generate even if the latest commit has a HTML and PDF file in the output dir
+- Run the TA PDF converter for English and French and generate even if the latest commit has a PDF file in the output dir
 
-    `./run.sh obs_tn_pdf_converter -w ~/working -o ~/output -l en -l fr -r`
+    `./run.sh ta_pdf_converter -w ~/working -o ~/output -l en -l fr -r`
+
+- Run the OBS TN PDF converter for English and use release versions v6 of OBS TN, v6 of OBS, v11 of TA and v11 of TW.
+
+    `./run.sh obs_tn_pdf_converter -w ~/working -o ~/output -l en --obs-tn-tag v6 --obs-tag v6 --ta-tag v11 --tw-tag v11`
 
 # Notes
-Language being generate must have a locale file in the `./locale` directory. You can copy the `English-en_US.json` file to a new language and update the strings on the right.
-
+ - Language being generate must have a locale file in the `./locale` directory. You can copy the `English-en_US.json` file to a new language and update the strings on the right.
+ - A index.php will be linked to in your output dir to list all of the latest versions of the resources generated

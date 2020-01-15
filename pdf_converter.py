@@ -1045,16 +1045,21 @@ class PdfConverter:
 
 def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('-l', '--lang_code', dest='lang_codes', required=False, help='Language Code(s)',
-                        action='append')
-    parser.add_argument('-p', '--project_id', dest='project_ids', required=False, help='Project ID(s)', action='append')
-    parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False, help='Working Directory')
-    parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False, help='Output Directory')
-    parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False, help='Owner')
+    parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False,
+                        help='Working Directory. Default: a temp directory that gets deleted')
+    parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False,
+                        help='Output Directory. Default: ./')
+    parser.add_argument('-l', '--lang_code', dest='lang_codes', required=False, action='append',
+                        help='Language Code(s). Default: en')
+    parser.add_argument('-p', '--project_id', dest='project_ids', required=False, action='append',
+                        help='Project ID(s) for resources with projects, such as a Bible book. Default: all')
+    parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False,
+                        help=f'Owner of the resource repo on GitHub. Default: {DEFAULT_OWNER}')
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
-                        help='Regenerate PDF even if exists')
+                        help='Regenerate PDF even if exists: Default: false')
     for resource_name in resource_names:
-        parser.add_argument(f'--{resource_name}-tag', dest=resource_name, default=DEFAULT_TAG, required=False)
+        parser.add_argument(f'--{resource_name}-tag', dest=resource_name, default=DEFAULT_TAG, required=False,
+                            help=f'For every resource used, you can specify a branch or tag. Default: {DEFAULT_TAG}')
 
     args = parser.parse_args(sys.argv[1:])
     lang_codes = args.lang_codes
