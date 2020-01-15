@@ -74,11 +74,7 @@ class ObsPdfConverter(PdfConverter):
                 obs_html += '''
 </article>
 '''
-        obs_html += self.get_back_html()
         return obs_html
-
-    def get_contributors_html(self):
-        return ''
 
     def get_cover_html(self):
         cover_html = f'''
@@ -100,7 +96,7 @@ class ObsPdfConverter(PdfConverter):
 '''
         return license_html
 
-    def get_back_html(self):
+    def get_contributors_html(self):
         back_path = os.path.join(self.main_resource.repo_dir, 'content', 'back', 'intro.md')
         back_html = markdown2.markdown_path(back_path)
         back_html = f'''
