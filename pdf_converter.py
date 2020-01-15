@@ -1045,12 +1045,12 @@ class PdfConverter:
 
 def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-l', '--lang_code', dest='lang_codes', required=False, action='append',
+                        help='Language Code(s). Default: en')
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False,
                         help='Working Directory. Default: a temp directory that gets deleted')
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False,
                         help='Output Directory. Default: ./')
-    parser.add_argument('-l', '--lang_code', dest='lang_codes', required=False, action='append',
-                        help='Language Code(s). Default: en')
     parser.add_argument('-p', '--project_id', dest='project_ids', required=False, action='append',
                         help='Project ID(s) for resources with projects, such as a Bible book. Default: all')
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False,

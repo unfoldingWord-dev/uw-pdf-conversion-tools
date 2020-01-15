@@ -8,7 +8,7 @@ NOTE: Python 3 Only
 ```bash
 cd /opt && git clone https://github.com/unfoldingWord-dev/uw-pdf-conversion-tools.git
 cd /opt/uw-pdf-conversion-tools && pip3 install -r requirements.txt
-cd /opt/uw-pdf-conversion-tools && ./run.sh <converter> [-hr] [-l <lang>] [-
+cd /opt/uw-pdf-conversion-tools && ./run.sh <converter> [-hr] [-l <lang>] [-w <working_dir>] [-o <output_dir>] [-p <project>] [--owner <owner>] [--<resource>-tag <tag>] 
 ```
 
 `<converter>` can be the following:
@@ -25,13 +25,13 @@ cd /opt/uw-pdf-conversion-tools && ./run.sh <converter> [-hr] [-l <lang>] [-
 optional arguments:
 ```
   -h, --help             show this help message and exit
+  -l LANG_CODES, --lang_code LANG_CODES
+                         Language Code(s). Default: en
   -w WORKING_DIR, --working WORKING_DIR
                          Working Directory. Default: a temp directory that gets
                         deleted
   -o OUTPUT_DIR, --output OUTPUT_DIR
                          Output Directory. Default: ./
-  -l LANG_CODES, --lang_code LANG_CODES
-                         Language Code(s). Default: en
   -p PROJECT_IDS, --project_id PROJECT_IDS
                          Project ID(s) for resources with projects, such as a
                         Bible book. Default: all
