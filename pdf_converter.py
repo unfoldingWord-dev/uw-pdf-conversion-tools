@@ -93,7 +93,8 @@ class PdfConverter:
         if self.logger_handler:
             self.logger.removeHandler(self.logger_handler)
         if self.weasyprint_logger_handler:
-            LOGGER.removeHandler(self.weasyprint_logger_handler)
+            logger = logging.getLogger('weasyprint')
+            logger.removeHandler(self.weasyprint_logger_handler)
 
     @property
     def name(self):
@@ -250,7 +251,7 @@ class PdfConverter:
         subprocess.call(f'ln -sf "{index_path}" "{self.output_dir}"', shell=True)
 
     def setup_logging_to_file(self):
-        LOGGER.setLevel('INFO')  # Set to 'INFO' for debugging
+        self.logger.setLevel('INFO')  # Set to 'INFO' for debugging
 
         log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_logger.log')
         self.logger_handler = logging.FileHandler(log_file)
@@ -258,9 +259,11 @@ class PdfConverter:
         link_file_path = os.path.join(self.log_dir, f'{self.file_base_id}_logger.log')
         subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
+        logger = logging.getLogger('weasyprint')
+        logger.setLevel(logging.INFO)
         log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_weasyprint.log')
         self.weasyprint_logger_handler = logging.FileHandler(log_file)
-        LOGGER.addHandler(self.weasyprint_logger_handler)
+        logger.addHandler(self.weasyprint_logger_handler)
         link_file_path = os.path.join(self.log_dir, f'{self.file_base_id}_weasyprint.log')
         subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
