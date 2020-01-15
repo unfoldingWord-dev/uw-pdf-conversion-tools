@@ -51,24 +51,41 @@ class ObsPdfConverter(PdfConverter):
 '''
             frames = obs_chapter_data['frames']
             for frame_idx in range(0, len(frames), 2):
-                obs_html += '''
-<article class="obs-page">
+                frame_image1 = obs_chapter_data['images'][frame_idx]
+                frame_text1 = frames[frame_idx]
+                frame_image2 = None
+                frame_text2 = None
+                if frame_idx + 1 < len(frames):
+                    frame_image2 = obs_chapter_data['images'][frame_idx + 1]
+                    frame_text2 = frames[frame_idx + 1]
+                classes = 'obs-page'
+                if frame_text2 and len(frame_text1 + frame_text2) > 750:
+                    classes += ' smaller-font'
+                obs_html += f'''
+<article class="{classes}">
 '''
-                for offset in range(0, 2 if len(frames) > frame_idx + 1 else 1):
-                    image = obs_chapter_data['images'][frame_idx + offset]
-                    frame_num = str(frame_idx + offset + 1).zfill(2)
-                    obs_html += f'''
-    <div class="obs-frame no-break obs-frame-{'odd' if offset == 0 else 'even'}">
-        <img src="{image}" class="obs-img no-break"/>
+                obs_html += f'''
+    <div class="obs-frame no-break obs-frame-odd">
+        <img src="{frame_image1}" class="obs-img"/>
         <div class="obs-text no-break">
-            {frames[frame_idx + offset]}
+            {frame_text1}
         </div>
 '''
-                    if frame_idx + offset + 1 == len(frames):
-                        obs_html += f'''
+                if frame_text2:
+                    obs_html += f'''
+    </div>
+    <div class="obs-frame no-break obs-frame-even">
+        <img src="{frame_image2}" class="obs-img"/>
+        <div class="obs-text no-break">
+            {frame_text2}
+        </div>
+'''
+
+                if frame_idx + 2 >= len(frames):
+                    obs_html += f'''
         <div class="bible-reference no-break">{obs_chapter_data['bible_reference']}</div>
 '''
-                    obs_html += '''
+                obs_html += '''
     </div>
 '''
                 obs_html += '''

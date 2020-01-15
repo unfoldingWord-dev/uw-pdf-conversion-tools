@@ -88,3 +88,7 @@ article .section-header {
     padding: 5px 0 0 0 !important;
     font-size: 10px;
 }
+
+.smaller-font .obs-text {
+    font-size: 11px !important;
+}
