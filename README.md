@@ -39,7 +39,7 @@ optional arguments:
                         unfoldingWord
   -r, --regenerate       Regenerate PDF even if exists: Default: false
   --<resource>-tag <tag> For every resource used, you can specify a branch or tag.
-                         Default: master (run `./run.sh <converter> -h` for posible tags)
+                         Default: master (run `./run.sh <converter> -h` for possible tags)
 ```
 
 # Examples
