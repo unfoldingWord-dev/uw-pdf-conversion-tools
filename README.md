@@ -25,20 +25,24 @@ cd /opt/uw-pdf-conversion-tools
 
 optional arguments:
 ```
-  -h, --help             show this help message and exit
-  -r, --regenerate       Regenerate PDF even if exists: Default: false
-  -l LANG_CODES, --lang_code LANG_CODES
-                         Language Code(s). Default: en
+  -h, --help            show this help message and exit
+  -r, --regenerate      Regenerate PDF even if exists: Default: false
+  -l LANG_CODE, --lang_code LANG_CODE
+                        Language Code. Can specify multiple -l's. Default: en
+  -p PROJECT_ID, --project_id PROJECT_ID
+                        Project ID for resources with projects, such as a
+                        Bible book. Can specify multiple -p's. Default: all
   -w WORKING_DIR, --working WORKING_DIR
-                         Working Directory. Default: a temp directory that gets
+                        Working Directory. Default: a temp directory that gets
                         deleted
   -o OUTPUT_DIR, --output OUTPUT_DIR
-                         Output Directory. Default: ./
-  -p PROJECT_IDS, --project_id PROJECT_IDS
-                         Project ID(s) for resources with projects, such as a
-                        Bible book. Default: all
-  --owner OWNER          Owner of the resource repo on GitHub. Default:
+                        Output Directory. Default: <current directory>
+  --owner OWNER         Owner of the resource repo on GitHub. Default:
                         unfoldingWord
+  --obs-sq-tag OBS-SQ   For every resource used, you can specify a branch or
+                        tag. Default: master
+  --obs-tag OBS         For every resource used, you can specify a branch or
+                        tag. Default: master
   --<resource>-tag <tag> For every resource used, you can specify a branch or tag.
                          Default: master (run `./run.sh <converter> -h` for possible tags)
 ```

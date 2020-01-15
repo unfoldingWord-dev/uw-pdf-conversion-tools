@@ -1047,14 +1047,14 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
                         help='Regenerate PDF even if exists: Default: false')
-    parser.add_argument('-l', '--lang_code', dest='lang_codes', required=False, action='append',
-                        help='Language Code(s). Default: en')
+    parser.add_argument('-l', '--lang_code', dest='lang_code', required=False, action='append',
+                        help='Language Code. Can specify multiple -l\'s. Default: en')
+    parser.add_argument('-p', '--project_id', dest='project_id', required=False, action='append',
+                        help='Project ID for resources with projects, such as a Bible book. Can specify multiple -p\'s. Default: all')
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False,
                         help='Working Directory. Default: a temp directory that gets deleted')
     parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False,
-                        help='Output Directory. Default: ./')
-    parser.add_argument('-p', '--project_id', dest='project_ids', required=False, action='append',
-                        help='Project ID(s) for resources with projects, such as a Bible book. Default: all')
+                        help='Output Directory. Default: <current directory>')
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False,
                         help=f'Owner of the resource repo on GitHub. Default: {DEFAULT_OWNER}')
     for resource_name in resource_names:
@@ -1062,8 +1062,8 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                             help=f'For every resource used, you can specify a branch or tag. Default: {DEFAULT_TAG}')
 
     args = parser.parse_args(sys.argv[1:])
-    lang_codes = args.lang_codes
-    project_ids = args.project_ids
+    lang_codes = args.lang_code
+    project_ids = args.project_id
     working_dir = args.working_dir
     output_dir = args.output_dir
     owner = args.owner
