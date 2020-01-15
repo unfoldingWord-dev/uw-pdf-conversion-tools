@@ -287,12 +287,16 @@ class PdfConverter:
             with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
                 html_template = string.Template(template_file.read())
             title = f'{self.title} - v{self.version}'
-            link = ''
-            resource_style_file = os.path.join(self.output_res_dir, f'css/{self.name}_style.css')
-            if os.path.isfile(resource_style_file):
-                link = f'<link href="css/{self.name}_style.css" rel="stylesheet">'
+
+            links = []
+            possible_styles = [self.lang_code, self.name, f'{self.lang_code}_{self.name}']
+            for style in possible_styles:
+                style_file = os.path.join(self.output_res_dir, f'css/{style}_style.css')
+                if os.path.isfile(style_file):
+                    links.append(f'<link href="css/{style}_style.css" rel="stylesheet">')
+
             body = '\n'.join([cover_html, license_html, toc_html, body_html])
-            html = html_template.safe_substitute(title=title, link=link, body=body)
+            html = html_template.safe_substitute(lang=self.lang_code, title=title, link='\n'.join(links), body=body)
             write_file(self.html_file, html)
 
             link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}.html')
