@@ -26,6 +26,7 @@ cd /opt/uw-pdf-conversion-tools
 optional arguments:
 ```
   -h, --help             show this help message and exit
+  -r, --regenerate       Regenerate PDF even if exists: Default: false
   -l LANG_CODES, --lang_code LANG_CODES
                          Language Code(s). Default: en
   -w WORKING_DIR, --working WORKING_DIR
@@ -38,7 +39,6 @@ optional arguments:
                         Bible book. Default: all
   --owner OWNER          Owner of the resource repo on GitHub. Default:
                         unfoldingWord
-  -r, --regenerate       Regenerate PDF even if exists: Default: false
   --<resource>-tag <tag> For every resource used, you can specify a branch or tag.
                          Default: master (run `./run.sh <converter> -h` for possible tags)
 ```
