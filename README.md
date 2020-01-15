@@ -42,7 +42,7 @@ optional arguments:
                          Default: master (run `./run.sh <converter> -h` for posible tags)
 ```
 
-# Example
+# Examples
 
 - Run the OBS SN PDF converter for English (default language) but don't generate if PDF already exists in the output dir:
 
