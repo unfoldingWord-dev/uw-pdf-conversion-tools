@@ -39,10 +39,6 @@ optional arguments:
                         Output Directory. Default: <current directory>
   --owner OWNER         Owner of the resource repo on GitHub. Default:
                         unfoldingWord
-  --obs-sq-tag OBS-SQ   For every resource used, you can specify a branch or
-                        tag. Default: master
-  --obs-tag OBS         For every resource used, you can specify a branch or
-                        tag. Default: master
   --<resource>-tag <tag> For every resource used, you can specify a branch or tag.
                          Default: master (run `./run.sh <converter> -h` for possible tags)
 ```
