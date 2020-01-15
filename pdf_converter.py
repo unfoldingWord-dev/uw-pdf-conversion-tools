@@ -175,10 +175,11 @@ class PdfConverter:
         if source_rc:
             if source_rc.rc_link not in self.bad_links:
                 self.bad_links[source_rc.rc_link] = {
-                    'source_rc': source_rc
+                    'source_rc': source_rc,
+                    'bad_links': {}
                 }
             if bad_rc_link not in self.bad_links[source_rc.rc_link] or fix:
-                self.bad_links[source_rc.rc_link][bad_rc_link] = fix
+                self.bad_links[source_rc.rc_link]['bad_links'][bad_rc_link] = fix
 
     def add_bad_highlight(self, source_rc, text, bad_highlights):
         if source_rc:
@@ -337,18 +338,19 @@ class PdfConverter:
 '''
         for source_rc_link in sorted(self.bad_links.keys()):
             source_rc = self.bad_links[source_rc_link]['source_rc']
-            for rc_link in sorted(self.bad_links[source_rc_link].keys()):
-                line = f'''
+            bad_links = self.bad_links[source_rc_link]['bad_links']
+            for rc_link in sorted(bad_links.keys()):
+                bad_links_html = f'''
     <li>
         <a href="{os.path.basename(self.html_file)}#{source_rc.article_id}" title="See in the HTML" target="{self.name}-html">
             {source_rc_link}
         </a>: 
         BAD RC - `{rc_link}`
 '''
-                if self.bad_links[source_rc_link][rc_link]:
-                    line += f' - {self.bad_links[source_rc_link][rc_link]}'
+                if bad_links[rc_link]:
+                    message = bad_links[rc_link]
+                    bad_links_html += f' - {message}'
                 bad_links_html += f'''
-        {line}
     </li>
 '''
         bad_links_html += '''
@@ -649,13 +651,15 @@ class PdfConverter:
         processed_text = ''
         to_process_text = text
         for idx, part in enumerate(parts):
-            if not part.strip():
+            part = part.strip()
+            if not part:
                 continue
-            escaped_part = re.escape(part)
-            if '<span' in text:
-                split_pattern = '(' + re.sub('(\\\\ +)', r'(\\s+|(\\s*</*span[^>]*>\\s*)+)', escaped_part) + ')'
+            if '<span' in to_process_text:
+                words = re.findall(r'\w+|\W+', part)
+                words = [re.escape(word.strip()) for word in words]
+                split_pattern = '(' + r'(\s*|(\s*</*span[^>]*>\s*)+)'.join(words) + ')'
             else:
-                split_pattern = '(' + escaped_part + ')'
+                split_pattern = '(' + re.escape(part) + ')'
             split_pattern += '(?![^<]*>)'  # don't match within HTML tags
             splits = re.split(split_pattern, to_process_text, 1)
             processed_text += splits[0]
