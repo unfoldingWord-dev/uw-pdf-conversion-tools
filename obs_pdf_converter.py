@@ -18,6 +18,7 @@ from general_tools.file_utils import read_file
 from general_tools import obs_tools
 from weasyprint import HTML
 
+
 class ObsPdfConverter(PdfConverter):
 
     def __init__(self, *args, **kwargs):
