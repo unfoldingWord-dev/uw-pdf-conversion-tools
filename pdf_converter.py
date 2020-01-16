@@ -82,20 +82,25 @@ class PdfConverter:
         if not self.logger:
             self.logger = logging.getLogger(self.file_base_id)
             self.logger.setLevel(logging.DEBUG)
-            ch = logging.StreamHandler()
-            ch.setLevel(logging.DEBUG)
+            self.logger_stream_handler = logging.StreamHandler()
+            self.logger_stream_handler.setLevel(logging.DEBUG)
             formatter = logging.Formatter('%(levelname)s - %(message)s')
-            ch.setFormatter(formatter)
-            self.logger.addHandler(ch)
+            self.logger_stream_handler.setFormatter(formatter)
+            self.logger.addHandler(self.logger_stream_handler)
 
     def __del__(self):
         if self.remove_working_dir:
             shutil.rmtree(self.working_dir)
         if self.logger_handler:
             self.logger.removeHandler(self.logger_handler)
+            self.logger_handler.close()
+        if self.logger_stream_handler:
+            self.logger.removeHandler(self.logger_stream_handler)
+            self.logger_stream_handler.close()
         if self.wp_logger_handler:
             wp_logger = logging.getLogger('weasyprint')
             wp_logger.removeHandler(self.wp_logger_handler)
+            self.wp_logger_handler.close()
 
     @property
     def name(self):
