@@ -120,7 +120,7 @@ class ObsPdfConverter(PdfConverter):
         back_path = os.path.join(self.main_resource.repo_dir, 'content', 'back', 'intro.md')
         back_html = markdown2.markdown_path(back_path)
         back_html = f'''
-<article id="back" class="no-footer">
+<article id="back" class="obs-page">
   {back_html}
 </article>
 '''
