@@ -19,7 +19,8 @@
     font-style: italic;
 }
 
-ol, p {
+section article ol,
+section article p {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
 }

@@ -13,6 +13,7 @@ This script generates the HTML and PDF OBS SN & SQ documents
 import os
 import re
 import markdown2
+from bs4 import BeautifulSoup
 from pdf_converter import PdfConverter, run_converter
 from general_tools import obs_tools
 
@@ -118,15 +119,19 @@ class ObsSnSqPdfConverter(PdfConverter):
     </section>
 '''
             if os.path.isfile(sq_chapter_file):
-                obs_sq_title = f'{chapter_title} - {self.translate("study_questions")}'
+                obs_sq_title = f'{self.translate("study_questions")}'
                 obs_sq_html = markdown2.markdown_path(sq_chapter_file)
-                obs_sq_html = self.increase_headers(obs_sq_html, 3)
+                obs_sq_html = self.increase_headers(obs_sq_html, 2)
+                soup = BeautifulSoup(obs_sq_html, 'html.parser')
+                header = soup.find(re.compile(r'^h\d'))
+                header.decompose()
+                obs_sq_html = str(soup)
                 # HANDLE RC LINKS FOR OBS SQ
                 obs_sq_rc_link = f'rc://{self.lang_code}/obs-sq/help/obs/{chapter_num}'
                 obs_sq_rc = self.add_rc(obs_sq_rc_link, title=obs_sq_title, article=obs_sq_html)
                 obs_sn_sq_html += f'''
         <article id="{obs_sq_rc.article_id}">
-          <h3 class="section-header">{self.translate('study_questions')}</h3>
+          <h3 class="section-header">{obs_sq_title}</h3>
           {obs_sq_html}
         </article>
     </section>
