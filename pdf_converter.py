@@ -58,6 +58,7 @@ class PdfConverter:
         self.logger = logger
 
         self.logger_handler = None
+        self.wp_logger = logging.getLogger('weasyprint')
         self.wp_logger_handler = None
 
         self.save_dir = None
@@ -98,8 +99,7 @@ class PdfConverter:
             self.logger.removeHandler(self.logger_stream_handler)
             self.logger_stream_handler.close()
         if self.wp_logger_handler:
-            wp_logger = logging.getLogger('weasyprint')
-            wp_logger.removeHandler(self.wp_logger_handler)
+            self.wp_logger.removeHandler(self.wp_logger_handler)
             self.wp_logger_handler.close()
 
     @property
@@ -268,16 +268,16 @@ class PdfConverter:
         log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_logger.log')
         self.logger_handler = logging.FileHandler(log_file)
         self.logger.addHandler(self.logger_handler)
+
         link_file_path = os.path.join(self.log_dir, f'{self.file_base_id}_logger.log')
         subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
-        logger = logging.getLogger('weasyprint')
-        if self.wp_logger_handler:
-            self.logger.removeHandler(self.weas)
-        logger.setLevel(logging.INFO)
+        self.wp_logger.setLevel(logging.DEBUG)
         log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_weasyprint.log')
         self.wp_logger_handler = logging.FileHandler(log_file)
-        logger.addHandler(self.wp_logger_handler)
+        self.wp_logger_handler.setLevel(logging.DEBUG)
+        self.wp_logger.addHandler(self.wp_logger_handler)
+
         link_file_path = os.path.join(self.log_dir, f'{self.file_base_id}_weasyprint.log')
         subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
@@ -332,8 +332,8 @@ class PdfConverter:
     def generate_pdf(self):
         if self.regenerate or not os.path.exists(self.pdf_file):
             self.logger.info(f'Generating PDF file {self.pdf_file}...')
-            weasy = HTML(filename=self.html_file, base_url=f'file://{self.output_res_dir}/')
-            weasy.write_pdf(self.pdf_file)
+            # Convert HTML to PDF with weasyprint
+            HTML(filename=self.html_file, base_url=f'file://{self.output_res_dir}/').write_pdf(self.pdf_file)
             self.logger.info('Generated PDF file.')
             self.logger.info(f'PDF file located at {self.pdf_file}')
 
@@ -505,14 +505,14 @@ class PdfConverter:
             return {}
 
     def download_all_images(self, html):
-        img_dir = os.path.join(self.images_dir, f'{self.main_resource.repo_name}_images')
+        img_dir = os.path.join(self.images_dir, 'downloaded')
         os.makedirs(img_dir, exist_ok=True)
         soup = BeautifulSoup(html, 'html.parser')
         for img in soup.find_all('img'):
             if img['src'].startswith('http'):
                 url = img['src']
                 filename = re.search(r'/([\w_-]+[.](jpg|gif|png))$', url).group(1)
-                img['src'] = f'images/{self.main_resource.repo_name}_images/{filename}'
+                img['src'] = f'images/downloaded/{filename}'
                 filepath = os.path.join(img_dir, filename)
                 if not os.path.exists(filepath):
                     with open(filepath, 'wb') as f:
