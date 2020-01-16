@@ -42,6 +42,7 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
 '''
         for chapter in range(1, 51):
             chapter_num = str(chapter).zfill(2)
+            sn_chapter_dir = os.path.join(self.resources['obs-sn'].repo_dir, 'content', chapter_num)
             chapter_data = obs_tools.get_obs_chapter_data(self.resources['obs'].repo_dir, chapter_num)
             obs_sn_html += f'<article id="{self.lang_code}-obs-sn-{chapter_num}">\n\n'
             obs_sn_html += f'<h2 class="section-header">{chapter_data["title"]}</h2>\n'
@@ -52,11 +53,10 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
             for frame_idx, obs_text in enumerate(chapter_data['frames']):
                 frame_num = str(frame_idx+1).zfill(2)
                 frame_title = f'{chapter_num}:{frame_num}'
+                obs_sn_file = os.path.join(sn_chapter_dir, f'{frame_num}.md')
 
-                frame_notes_file = os.path.join(self.resources['obs-sn'].repo_dir, 'content', chapter_num,
-                                                f'{frame_num}.md')
-                if os.path.isfile(frame_notes_file):
-                    notes_html = markdown2.markdown_path(frame_notes_file)
+                if os.path.isfile(obs_sn_file):
+                    notes_html = markdown2.markdown_path(obs_sn_file)
                     notes_html = self.increase_headers(notes_html, 3)
                 else:
                     no_study_notes = self.translate('no_study_notes_for_this_frame')
