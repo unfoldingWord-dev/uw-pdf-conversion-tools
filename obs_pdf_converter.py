@@ -68,7 +68,6 @@ class ObsPdfConverter(PdfConverter):
             <img src="{frame_image1}" class="obs-img"/>
             <div class="obs-text no-break" style="font-size: {font_size}px">
                 {frame_text1}
-                {frame_text1}
             </div>
 '''
                     if frame_text2:
@@ -77,7 +76,6 @@ class ObsPdfConverter(PdfConverter):
         <div class="obs-frame no-break obs-frame-even">
             <img src="{frame_image2}" class="obs-img"/>
             <div class="obs-text no-break" style="font-size: {font_size}px">
-                {frame_text2}
                 {frame_text2}
             </div>
 '''
