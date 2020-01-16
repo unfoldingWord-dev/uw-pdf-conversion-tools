@@ -52,7 +52,7 @@ class ObsPdfConverter(PdfConverter):
 '''
             frames = obs_chapter_data['frames']
             for frame_idx in range(0, len(frames), 2):
-                end_of_chapter = frame_idx + 2 > len(frames)
+                end_of_chapter = frame_idx + 2 >= len(frames)
                 frame_image1 = obs_chapter_data['images'][frame_idx]
                 frame_text1 = frames[frame_idx]
                 frame_image2 = None
