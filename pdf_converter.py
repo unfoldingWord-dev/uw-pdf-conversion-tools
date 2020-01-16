@@ -870,6 +870,7 @@ class PdfConverter:
                     self.crawl_ta_tw_deep_linking(rc)
                 else:
                     self.add_bad_link(source_rc, rc.rc_link)
+                    self.logger.error(f'LINK TO UNKNOWN RESOURCE FOUND IN {source_rc.rc_link}: {rc.rc_link}')
                     del self.appendix_rcs[rc.rc_link]
 
     def get_appendix_html(self, resource):
@@ -903,14 +904,14 @@ class PdfConverter:
         if os.path.isfile(article_file):
             article_file_html = markdown2.markdown_path(article_file, extras=['markdown-in-html', 'tables'])
         else:
-            self.logger.error("NO FILE AT {0}".format(article_file))
+            message = 'no corresponding article found'
             if os.path.isdir(article_dir):
                 if not os.path.isfile(article_file):
-                    self.add_bad_link(source_rc, rc.rc_link, 'dir exists but no 01.md file')
+                    message = 'dir exists but no 01.md file'
                 else:
-                    self.add_bad_link(source_rc, rc.rc_link, '01.md file exists but no content')
-            else:
-                self.add_bad_link(source_rc, rc.rc_link, 'no corresponding article found')
+                    message = '01.md file exists but no content'
+            self.add_bad_link(source_rc, rc.rc_link, message)
+            self.logger.error(f'TA ARTICLE NOT FOUND: {article_file} - {message}')
             return
         top_box = ''
         bottom_box = ''
@@ -964,6 +965,7 @@ class PdfConverter:
                                 break
                     if not os.path.exists(rec_article_dir):
                         self.add_bad_link(rc, f'{rc.project}/config.yaml:::{rc.path}:::recommended:::{recommended}')
+                        self.logger.error(f'{rc.project}/config.yaml RECOMMENDED NOT FOUND FOR {rc.rc_link}: {recommended}')
                         continue
                     lis += f'''
                     <li>[[rc://{self.lang_code}/ta/man/{rec_project}/{recommended}]]</li>
@@ -1045,6 +1047,7 @@ class PdfConverter:
         if os.path.isfile(file_path):
             if fix:
                 self.add_bad_link(source_rc, rc.rc_link, fix)
+                self.logger.error(f'FIX FOUND FOR FOR TW ARTICLE IN {source_rc.rc_link}: {rc.rc_link} => {fix}')
             tw_article_html = markdown2.markdown_path(file_path)
             tw_article_html = self.make_first_header_section_header(tw_article_html)
             tw_article_html = self.increase_headers(tw_article_html)
@@ -1058,6 +1061,7 @@ class PdfConverter:
             rc.set_article(tw_article_html)
         else:
             self.add_bad_link(source_rc, rc.rc_link)
+            self.logger.error(f'TW ARTICLE NOT FOUND: {file_path}')
 
     def fix_tw_links(self, text, group):
         text = re.sub(r'href="\.\./([^/)]+?)(\.md)*"', rf'href="rc://{self.lang_code}/tw/dict/bible/{group}/\1"', text,
