@@ -61,12 +61,13 @@ class ObsPdfConverter(PdfConverter):
                     frame_image2 = obs_chapter_data['images'][frame_idx + 1]
                     frame_text2 = frames[frame_idx + 1]
                 font_size = 12.5
-                while frame_text2:
+                while True:
                     page_html = f'''
     <article class="obs-page">
         <div class="obs-frame no-break obs-frame-odd">
             <img src="{frame_image1}" class="obs-img"/>
             <div class="obs-text no-break" style="font-size: {font_size}px">
+                {frame_text1}
                 {frame_text1}
             </div>
 '''
@@ -76,6 +77,7 @@ class ObsPdfConverter(PdfConverter):
         <div class="obs-frame no-break obs-frame-even">
             <img src="{frame_image2}" class="obs-img"/>
             <div class="obs-text no-break" style="font-size: {font_size}px">
+                {frame_text2}
                 {frame_text2}
             </div>
 '''
