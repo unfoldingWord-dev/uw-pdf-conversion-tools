@@ -361,14 +361,16 @@ class PdfConverter:
             for rc_link in sorted(bad_links.keys()):
                 bad_links_html += f'''
     <li>
-        <a href="{os.path.basename(self.html_file)}#{source_rc.article_id}" title="See in the HTML" target="{self.name}-html">
+        In article <a href="{os.path.basename(self.html_file)}#{source_rc.article_id}" title="See in the HTML" target="{self.name}-html">
             {source_rc_link}
-        </a>: 
-        BAD RC - `{rc_link}`
+        </a>:
+        BAD RC LINK: `{rc_link}`
 '''
                 if bad_links[rc_link]:
                     message = bad_links[rc_link]
-                    bad_links_html += f' - {message}'
+                else:
+                    message = 'linked article not found'
+                bad_links_html += f' - {message}'
                 bad_links_html += f'''
     </li>
 '''
