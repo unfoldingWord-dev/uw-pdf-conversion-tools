@@ -60,13 +60,13 @@ class ObsPdfConverter(PdfConverter):
                 if frame_idx + 1 < len(frames):
                     frame_image2 = obs_chapter_data['images'][frame_idx + 1]
                     frame_text2 = frames[frame_idx + 1]
-                font_size = 12.5
+                font_size = 1.0
                 while True:
                     page_html = f'''
     <article class="obs-page">
         <div class="obs-frame no-break obs-frame-odd">
             <img src="{frame_image1}" class="obs-img"/>
-            <div class="obs-text no-break" style="font-size: {font_size}px">
+            <div class="obs-text no-break" style="font-size: {font_size}em">
                 {frame_text1}
             </div>
 '''
@@ -75,13 +75,13 @@ class ObsPdfConverter(PdfConverter):
         </div>
         <div class="obs-frame no-break obs-frame-even">
             <img src="{frame_image2}" class="obs-img"/>
-            <div class="obs-text no-break" style="font-size: {font_size}px">
+            <div class="obs-text no-break" style="font-size: {font_size}em">
                 {frame_text2}
             </div>
 '''
                     if end_of_chapter:
                         page_html += f'''
-            <div class="bible-reference no-break"  style="font-size: {font_size-1}px">{obs_chapter_data['bible_reference']}</div>
+            <div class="bible-reference no-break"  style="font-size: {font_size-.1}em">{obs_chapter_data['bible_reference']}</div>
 '''
                     page_html += '''
         </div>
@@ -90,7 +90,7 @@ class ObsPdfConverter(PdfConverter):
                     page_html = self.download_all_images(page_html)
                     pages = HTML(string=page_html, base_url=self.output_res_dir).render(stylesheets=stylesheets).pages
                     if len(pages) > 1:
-                        font_size -= .5
+                        font_size -= .05
                     else:
                         obs_html += page_html
                         break
