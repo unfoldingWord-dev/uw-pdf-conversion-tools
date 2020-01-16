@@ -359,7 +359,7 @@ class PdfConverter:
             source_rc = self.bad_links[source_rc_link]['source_rc']
             bad_links = self.bad_links[source_rc_link]['bad_links']
             for rc_link in sorted(bad_links.keys()):
-                bad_links_html = f'''
+                bad_links_html += f'''
     <li>
         <a href="{os.path.basename(self.html_file)}#{source_rc.article_id}" title="See in the HTML" target="{self.name}-html">
             {source_rc_link}
