@@ -58,7 +58,7 @@ class PdfConverter:
         self.logger = logger
 
         self.logger_handler = None
-        self.weasyprint_logger_handler = None
+        self.wp_logger_handler = None
 
         self.save_dir = None
         self.log_dir = None
@@ -80,7 +80,7 @@ class PdfConverter:
         self.style_sheets = ['css/style.css']
 
         if not self.logger:
-            self.logger = logging.getLogger()
+            self.logger = logging.getLogger(self.file_base_id)
             self.logger.setLevel(logging.DEBUG)
             ch = logging.StreamHandler()
             ch.setLevel(logging.DEBUG)
@@ -93,9 +93,9 @@ class PdfConverter:
             shutil.rmtree(self.working_dir)
         if self.logger_handler:
             self.logger.removeHandler(self.logger_handler)
-        if self.weasyprint_logger_handler:
-            logger = logging.getLogger('weasyprint')
-            logger.removeHandler(self.weasyprint_logger_handler)
+        if self.wp_logger_handler:
+            wp_logger = logging.getLogger('weasyprint')
+            wp_logger.removeHandler(self.wp_logger_handler)
 
     @property
     def name(self):
@@ -267,12 +267,12 @@ class PdfConverter:
         subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
         logger = logging.getLogger('weasyprint')
-        if self.weasyprint_logger_handler:
+        if self.wp_logger_handler:
             self.logger.removeHandler(self.weas)
         logger.setLevel(logging.INFO)
         log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_weasyprint.log')
-        self.weasyprint_logger_handler = logging.FileHandler(log_file)
-        logger.addHandler(self.weasyprint_logger_handler)
+        self.wp_logger_handler = logging.FileHandler(log_file)
+        logger.addHandler(self.wp_logger_handler)
         link_file_path = os.path.join(self.log_dir, f'{self.file_base_id}_weasyprint.log')
         subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
@@ -1115,3 +1115,4 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
             project_id_str = f'_{project_id}' if project_id else ''
             converter.logger.info(f'Starting PDF Converter for {resources.main.repo_name}_{resources.main.tag}{project_id_str}...')
             converter.run()
+            del converter
