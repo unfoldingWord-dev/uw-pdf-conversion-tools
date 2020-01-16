@@ -87,6 +87,7 @@ class ObsPdfConverter(PdfConverter):
         </div>
     </article>
 '''
+                    page_html = self.download_all_images(page_html)
                     pages = HTML(string=page_html).render(stylesheets=stylesheets).pages
                     if len(pages) > 1:
                         font_size -= .5
