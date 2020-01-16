@@ -18,3 +18,8 @@
 .obs-frame-text {
     font-style: italic;
 }
+
+ol, p {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+}

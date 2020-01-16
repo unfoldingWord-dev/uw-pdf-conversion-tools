@@ -48,9 +48,14 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
             chapter_html = markdown2.markdown_path(file)
             chapter_html = self.increase_headers(chapter_html)
             soup = BeautifulSoup(chapter_html, 'html.parser')
-            header = soup.find(re.compile(r'^h\d'))
-            title = header.text
-            header['class'] = 'section-header'
+            headers = soup.find_all(re.compile(r'^h\d'))
+            top_header = headers[0]
+            title = top_header.text
+            header_count = 1
+            for header in headers:
+                header['class'] = 'section-header'
+                header['id'] = f'{self.lang_code}-obs-sq-{chapter_num}-{header_count}'
+                header_count += 1
             # HANDLE OBS SQ RC CHAPTER LINKS
             obs_sq_rc_link = f'rc://{self.lang_code}/obs-sq/help/{chapter_num}'
             obs_sq_rc = self.add_rc(obs_sq_rc_link, title=title, article=chapter_html)
@@ -74,13 +79,13 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
     </div>
 '''
                 frames_html += '</div>\n'
-                header.insert_after(BeautifulSoup(frames_html, 'html.parser'))
+                top_header.insert_after(BeautifulSoup(frames_html, 'html.parser'))
                 bible_reference_html = f'''
     <div class="bible-reference">
         {chapter_data['bible_reference']}
     </div>
 '''
-                header.insert_after(BeautifulSoup(bible_reference_html, 'html.parser'))
+                top_header.insert_after(BeautifulSoup(bible_reference_html, 'html.parser'))
 
             article_html = f'''
     <article id="{obs_sq_rc.article_id}">
