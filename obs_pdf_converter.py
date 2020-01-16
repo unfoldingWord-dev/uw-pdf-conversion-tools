@@ -11,6 +11,7 @@
 This script generates the HTML and PDF for OBS
 """
 import os
+import string
 import markdown2
 from pdf_converter import PdfConverter, run_converter
 from general_tools.file_utils import read_file
@@ -34,6 +35,40 @@ class ObsPdfConverter(PdfConverter):
     def toc_title(self):
         return f'<h1>{self.main_resource.simple_title}</h1>'
 
+    def get_page_template(self, obs_chapter_data, frame_idx):
+        frame_image1 = obs_chapter_data['images'][frame_idx]
+        frame_text1 = obs_chapter_data['frames'][frame_idx]
+        page_template_html = f'''
+    <article class="obs-page">
+        <div class="obs-frame no-break obs-frame-odd">
+            <img src="{frame_image1}" class="obs-img"/>
+            <div class="obs-text no-break" style="font-size: $font_size">
+                {frame_text1}
+            </div>
+'''
+        if frame_idx + 1 < len(obs_chapter_data['frames']):
+            frame_image2 = obs_chapter_data['images'][frame_idx + 1]
+            frame_text2 = obs_chapter_data['frames'][frame_idx + 1]
+            page_template_html += f'''
+        </div>
+        <div class="obs-frame no-break obs-frame-even">
+            <img src="{frame_image2}" class="obs-img"/>
+            <div class="obs-text no-break" style="font-size: $font_size">
+                {frame_text2}
+            </div>
+'''
+        # If this page is at the end of the chapter, need the bible reference
+        if frame_idx + 2 >= len(obs_chapter_data['frames']) and obs_chapter_data['bible_reference']:
+            page_template_html += f'''
+            <div class="bible-reference no-break"  style="font-size: $bible_reference_font_size">{obs_chapter_data['bible_reference']}</div>
+'''
+        page_template_html += '''
+        </div>
+    </article>
+'''
+        page_template_html = self.download_all_images(page_template_html)
+        return string.Template(page_template_html)
+
     def get_body_html(self):
         self.logger.info('Generating OBS html...')
         obs_html = '''
@@ -52,45 +87,16 @@ class ObsPdfConverter(PdfConverter):
 '''
             frames = obs_chapter_data['frames']
             for frame_idx in range(0, len(frames), 2):
-                end_of_chapter = frame_idx + 2 >= len(frames)
-                frame_image1 = obs_chapter_data['images'][frame_idx]
-                frame_text1 = frames[frame_idx]
-                frame_image2 = None
-                frame_text2 = None
-                if frame_idx + 1 < len(frames):
-                    frame_image2 = obs_chapter_data['images'][frame_idx + 1]
-                    frame_text2 = frames[frame_idx + 1]
-                font_size = 1.0
-                while True:
-                    page_html = f'''
-    <article class="obs-page">
-        <div class="obs-frame no-break obs-frame-odd">
-            <img src="{frame_image1}" class="obs-img"/>
-            <div class="obs-text no-break" style="font-size: {font_size}em">
-                {frame_text1}
-            </div>
-'''
-                    if frame_text2:
-                        page_html += f'''
-        </div>
-        <div class="obs-frame no-break obs-frame-even">
-            <img src="{frame_image2}" class="obs-img"/>
-            <div class="obs-text no-break" style="font-size: {font_size}em">
-                {frame_text2}
-            </div>
-'''
-                    if end_of_chapter:
-                        page_html += f'''
-            <div class="bible-reference no-break"  style="font-size: {font_size-.1}em">{obs_chapter_data['bible_reference']}</div>
-'''
-                    page_html += '''
-        </div>
-    </article>
-'''
-                    page_html = self.download_all_images(page_html)
+                page_template = self.get_page_template(obs_chapter_data, frame_idx)
+                font_size_em = 1.0
+                while True:  # mimic do-while loop with break
+                    # See if the page fits on one printed page. If not, reduce font size by .05em
+                    # Bible reference font size is always .1em less than the text font size
+                    page_html = page_template.safe_substitute(font_size=f'{font_size_em}em',
+                                                              bible_reference_font_size=f'{font_size_em-0.1}em')
                     pages = HTML(string=page_html, base_url=self.output_res_dir).render(stylesheets=stylesheets).pages
                     if len(pages) > 1:
-                        font_size -= .05
+                        font_size_em -= .05
                     else:
                         obs_html += page_html
                         break
