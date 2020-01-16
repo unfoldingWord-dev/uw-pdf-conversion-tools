@@ -967,7 +967,7 @@ class PdfConverter:
                                 rec_project = project['identifier']
                                 break
                     if not os.path.exists(rec_article_dir):
-                        bad_rc_link = f'{rc.project}/config.yaml -> {rc.path} -> recommended -> {recommended}'
+                        bad_rc_link = f"{rc.project}/config.yaml -> '{rc.path}' -> 'recommended' -> '{recommended}'"
                         self.add_bad_link(rc, bad_rc_link)
                         self.logger.error(f'RECOMMENDED NOT FOUND FOR {bad_rc_link}')
                         continue
