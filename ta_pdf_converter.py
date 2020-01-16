@@ -120,7 +120,7 @@ class TaPdfConverter(PdfConverter):
     {sub_articles}
 </section>
 '''
-            else:
+            elif rc.article:
                 articles_html += rc.article
         return articles_html
 
