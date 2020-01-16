@@ -13,15 +13,22 @@ This script generates the HTML and PDF TN documents
 import os
 import re
 from datetime import datetime
-from general_tools.file_utils import write_file, read_file, load_json_object, unzip, load_yaml_object
-from general_tools.usfm_utils import usfm3_to_usfm2
+from bs4 import BeautifulSoup
 from pdf_converter import PdfConverter, run_converter
+from usfm_tools.transform import UsfmTransform
+from general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
+from general_tools.file_utils import write_file, read_file, load_json_object
+from general_tools.resource_tools import get_latest_version
+from general_tools.usfm_utils import usfm3_to_usfm2
 
 
 class TnPdfConverter(PdfConverter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.book_id = None
+        self.book_title = None
+        self.book_number = None
         self.chapters_and_verses = {}
         self.verse_usfm = {}
         self.chunks_text = {}
@@ -607,6 +614,37 @@ class TnPdfConverter(PdfConverter):
         text = regex.sub(replace_link, text)
         return text
 
+    def get_chunk_html(self, usfm, resource, chapter, verse):
+        usfm_chunks_path = os.path.join(self.working_dir, 'usfm_chunks', 'usfm-{0}-{1}-{2}-{3}-{4}'.
+                                        format(self.lang_code, resource, self.book_id, chapter, verse))
+        filename_base = '{0}-{1}-{2}-{3}'.format(resource, self.book_id, chapter, verse)
+        html_file = os.path.join(usfm_chunks_path, '{0}.html'.format(filename_base))
+        usfm_file = os.path.join(usfm_chunks_path, '{0}.usfm'.format(filename_base))
+        if not os.path.exists(usfm_chunks_path):
+            os.makedirs(usfm_chunks_path)
+        usfm = '''\id {0}
+\ide UTF-8
+\h {1}
+\mt {1}
+
+\c {2}
+{3}'''.format(self.book_id.upper(), self.book_title, chapter, usfm)
+        write_file(usfm_file, usfm)
+        UsfmTransform.buildSingleHtml(usfm_chunks_path, usfm_chunks_path, filename_base)
+        html = read_file(os.path.join(usfm_chunks_path, filename_base+'.html'))
+        soup = BeautifulSoup(html, 'html.parser')
+        header = soup.find('h1')
+        if header:
+            header.decompose()
+        chapter = soup.find('h2')
+        if chapter:
+            chapter.decompose()
+        for span in soup.find_all('span', {'class': 'v-num'}):
+            span['id'] = '{0}-{1}'.format(resource, span['id'])
+        html = ''.join(['%s' % x for x in soup.body.contents])
+        write_file(html_file, html)
+        return html
+
 
 if __name__ == '__main__':
-    run_converter(['tn', 'ult', 'ust', 'ta', 'tw'], TnPdfConverter)
+    run_converter(['tn', 'ult', 'ust', 'ta', 'tw'], TnPdfConverter, all_project_ids=BOOK_NUMBERS.keys())

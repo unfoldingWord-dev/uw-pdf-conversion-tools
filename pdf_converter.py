@@ -77,6 +77,7 @@ class PdfConverter:
         self.translations = {}
         self.remove_working_dir = False
         self.converters_dir = os.path.dirname(os.path.realpath(__file__))
+        self.style_sheets = ['css/style.css']
 
         if not self.logger:
             self.logger = logging.getLogger()
@@ -244,6 +245,12 @@ class PdfConverter:
         if not os.path.isdir(self.log_dir):
             os.makedirs(self.log_dir)
 
+        possible_styles = [self.lang_code, self.name, f'{self.lang_code}_{self.name}']
+        for style in possible_styles:
+            style_file = os.path.join(self.output_res_dir, f'css/{style}_style.css')
+            if os.path.isfile(style_file):
+                self.style_sheets.append(f'css/{style}_style.css')
+
         css_path = os.path.join(self.converters_dir, 'templates/css')
         subprocess.call(f'ln -sf "{css_path}" "{self.output_res_dir}"', shell=True)
 
@@ -251,6 +258,8 @@ class PdfConverter:
         subprocess.call(f'ln -sf "{index_path}" "{self.output_dir}"', shell=True)
 
     def setup_logging_to_file(self):
+        if self.logger_handler:
+            self.logger.removeHandler(self.logger_handler)
         log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_logger.log')
         self.logger_handler = logging.FileHandler(log_file)
         self.logger.addHandler(self.logger_handler)
@@ -258,6 +267,8 @@ class PdfConverter:
         subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
         logger = logging.getLogger('weasyprint')
+        if self.weasyprint_logger_handler:
+            self.logger.removeHandler(self.weas)
         logger.setLevel(logging.INFO)
         log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_weasyprint.log')
         self.weasyprint_logger_handler = logging.FileHandler(log_file)
@@ -298,15 +309,9 @@ class PdfConverter:
                 html_template = string.Template(template_file.read())
             title = f'{self.title} - v{self.version}'
 
-            links = []
-            possible_styles = [self.lang_code, self.name, f'{self.lang_code}_{self.name}']
-            for style in possible_styles:
-                style_file = os.path.join(self.output_res_dir, f'css/{style}_style.css')
-                if os.path.isfile(style_file):
-                    links.append(f'<link href="css/{style}_style.css" rel="stylesheet">')
-
             body = '\n'.join([cover_html, license_html, toc_html, body_html])
-            html = html_template.safe_substitute(lang=self.lang_code, title=title, link='\n'.join(links), body=body)
+            link = '\n'.join([f'<link href="{style}" rel="stylesheet">' for style in self.style_sheets])
+            html = html_template.safe_substitute(lang=self.lang_code, title=title, link=link, body=body)
             write_file(self.html_file, html)
 
             link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}.html')
@@ -1060,7 +1065,8 @@ class PdfConverter:
         return text
 
 
-def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None):
+def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None,
+                  all_project_ids=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
                         help='Regenerate PDF even if exists: Default: false')
@@ -1087,8 +1093,11 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     regenerate = args.regenerate
     if not lang_codes:
         lang_codes = [DEFAULT_LANG_CODE]
-    if not project_ids:
-        project_ids = [None]
+    if not project_ids or project_ids[0] == 'all':
+        if all_project_ids:
+            project_ids = all_project_ids
+        else:
+            project_ids = [project_ids]
 
     resources = Resources()
     for lang_code in lang_codes:

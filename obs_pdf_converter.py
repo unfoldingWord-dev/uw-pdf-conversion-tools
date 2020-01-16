@@ -15,7 +15,7 @@ import markdown2
 from pdf_converter import PdfConverter, run_converter
 from general_tools.file_utils import read_file
 from general_tools import obs_tools
-
+from weasyprint import HTML
 
 class ObsPdfConverter(PdfConverter):
 
@@ -40,6 +40,7 @@ class ObsPdfConverter(PdfConverter):
 <article class="blank-page">
 </article>        
 '''
+        stylesheets = [os.path.join(self.converters_dir, 'templates', style) for style in self.style_sheets]
         for chapter_num in range(1, 51):
             chapter_num = str(chapter_num).zfill(2)
             obs_chapter_data = obs_tools.get_obs_chapter_data(self.main_resource.repo_dir, chapter_num)
@@ -59,41 +60,39 @@ class ObsPdfConverter(PdfConverter):
                 if frame_idx + 1 < len(frames):
                     frame_image2 = obs_chapter_data['images'][frame_idx + 1]
                     frame_text2 = frames[frame_idx + 1]
-                classes = 'obs-page'
-                if frame_text2:
-                    text_len = len(frame_text1 + frame_text2)
-                    if (text_len > 750 and end_of_chapter) or text_len > 900:
-                        classes += ' smaller-font'
-                obs_html += f'''
-<article class="{classes}">
+                font_size = 12.5
+                while frame_text2:
+                    page_html = f'''
+    <article class="obs-page">
+        <div class="obs-frame no-break obs-frame-odd">
+            <img src="{frame_image1}" class="obs-img"/>
+            <div class="obs-text no-break" style="font-size: {font_size}px">
+                {frame_text1}
+            </div>
 '''
-                obs_html += f'''
-    <div class="obs-frame no-break obs-frame-odd">
-        <img src="{frame_image1}" class="obs-img"/>
-        <div class="obs-text no-break">
-            {frame_text1}
+                    if frame_text2:
+                        page_html += f'''
         </div>
+        <div class="obs-frame no-break obs-frame-even">
+            <img src="{frame_image2}" class="obs-img"/>
+            <div class="obs-text no-break" style="font-size: {font_size}px">
+                {frame_text2}
+            </div>
 '''
-                if frame_text2:
-                    obs_html += f'''
-    </div>
-    <div class="obs-frame no-break obs-frame-even">
-        <img src="{frame_image2}" class="obs-img"/>
-        <div class="obs-text no-break">
-            {frame_text2}
+                    if end_of_chapter:
+                        page_html += f'''
+            <div class="bible-reference no-break"  style="font-size: {font_size-1}px">{obs_chapter_data['bible_reference']}</div>
+'''
+                    page_html += '''
         </div>
+    </article>
 '''
-
-                if frame_idx + 2 >= len(frames):
-                    obs_html += f'''
-        <div class="bible-reference no-break">{obs_chapter_data['bible_reference']}</div>
-'''
-                obs_html += '''
-    </div>
-'''
-                obs_html += '''
-</article>
-'''
+                    pages = HTML(string=page_html).render(stylesheets=stylesheets).pages
+                    if len(pages) > 1:
+                        font_size -= .5
+                    else:
+                        obs_html += page_html
+                        break
         return obs_html
 
     def get_cover_html(self):
