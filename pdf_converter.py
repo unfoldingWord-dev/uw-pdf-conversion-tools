@@ -288,7 +288,7 @@ class PdfConverter:
         self.logger_handler = logging.FileHandler(log_file)
         self.logger.addHandler(self.logger_handler)
 
-        link_file_path = os.path.join(self.log_dir, f'{self.file_base_id}_logger.log')
+        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_tag_id}_logger.log')
         subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
         self.wp_logger.setLevel(logging.DEBUG)
@@ -297,7 +297,7 @@ class PdfConverter:
         self.wp_logger_handler.setLevel(logging.DEBUG)
         self.wp_logger.addHandler(self.wp_logger_handler)
 
-        link_file_path = os.path.join(self.log_dir, f'{self.file_base_id}_weasyprint.log')
+        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_tag_id}_weasyprint.log')
         subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
 
     def generate_html(self):
@@ -338,7 +338,7 @@ class PdfConverter:
             html = html_template.safe_substitute(lang=self.lang_code, title=title, link=link, body=body)
             write_file(self.html_file, html)
 
-            link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}.html')
+            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}.html')
             subprocess.call(f'ln -sf "{self.html_file}" "{link_file_path}"', shell=True)
 
             self.save_resource_data()
@@ -356,14 +356,14 @@ class PdfConverter:
             self.logger.info('Generated PDF file.')
             self.logger.info(f'PDF file located at {self.pdf_file}')
 
-            link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}.pdf')
+            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}.pdf')
             subprocess.call(f'ln -sf "{self.pdf_file}" "{link_file_path}"', shell=True)
         else:
             self.logger.info(
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
 
     def save_bad_links_html(self):
-        link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}_bad_links.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_bad_links.html')
 
         if not self.bad_links:
             self.logger.info('No bad links for this version!')
@@ -407,7 +407,7 @@ class PdfConverter:
         self.logger.info(f'BAD LINKS HTML file can be found at {save_file}')
 
     def save_bad_highlights_html(self):
-        link_file_path = os.path.join(self.output_res_dir, f'{self.file_base_id}_bad_highlights.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_bad_highlights.html')
 
         if not self.bad_highlights:
             self.logger.info('No bad highlights for this version!')
