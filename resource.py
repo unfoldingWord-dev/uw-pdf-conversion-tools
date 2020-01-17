@@ -129,7 +129,7 @@ class Resource(object):
     def find_project(self, project_id):
         if self.projects:
             for project in self.projects:
-                if project.identifier == project_id:
+                if project['identifier'] == project_id:
                     return project
 
 

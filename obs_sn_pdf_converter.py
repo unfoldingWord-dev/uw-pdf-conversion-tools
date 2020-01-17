@@ -12,6 +12,7 @@ This script generates the HTML and PDF OBS SN documents
 """
 import os
 import markdown2
+import general_tools.html_tools as html_tools
 from pdf_converter import run_converter
 from obs_sn_sq_pdf_converter import ObsSnSqPdfConverter
 from general_tools import obs_tools
@@ -57,7 +58,7 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
 
                 if os.path.isfile(obs_sn_file):
                     notes_html = markdown2.markdown_path(obs_sn_file)
-                    notes_html = self.increase_headers(notes_html, 3)
+                    notes_html = html_tools.increment_headers(notes_html, 3)
                 else:
                     no_study_notes = self.translate('no_study_notes_for_this_frame')
                     notes_html = f'<div class="no-notes-message">({no_study_notes})</div>'
@@ -70,9 +71,10 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
                 self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
 
                 if obs_text and notes_html:
-                    phrases = self.get_phrases_to_highlight(notes_html, 'h4')
+                    phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')
                     if phrases:
-                        obs_text = self.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc)
+                        obs_text = html_tools.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc,
+                                                                          add_bad_highlight_func=self.add_bad_highlight)
 
                 obs_sn_html += f'''
 <div id="{obs_sn_rc.article_id}" class="frame">

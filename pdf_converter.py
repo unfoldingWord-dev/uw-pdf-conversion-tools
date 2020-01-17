@@ -23,14 +23,14 @@ import sys
 import argparse
 import jsonpickle
 import yaml
-from collections import OrderedDict
+import general_tools.html_tools as html_tools
 from typing import List, Type
 from bs4 import BeautifulSoup
 from abc import abstractmethod
-from weasyprint import HTML, LOGGER
+from weasyprint import HTML
+from general_tools.file_utils import write_file, read_file, load_json_object
 from resource import Resource, Resources
 from rc_link import ResourceContainerLink
-from general_tools.file_utils import write_file, read_file, load_json_object
 
 DEFAULT_LANG_CODE = 'en'
 DEFAULT_OWNER = 'unfoldingWord'
@@ -47,7 +47,7 @@ APPENDIX_RESOURCES = ['ta', 'tw']
 class PdfConverter:
 
     def __init__(self, resources: Resources, project_id=None, working_dir=None, output_dir=None,
-                 lang_code=DEFAULT_LANG_CODE, regenerate=False, logger=None):
+                 lang_code=DEFAULT_LANG_CODE, regenerate=False, logger=None, **kwargs):
         self.resources = resources
         self.main_resource = self.resources.main
         self.project_id = project_id
@@ -80,12 +80,14 @@ class PdfConverter:
         self.converters_dir = os.path.dirname(os.path.realpath(__file__))
         self.style_sheets = ['css/style.css']
 
+        self._project = None
+
         if not self.logger:
-            self.logger = logging.getLogger(self.file_base_id)
+            self.logger = logging.getLogger(self.file_tag_id)
             self.logger.setLevel(logging.DEBUG)
             self.logger_stream_handler = logging.StreamHandler()
             self.logger_stream_handler.setLevel(logging.DEBUG)
-            formatter = logging.Formatter('%(levelname)s - %(message)s')
+            formatter = logging.Formatter("%(levelname)s - %(message)s")
             self.logger_stream_handler.setFormatter(formatter)
             self.logger.addHandler(self.logger_stream_handler)
 
@@ -124,29 +126,46 @@ class PdfConverter:
 
     @property
     def file_commit_id(self):
-        return f'{self.file_base_id}_{self.main_resource.commit}'
+        return f'{self.file_project_and_tag_id}_{self.main_resource.commit}'
+
+    @property
+    def file_project_and_tag_id(self):
+        return f'{self.file_project_id}_{self.main_resource.tag}'
+
+    @property
+    def file_tag_id(self):
+        return f'{self.file_base_id}_{self.main_resource.tag}'
+
+    @property
+    def file_project_id(self):
+        return f'{self.file_base_id}{self.file_id_project_str}'
 
     @property
     def file_base_id(self):
-        project_id_str = f'_{self.project_id}' if self.project_id else ''
-        return f'{self.lang_code}_{self.name}{project_id_str}_{self.main_resource.tag}'
+        return f'{self.lang_code}_{self.name}'
+
+    @property
+    def file_id_project_str(self):
+        if self.project_id:
+            return f'_{self.project_id}'
+        else:
+            return ''
 
     @property
     def project(self):
         if self.project_id:
-            project = self.main_resource.find_project(self.project_id)
-            if project:
-                self.logger.info(f'Project ID: {self.project_id}; Project Title: {self.project_title}')
-                return project
-            else:
-                self.logger.error(f'Project not found: {self.project_id}')
-                exit(1)
+            if not self._project:
+                self._project = self.main_resource.find_project(self.project_id)
+                if not self._project:
+                    self.logger.error(f'Project not found: {self.project_id}')
+                    exit(1)
+            return self._project
 
     @property
     def project_title(self):
         project = self.project
         if project:
-            return project.title
+            return project['title']
 
     def translate(self, key):
         if not self.translations:
@@ -479,29 +498,29 @@ class PdfConverter:
     def save_resource_data(self):
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.rcs))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_rcs.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_rcs.json')
         subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_appendix_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.appendix_rcs))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_appendix_rcs.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_appendix_rcs.json')
         subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_links.json')
         write_file(save_file, jsonpickle.dumps(self.bad_links))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_bad_links.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_bad_links.json')
         subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_highlights.json')
         write_file(save_file, jsonpickle.dumps(self.bad_highlights))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_base_id}_bad_highlights.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_bad_highlights.json')
         subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
 
-        save_file = os.path.join(self.save_dir, f'{self.file_base_id}_generation_info.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_tag_id}_generation_info.json')
         write_file(save_file, jsonpickle.dumps(self.generation_info))
 
     def get_previous_generation_info(self):
-        save_file = os.path.join(self.save_dir, f'{self.file_base_id}_generation_info.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_tag_id}_generation_info.json')
         if os.path.isfile(save_file):
             return load_json_object(save_file)
         else:
@@ -607,6 +626,8 @@ class PdfConverter:
     <h1>{self.translate('license.copyrights_and_licensing')}</h1>
 '''
         for resource_name, resource in self.resources.items():
+            if not resource.manifest:
+                continue
             title = resource.title
             version = resource.version
             publisher = resource.publisher
@@ -629,6 +650,8 @@ class PdfConverter:
         contributors_html = '<section id="contributors" class="no-header">'
         for idx, resource_name in enumerate(self.resources.keys()):
             resource = self.resources[resource_name]
+            if not resource.manifest or not resource.contributors:
+                continue
             contributors = resource.contributors
             contributors_list_classes = 'contributors-list'
             if len(contributors) > 10:
@@ -645,126 +668,6 @@ class PdfConverter:
             contributors_html += '</div>'
         contributors_html += '</section>'
         return contributors_html
-
-    @staticmethod
-    def get_title_from_html(html):
-        soup = BeautifulSoup(html, 'html.parser')
-        header = soup.find(re.compile(r'^h\d'))
-        if header:
-            return header.text
-        else:
-            return "NO TITLE"
-
-    @staticmethod
-    def get_phrases_to_highlight(html, header_tag=None):
-        phrases = []
-        soup = BeautifulSoup(html, 'html.parser')
-        if header_tag:
-            headers = soup.find_all(header_tag)
-        else:
-            headers = soup.find_all(re.compile(r'^h[3-6]'))
-        for header in headers:
-            phrases.append(header.text)
-        return phrases
-
-    @staticmethod
-    def highlight_text(text, phrase):
-        parts = re.split(r'\s*…\s*|\s*\.\.\.\s*', phrase)
-        processed_text = ''
-        to_process_text = text
-        for idx, part in enumerate(parts):
-            part = part.strip()
-            if not part:
-                continue
-            if '<span' in to_process_text:
-                words = re.findall(r'\w+|\W+', part)
-                words = [re.escape(word.strip()) for word in words]
-                split_pattern = '(' + r'(\s*|(\s*</*span[^>]*>\s*)+)'.join(words) + ')'
-            else:
-                split_pattern = '(' + re.escape(part) + ')'
-            split_pattern += '(?![^<]*>)'  # don't match within HTML tags
-            splits = re.split(split_pattern, to_process_text, 1)
-            processed_text += splits[0]
-            if len(splits) > 1:
-                highlight_classes = "highlight"
-                if len(parts) > 1:
-                    highlight_classes += ' split'
-                processed_text += f'<span class="{highlight_classes}">{splits[1]}</span>'
-                if len(splits) > 2:
-                    to_process_text = splits[-1]
-                else:
-                    to_process_text = ''
-            else:
-                to_process_text = ''
-        if to_process_text:
-            processed_text += to_process_text
-        return processed_text
-
-    def highlight_text_with_phrases(self, orig_text, phrases, rc, ignore=None):
-        highlighted_text = orig_text
-        phrases.sort(key=len, reverse=True)
-        for phrase in phrases:
-            new_highlighted_text = self.highlight_text(highlighted_text, phrase)
-            if new_highlighted_text != highlighted_text:
-                highlighted_text = new_highlighted_text
-            elif not ignore or phrase.lower() not in ignore:
-                # This is just to determine the fix for any terms that differ in curly/straight quotes
-                bad_highlights = OrderedDict({phrase: None})
-                alt_phrase = [
-                    # All curly quotes made straight
-                    phrase.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                    # All straight quotes made curly, first single and double pointing right
-                    phrase.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                    # All curly double quotes made straight
-                    phrase.replace('“', '"').replace('”', '"'),
-                    # All straight double quotes made curly with first pointing right
-                    phrase.replace('"', '”').replace('”', '“', 1),
-                    # All straight single quotes made curly with first pointing right
-                    phrase.replace("'", '’').replace('’', '‘', 1),
-                    # All straight single quotes made straight (all point left)
-                    phrase.replace("'", '’'),
-                    # All left pointing curly single quotes made straight
-                    phrase.replace('’', "'"),
-                    # All right pointing curly single quotes made straight
-                    phrase.replace('‘', "'")]
-                for alt_phrase in alt_phrase:
-                    if orig_text != self.highlight_text(orig_text, alt_phrase):
-                        bad_highlights[phrase] = alt_phrase
-                        break
-                self.add_bad_highlight(rc, orig_text, bad_highlights)
-        return highlighted_text
-
-    @staticmethod
-    def increase_headers(html, increase_depth=1):
-        if html:
-            for level in range(5, 0, -1):
-                new_level = level + increase_depth
-                if new_level > 6:
-                    new_level = 6
-                html = re.sub(rf'<h{level}([^>]*)>\s*(.+?)\s*</h{level}>', rf'<h{new_level}\1>\2</h{new_level}>',
-                              html, flags=re.MULTILINE)
-        return html
-
-    @staticmethod
-    def make_first_header_section_header(html):
-        soup = BeautifulSoup(html, 'html.parser')
-        header = soup.find(re.compile(r'^h\d'))
-        if header:
-            header['class'] = header.get('class', []) + ['section-header']
-        return str(soup)
-
-    @staticmethod
-    def decrease_headers(html, minimum_header=2, decrease=1):
-        if html:
-            if minimum_header < 2:
-                minimum_header = 2
-            for level in range(minimum_header, 6):
-                new_level = level - decrease
-                if new_level < 1:
-                    new_level = 1
-                html = re.sub(rf'<h{level}([^>]*)>\s*(.+?)\s*</h{level}>', rf'<h{new_level}\1>\2</h{new_level}>', html,
-                              flags=re.MULTILINE)
-        return html
 
     def replace(self, m):
         before = m.group(1)
@@ -889,10 +792,12 @@ class PdfConverter:
                 html += rc.article.replace('</article>', self.get_go_back_to_html(rc) + '</article>')
         if html:
             html = f'''
-<section id="{self.lang_code}-{resource.resource_name}-appendix-cover">
-    <div class="resource-title-page">
+<section>
+    <article id="{self.lang_code}-{resource.resource_name}-appendix-cover" class="resource-title-page break">
+        <img src="images/{resource.logo_file}" alt="{resource.resource_name.upper()}">
         <h1 class="section-header">{resource.title}</h1>
-    </div>
+        <h2 id="cover-version">{self.translate("license.version")} {resource.version}</h2>
+    </article>
     {html}
 </section>
 '''
@@ -1009,17 +914,17 @@ class PdfConverter:
     def get_go_back_to_html(self, source_rc):
         if source_rc.linking_level == 0:
             return ''
-        references = []
+        go_back_tos = []
         for rc_link in source_rc.references:
             if rc_link in self.rcs:
                 rc = self.rcs[rc_link]
-                references.append(f'<a href="#{rc.article_id}">{rc.title}</a>')
+                go_back_tos.append(f'<a href="#{rc.article_id}">{rc.title}</a>')
         go_back_to_html = ''
-        if len(references):
-            references_str = '; '.join(references)
+        if len(go_back_tos):
+            go_back_tos_string = '; '.join(go_back_tos)
             go_back_to_html = f'''
     <div class="go-back-to">
-        (<strong>{self.translate('go_back_to')}:</strong> {references_str})
+        (<strong>{self.translate('go_back_to')}:</strong> {go_back_tos_string})
     </div>
 '''
         return go_back_to_html
@@ -1053,15 +958,15 @@ class PdfConverter:
                 self.add_bad_link(source_rc, rc.rc_link, fix)
                 self.logger.error(f'FIX FOUND FOR FOR TW ARTICLE IN {source_rc.rc_link}: {rc.rc_link} => {fix}')
             tw_article_html = markdown2.markdown_path(file_path)
-            tw_article_html = self.make_first_header_section_header(tw_article_html)
-            tw_article_html = self.increase_headers(tw_article_html)
+            tw_article_html = html_tools.make_first_header_section_header(tw_article_html)
+            tw_article_html = html_tools.increment_headers(tw_article_html)
             tw_article_html = self.fix_tw_links(tw_article_html, rc.extra_info[0])
             tw_article_html = f'''                
 <article id="{rc.article_id}">
     {tw_article_html}
 </article>
 '''
-            rc.set_title(self.get_title_from_html(tw_article_html))
+            rc.set_title(html_tools.get_title_from_html(tw_article_html))
             rc.set_article(tw_article_html)
         else:
             self.add_bad_link(source_rc, rc.rc_link)
@@ -1079,13 +984,14 @@ class PdfConverter:
 
 
 def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None,
-                  all_project_ids=None):
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+                  all_project_ids=None, parser=None):
+    if not parser:
+        parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
                         help='Regenerate PDF even if exists: Default: false')
-    parser.add_argument('-l', '--lang_code', dest='lang_code', required=False, action='append',
+    parser.add_argument('-l', '--lang_code', dest='lang_codes', required=False, action='append',
                         help='Language Code. Can specify multiple -l\'s. Default: en')
-    parser.add_argument('-p', '--project_id', dest='project_id', required=False, action='append',
+    parser.add_argument('-p', '--project_id', dest='project_ids', required=False, action='append',
                         help='Project ID for resources with projects, such as a Bible book. Can specify multiple -p\'s. Default: all')
     parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False,
                         help='Working Directory. Default: a temp directory that gets deleted')
@@ -1098,23 +1004,20 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                             help=f'For every resource used, you can specify a branch or tag. Default: {DEFAULT_TAG}')
 
     args = parser.parse_args(sys.argv[1:])
-    lang_codes = args.lang_code
-    project_ids = args.project_id
-    working_dir = args.working_dir
-    output_dir = args.output_dir
+    lang_codes = args.lang_codes
     owner = args.owner
-    regenerate = args.regenerate
     if not lang_codes:
         lang_codes = [DEFAULT_LANG_CODE]
-    if not project_ids or project_ids[0] == 'all':
+    project_ids = args.project_ids
+    if not project_ids or 'all' in project_ids[0]:
         if all_project_ids:
             project_ids = all_project_ids
         else:
-            project_ids = [project_ids]
-
-    resources = Resources()
+            project_ids = ['all']
+    args_dict = vars(args)
     for lang_code in lang_codes:
         for project_id in project_ids:
+            resources = Resources()
             for resource_name in resource_names:
                 repo_name = f'{lang_code}_{resource_name}'
                 tag = getattr(args, resource_name)
@@ -1123,8 +1026,10 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                     logo = logo_url
                 resource = Resource(resource_name=resource_name, repo_name=repo_name, tag=tag, owner=owner, logo_url=logo)
                 resources[resource_name] = resource
-            converter = pdf_converter_class(resources=resources, project_id=project_id, working_dir=working_dir,
-                                            output_dir=output_dir, lang_code=lang_code, regenerate=regenerate)
+            args_dict['lang_code'] = lang_code
+            args_dict['project_id'] = project_id
+            args_dict['resources'] = resources
+            converter = pdf_converter_class(**args_dict)
             project_id_str = f'_{project_id}' if project_id else ''
             converter.logger.info(f'Starting PDF Converter for {resources.main.repo_name}_{resources.main.tag}{project_id_str}...')
             converter.run()

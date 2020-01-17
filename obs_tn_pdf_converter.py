@@ -13,6 +13,7 @@ This script generates the HTML and PDF OBS SN & SQ documents
 import os
 import re
 import markdown2
+import general_tools.html_tools as html_tools
 from glob import glob
 from pdf_converter import PdfConverter, run_converter
 from general_tools.file_utils import load_json_object
@@ -121,7 +122,7 @@ class ObsTnPdfConverter(PdfConverter):
                     notes_html = ''
                     if os.path.isfile(notes_file):
                         notes_html = markdown2.markdown_path(notes_file)
-                        notes_html = self.increase_headers(notes_html, 3)
+                        notes_html = html_tools.increment_headers(notes_html, 3)
                     if not obs_text and not notes_html:
                         continue
 
@@ -134,10 +135,11 @@ class ObsTnPdfConverter(PdfConverter):
 
                     if obs_text:
                         if notes_html:
-                            phrases = self.get_phrases_to_highlight(notes_html, 'h4')
+                            phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')
                             if phrases:
-                                obs_text = self.highlight_text_with_phrases(obs_text, phrases, notes_rc,
-                                                                            TN_TITLES_TO_IGNORE[self.lang_code])
+                                obs_text = html_tools.highlight_text_with_phrases(obs_text, phrases, notes_rc,
+                                                                                  TN_TITLES_TO_IGNORE[self.lang_code],
+                                                                                  add_bad_highlight_func=self.add_bad_highlight)
 
                     if frame_idx == len(frames) - 1:
                         if 'bible_reference' in chapter_data and chapter_data['bible_reference']:

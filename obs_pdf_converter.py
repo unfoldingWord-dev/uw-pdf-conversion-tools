@@ -121,6 +121,7 @@ class ObsPdfConverter(PdfConverter):
         license_html = f'''
 <article id="front" class="no-footer">
   {front_html}
+  <p>
 </article>
 '''
         return license_html

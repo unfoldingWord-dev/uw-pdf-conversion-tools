@@ -348,6 +348,8 @@ ul ul ul ul ul {
 }
 
 .resource-title-page {
+    page-break-before: always;
+    break-before: page;
     text-align: center;
     padding-top: 200px
 }
