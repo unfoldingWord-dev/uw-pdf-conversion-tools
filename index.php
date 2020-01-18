@@ -31,7 +31,7 @@ foreach($dirs as $dir) {
     if ($files) {
         natsort($files); // sort.
 
-        echo "<h2>".$dir."</h2>\n";
+        echo "<h2 id='$dir'>".$dir."</h2>\n";
         echo "<p>\n";
         foreach($files as $file) {
             $filepath = './'.$dir.'/'.$file;
