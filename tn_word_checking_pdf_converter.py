@@ -19,6 +19,7 @@ class TnWordCheckingPdfConverter(TnPdfConverter):
     def name(self):
         return 'tn-word-checking'
 
+    @property
     def title(self):
         return self.main_resource.title + ' Checking - Words'
 
