@@ -20,7 +20,7 @@ class TnWordCheckingPdfConverter(TnPdfConverter):
         return 'tn-word-checking'
 
     def title(self):
-        return super().title + ' Checking - Words'
+        return self.main_resource.title + ' Checking - Words'
 
     def get_tn_chunk_article(self, chapter_chunk_data, chapter, first_verse):
         last_verse = chapter_chunk_data[first_verse]['last_verse']
