@@ -21,7 +21,7 @@ class TnNoteCheckingPdfConverter(TnPdfConverter):
 
     @property
     def title(self):
-        return super().title + ' Checking - Notes'
+        return self.main_resource.title + ' Checking - Notes'
 
     def get_tn_chunk_article(self, chapter_chunk_data, chapter, first_verse):
         last_verse = chapter_chunk_data[first_verse]['last_verse']
