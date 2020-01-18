@@ -50,6 +50,7 @@ class TnPdfConverter(PdfConverter):
         self.chunks_text = {}
         self.tn_book_data = {}
         self.tw_words_data = {}
+        self.tw_rcs = {}
         self.tn_resources_dir = None
         self.last_ended_with_quote_tag = False
         self.last_ended_with_paragraph_tag = False
@@ -356,11 +357,12 @@ class TnPdfConverter(PdfConverter):
                         for tw_word in tw_words:
                             tw_rc_link = tw_word['contextId']['rc']
                             alignment = tw_word['text']
-                            if tw_rc_link not in self.appendix_rcs:
-                                tw_rc = self.add_appendix_rc(tw_rc_link)
+                            if tw_rc_link not in self.tw_rcs:
+                                tw_rc = self.create_rc(tw_rc_link)
                                 self.get_tw_article_html(tw_rc)
+                                self.tw_rcs[tw_rc_link] = tw_rc
                             else:
-                                tw_rc = self.appendix_rcs[tw_rc_link]
+                                tw_rc = self.tw_rcs[tw_rc_link]
                             verse_words += f'''
                 <div class="verse-word">
                     <h3 class="verse-note-title">{tw_rc.title}</h3>
