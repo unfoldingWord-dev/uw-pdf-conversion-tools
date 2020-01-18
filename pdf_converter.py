@@ -80,6 +80,7 @@ class PdfConverter:
         self.converters_dir = os.path.dirname(os.path.realpath(__file__))
         self.style_sheets = ['css/style.css']
 
+        self._name = self.main_resource.resource_name
         self._project = None
 
         if not self.logger:
@@ -106,7 +107,7 @@ class PdfConverter:
 
     @property
     def name(self):
-        return self.main_resource.resource_name
+        return self._name
 
     @property
     def title(self):
@@ -167,6 +168,9 @@ class PdfConverter:
         if project:
             return project['title']
 
+    def add_style_sheet(self, style_sheet):
+        self.style_sheets.append(style_sheet)
+
     def translate(self, key):
         if not self.translations:
             if self.lang_code not in LANGUAGE_FILES:
@@ -214,15 +218,18 @@ class PdfConverter:
             if bad_rc_link not in self.bad_links[source_rc.rc_link] or fix:
                 self.bad_links[source_rc.rc_link]['bad_links'][bad_rc_link] = fix
 
-    def add_bad_highlight(self, source_rc, text, bad_highlights):
+    def add_bad_highlight(self, source_rc, text, rc_link, phrase, fix):
         if source_rc:
             if source_rc.rc_link not in self.bad_highlights:
                 self.bad_highlights[source_rc.rc_link] = {
                     'source_rc': source_rc,
                     'text': text,
-                    'bad_highlights': []
+                    'highlights': {}
                 }
-            self.bad_highlights[source_rc.rc_link]['bad_highlights'].append(bad_highlights)
+            self.bad_highlights[source_rc.rc_link]['highlights'][rc_link] = {
+                'phrase': phrase,
+                'fix': fix
+            }
 
     def run(self):
         self.setup_dirs()
@@ -269,11 +276,11 @@ class PdfConverter:
         if not os.path.isdir(self.log_dir):
             os.makedirs(self.log_dir)
 
-        possible_styles = [self.lang_code, self.name, f'{self.lang_code}_{self.name}']
+        possible_styles = [self.lang_code, self.name, self.main_resource.resource_name, f'{self.lang_code}_{self.name}']
         for style in possible_styles:
             style_file = os.path.join(self.output_res_dir, f'css/{style}_style.css')
             if os.path.isfile(style_file):
-                self.style_sheets.append(f'css/{style}_style.css')
+                self.add_style_sheet(f'css/{style}_style.css')
 
         css_path = os.path.join(self.converters_dir, 'templates/css')
         subprocess.call(f'ln -sf "{css_path}" "{self.output_res_dir}"', shell=True)
@@ -431,20 +438,18 @@ class PdfConverter:
         <br/>
         <ul>
 '''
-            for bad_highlights in self.bad_highlights[source_rc_link]['bad_highlights']:
-                for key in bad_highlights.keys():
-                    if bad_highlights[key]:
-                        bad_highlights_html += f'''
+            for target_rc_link in self.bad_highlights[source_rc_link]['highlights'].keys():
+                target = self.bad_highlights[source_rc_link]['highlights'][target_rc_link]
+                bad_highlights_html += f'''
             <li>
-                {key} <em>(phrase to match)</em>
-                <br/>
-                {bad_highlights[key]} <em>(QUOTE ISSUE - closest phrase found in text)</em>
-            </li>
+                {target_rc_link}: {target['phrase']} <em>(phrase to match)</em>
 '''
-                    else:
-                        bad_highlights_html += f'''
-            <li>
-                {key}
+                if target['fix']:
+                    bad_highlights_html += f'''
+                <br/>
+                {target['fix']} <em>(QUOTE ISSUE - closest phrase found in text)</em>
+'''
+                bad_highlights_html += f'''
             </li>
 '''
             bad_highlights_html += '''
@@ -605,11 +610,11 @@ class PdfConverter:
 
     def get_cover_html(self):
         if self.project_id:
-            project_title_html = f'<h2 id="cover-project">{self.project_title}</h2>'
-            version_title_html = f'<h3 id="cover-version">{self.translate("license.version")} {self.version}</h3>'
+            project_title_html = f'<h2 class="cover-project">{self.project_title}</h2>'
+            version_title_html = f'<h3 class="cover-version">{self.translate("license.version")} {self.version}</h3>'
         else:
             project_title_html = ''
-            version_title_html = f'<h2 id="cover-version">{self.translate("license.version")} {self.version}</h2>'
+            version_title_html = f'<h2 class="cover-version">{self.translate("license.version")} {self.version}</h2>'
         cover_html = f'''
 <article id="main-cover" class="cover">
     <img src="images/{self.main_resource.logo_file}" alt="{self.name.upper()}"/>
@@ -713,12 +718,12 @@ class PdfConverter:
             else:
                 if rc.linking_level <= APPENDIX_LINKING_LEVEL:
                     # Case 3, left = `<a href="` and right = `">[text]</a>`
-                    return left + '#' + rc.article_id + right
+                    return left + '#' + rc.article_id + self.replace_rc_links(right)
                 else:
                     # Case 4
-                    return title if title else rc.title
+                    return self.replace_rc_links(title) if title else rc.title
         # Case 5
-        return title if title else rc_link
+        return self.replace_rc_links(title) if title else rc_link
 
     def replace_rc_links(self, text):
         regex = re.compile(r'(\[\[|<a[^>]+href=")*(rc://[/A-Za-z0-9*_-]+)(\]\]|"[^>]*>(.*?)</a>)*')
@@ -796,7 +801,7 @@ class PdfConverter:
     <article id="{self.lang_code}-{resource.resource_name}-appendix-cover" class="resource-title-page break">
         <img src="images/{resource.logo_file}" alt="{resource.resource_name.upper()}">
         <h1 class="section-header">{resource.title}</h1>
-        <h2 id="cover-version">{self.translate("license.version")} {resource.version}</h2>
+        <h2 class="cover-version">{self.translate("license.version")} {resource.version}</h2>
     </article>
     {html}
 </section>
@@ -993,9 +998,9 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                         help='Language Code. Can specify multiple -l\'s. Default: en')
     parser.add_argument('-p', '--project_id', dest='project_ids', required=False, action='append',
                         help='Project ID for resources with projects, such as a Bible book. Can specify multiple -p\'s. Default: all')
-    parser.add_argument('-w', '--working', dest='working_dir', default=False, required=False,
+    parser.add_argument('-w', '--working', dest='working_dir',  required=False,
                         help='Working Directory. Default: a temp directory that gets deleted')
-    parser.add_argument('-o', '--output', dest='output_dir', default=False, required=False,
+    parser.add_argument('-o', '--output', dest='output_dir', required=False,
                         help='Output Directory. Default: <current directory>')
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False,
                         help=f'Owner of the resource repo on GitHub. Default: {DEFAULT_OWNER}')
@@ -1012,8 +1017,8 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     if not project_ids or 'all' in project_ids[0]:
         if all_project_ids:
             project_ids = all_project_ids
-        else:
-            project_ids = ['all']
+        elif not project_ids:
+            project_ids = [None]
     args_dict = vars(args)
     for lang_code in lang_codes:
         for project_id in project_ids:

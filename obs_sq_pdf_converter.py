@@ -13,6 +13,7 @@ This script generates the HTML and PDF OBS SQ documents
 import os
 import re
 import markdown2
+import general_tools.html_tools as html_tools
 from glob import glob
 from bs4 import BeautifulSoup
 from pdf_converter import run_converter
@@ -46,7 +47,7 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
         for file in files:
             chapter_num = os.path.splitext(os.path.basename(file))[0]
             chapter_html = markdown2.markdown_path(file)
-            chapter_html = self.increase_headers(chapter_html)
+            chapter_html = html_tools.increment_headers(chapter_html)
             soup = BeautifulSoup(chapter_html, 'html.parser')
             headers = soup.find_all(re.compile(r'^h\d'))
             top_header = headers[0]

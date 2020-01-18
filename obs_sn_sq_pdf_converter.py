@@ -13,6 +13,7 @@ This script generates the HTML and PDF OBS SN & SQ documents
 import os
 import re
 import markdown2
+import general_tools.html_tools as html_tools
 from bs4 import BeautifulSoup
 from pdf_converter import PdfConverter, run_converter
 from general_tools import obs_tools
@@ -49,7 +50,7 @@ class ObsSnSqPdfConverter(PdfConverter):
         if os.path.isfile(intro_file):
             intro_id = 'obs-sq-intro'
             intro_content = markdown2.markdown_path(intro_file)
-            intro_content = self.increase_headers(intro_content, 1)
+            intro_content = html_tools.increment_headers(intro_content, 1)
             intro_content = intro_content.replace('<h2>', '<h2 class="section-header">', 1)
             obs_sn_sq_html += f'''
     <article id="{intro_id}">
@@ -84,7 +85,7 @@ class ObsSnSqPdfConverter(PdfConverter):
 
                 if os.path.isfile(obs_sn_file):
                     notes_html = markdown2.markdown_path(obs_sn_file)
-                    notes_html = self.increase_headers(notes_html, 3)
+                    notes_html = html_tools.increment_headers(notes_html, 3)
                 else:
                     no_study_notes = self.translate('no_study_notes_for_this_frame')
                     notes_html = f'<div class="no-notes-message">({no_study_notes})</div>'
@@ -97,9 +98,16 @@ class ObsSnSqPdfConverter(PdfConverter):
                 self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
 
                 if obs_text and notes_html:
-                    phrases = self.get_phrases_to_highlight(notes_html, 'h4')
+                    orig_obs_text = obs_text
+                    phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')
                     if phrases:
-                        obs_text = self.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc)
+                        for phrase in phrases:
+                            marked_obs_text = html_tools.mark_phrase_in_text(obs_text, phrase)
+                            if not marked_obs_text:
+                                fix = html_tools.find_quote_variation_in_text(orig_obs_text, phrase)
+                                self.add_bad_highlight(obs_sn_rc, orig_obs_text, obs_sn_rc.rc_link, phrase, fix)
+                            else:
+                                obs_text = marked_obs_text
 
                 obs_sn_sq_html += f'''
         <article id="{obs_sn_rc.article_id}">
@@ -121,7 +129,7 @@ class ObsSnSqPdfConverter(PdfConverter):
             if os.path.isfile(sq_chapter_file):
                 obs_sq_title = f'{self.translate("study_questions")}'
                 obs_sq_html = markdown2.markdown_path(sq_chapter_file)
-                obs_sq_html = self.increase_headers(obs_sq_html, 2)
+                obs_sq_html = html_tools.increment_headers(obs_sq_html, 2)
                 soup = BeautifulSoup(obs_sq_html, 'html.parser')
                 header = soup.find(re.compile(r'^h\d'))
                 header.decompose()

@@ -71,10 +71,16 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
                 self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
 
                 if obs_text and notes_html:
+                    orig_obs_text = obs_text
                     phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')
                     if phrases:
-                        obs_text = html_tools.highlight_text_with_phrases(obs_text, phrases, obs_sn_rc,
-                                                                          add_bad_highlight_func=self.add_bad_highlight)
+                        for phrase in phrases:
+                            marked_obs_text = html_tools.mark_phrase_in_text(obs_text, phrase)
+                            if not marked_obs_text:
+                                fix = html_tools.find_quote_variation_in_text(orig_obs_text, phrase)
+                                self.add_bad_highlight(obs_sn_rc, orig_obs_text, obs_sn_rc.rc_link, phrase, fix)
+                            else:
+                                obs_text = marked_obs_text
 
                 obs_sn_html += f'''
 <div id="{obs_sn_rc.article_id}" class="frame">

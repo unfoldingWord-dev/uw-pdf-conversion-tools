@@ -2,6 +2,8 @@ import re
 from bs4 import BeautifulSoup
 from collections import OrderedDict
 
+PHRASE_PARTS_TO_IGNORE = ['a', 'am', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'did', 'do', 'does', 'done', 'for', 'from', 'had', 'has', 'have', 'he', 'her', 'his', 'i', 'in', 'into', 'less', 'let', 'may', 'might', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'our', 'she', 'than', 'the', 'their', 'then', 'they', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'who', 'whom', 'with', 'will', 'were', 'your', 'you', 'would', 'could', 'should', 'shall', 'can']
+
 
 def get_title_from_html(html):
     header = get_first_header(html)
@@ -35,28 +37,27 @@ def get_phrases_to_highlight(html, header_tag=None):
     return phrases
 
 
-def highlight_text(html, phrase):
-    parts = re.split(r'\s*…\s*|\s*\.\.\.\s*', phrase)
+def mark_phrase_in_text(text, phrase, tag=None):
+    if not tag:
+        tag = '<span class="highlight">'
+    tag_name = tag[1:-1].split(' ')[0]
+    parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', phrase)
     processed_text = ''
-    to_process_text = html
+    to_process_text = text
     for idx, part in enumerate(parts):
         part = part.strip()
-        if not part:
+        if not part or (idx != len(parts) - 1 and part.lower() in PHRASE_PARTS_TO_IGNORE):
             continue
-        if '<span' in to_process_text:
-            words = re.findall(r'\w+|\W+', part)
-            words = [re.escape(word.strip()) for word in words]
-            split_pattern = '(' + r'(\s*|(\s*</*span[^>]*>\s*)+)'.join(words) + ')'
+        if re.findall('<[^>]+>', to_process_text):
+            words = [re.escape(word.strip()) for word in re.findall(r'\w+|\W+', part)]
+            split_pattern = '(' + r'(\s*|(\s*</*[^>]+>\s*)+)'.join(words) + ')'
         else:
             split_pattern = '(' + re.escape(part) + ')'
         split_pattern += '(?![^<]*>)'  # don't match within HTML tags
         splits = re.split(split_pattern, to_process_text, 1)
         processed_text += splits[0]
         if len(splits) > 1:
-            highlight_classes = "highlight"
-            if len(parts) > 1:
-                highlight_classes += ' split'
-            processed_text += f'<span class="{highlight_classes}">{splits[1]}</span>'
+            processed_text += f'{tag}{splits[1]}</{tag_name}>'
             if len(splits) > 2:
                 to_process_text = splits[-1]
             else:
@@ -65,43 +66,33 @@ def highlight_text(html, phrase):
             to_process_text = ''
     if to_process_text:
         processed_text += to_process_text
-    return processed_text
+    if processed_text != text:
+        return processed_text
 
 
-def highlight_text_with_phrases(orig_text, phrases, rc, ignore=None, add_bad_highlight_func=None):
-    highlighted_text = orig_text
-    phrases.sort(key=len, reverse=True)
-    for phrase in phrases:
-        new_highlighted_text = highlight_text(highlighted_text, phrase)
-        if new_highlighted_text != highlighted_text:
-            highlighted_text = new_highlighted_text
-        elif not ignore or phrase.lower() not in ignore:
-            # This is just to determine the fix for any terms that differ in curly/straight quotes
-            bad_highlights = OrderedDict({phrase: None})
-            alt_phrase = [
-                # All curly quotes made straight
-                phrase.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
-                # All straight quotes made curly, first single and double pointing right
-                phrase.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
-                # All curly double quotes made straight
-                phrase.replace('“', '"').replace('”', '"'),
-                # All straight double quotes made curly with first pointing right
-                phrase.replace('"', '”').replace('”', '“', 1),
-                # All straight single quotes made curly with first pointing right
-                phrase.replace("'", '’').replace('’', '‘', 1),
-                # All straight single quotes made straight (all point left)
-                phrase.replace("'", '’'),
-                # All left pointing curly single quotes made straight
-                phrase.replace('’', "'"),
-                # All right pointing curly single quotes made straight
-                phrase.replace('‘', "'")]
-            for alt_phrase in alt_phrase:
-                if orig_text != highlight_text(orig_text, alt_phrase):
-                    bad_highlights[phrase] = alt_phrase
-                    break
-            if add_bad_highlight_func:
-                add_bad_highlight_func(rc, orig_text, bad_highlights)
-    return highlighted_text
+def find_quote_variation_in_text(text, phrase):
+    quote_variations = [
+        # All curly quotes made straight
+        phrase.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
+        # All straight quotes made curly, first single and double pointing right
+        phrase.replace("'", '’').replace('’', '‘', 1).replace('"', '”').replace('”', '“', 1),
+        # All curly double quotes made straight
+        phrase.replace('“', '"').replace('”', '"'),
+        # All straight double quotes made curly with first pointing right
+        phrase.replace('"', '”').replace('”', '“', 1),
+        # All straight single quotes made curly with first pointing right
+        phrase.replace("'", '’').replace('’', '‘', 1),
+        # All straight single quotes made straight (all point left)
+        phrase.replace("'", '’'),
+        # All left pointing curly single quotes made straight
+        phrase.replace('’', "'"),
+        # All right pointing curly single quotes made straight
+        phrase.replace('‘', "'")]
+    for quote_variation in quote_variations:
+        if quote_variation != phrase:
+            marked_text = mark_phrase_in_text(text, quote_variation)
+            if marked_text:
+                return quote_variation
 
 
 def increment_headers(html, increase_depth=1):
