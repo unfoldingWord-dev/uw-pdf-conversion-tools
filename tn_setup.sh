@@ -45,4 +45,4 @@ rm -rf kn/translationHelps
 rm -rf hbo/bibles
 rm -rf el-x-koine/bibles
 
-echo "TN Resources have been installed in $RESOUCE_DIR"
+echo "TN Resources have been installed in $RESOURCE_DIR"
