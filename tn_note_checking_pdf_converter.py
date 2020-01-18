@@ -19,6 +19,7 @@ class TnNoteCheckingPdfConverter(TnPdfConverter):
     def name(self):
         return 'tn-note-checking'
 
+    @property
     def title(self):
         return super().title + ' Checking - Notes'
 
