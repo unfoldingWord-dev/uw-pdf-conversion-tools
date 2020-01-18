@@ -694,7 +694,7 @@ class TnPdfConverter(PdfConverter):
         chapter = context_id['reference']['chapter']
         verse = context_id['reference']['verse']
         title = f'{self.project_title} {chapter}:{verse}'
-        aligned_text_rc_link = f'rc://{self.lang_code}/{self.ult_id}/bible/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
+        aligned_text_rc_link = f'rc://{self.lang_code}/{self.ult_id}/bible/{self.project_id}/{self.pad(chapter)}/{str(verse).zfill(3)}'
         aligned_text_rc = self.create_rc(aligned_text_rc_link, title=title)
         if int(self.book_number) > 40 or self.project_id.lower() == 'rut' or self.project_id.lower() == 'jon':
             if int(self.book_number) < 41:
