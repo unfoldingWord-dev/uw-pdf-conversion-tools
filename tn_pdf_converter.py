@@ -606,7 +606,7 @@ class TnPdfConverter(PdfConverter):
                 sorted_tn_notes = sorted(tn_notes, key=lambda w: w['quote'], reverse=True)
                 orig_verse_html = verse_html
                 for tn_note in sorted_tn_notes:
-                    tn_rc_link = f'rc://{self.lang_code}/tn/man/{self.project}/{self.pad(chapter)}/{str(verse_num).zfill(3)}'
+                    tn_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{str(verse_num).zfill(3)}'
                     marked_verse_html = html_tools.mark_phrase_in_text(verse_html, tn_note['quote'])
                     if not marked_verse_html:
                         fix = html_tools.find_quote_variation_in_text(orig_verse_html, tn_note['quote'])
@@ -758,17 +758,17 @@ class TnPdfConverter(PdfConverter):
                     # should have two numbers, the chapter and the verse
                     c = parts[1]
                     v = parts[2]
-                    new_link = f'rc://{self.lang_code}/tn/man/{self.project_id}/{self.pad(c)}/{v.zfill(3)}'
+                    new_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(c)}/{v.zfill(3)}'
                 if len(parts) == 2:
                     # shouldn't be here, but just in case, assume link to the first chunk of the given chapter
                     c = parts[1]
-                    new_link = f'rc://{self.lang_code}/tn/man/{self.project_id}/{self.pad(c)}/001'
+                    new_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(c)}/001'
             elif link.startswith('./'):
                 # link to another verse in the same chapter
                 link = os.path.splitext(link)[0]
                 parts = link.split('/')
                 v = parts[1]
-                new_link = f'rc://{self.lang_code}/tn/man/{self.project_id}/{self.pad(chapter)}/{v.zfill(3)}'
+                new_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{v.zfill(3)}'
             return f'<a{before_href}href="{new_link}"{after_href}>{linked_text}</a>'
         regex = re.compile(r'<a([^>]+)href="(\.[^"]+)"([^>]*)>(.*?)</a>')
         html = regex.sub(replace_link, html)
