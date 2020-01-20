@@ -2,7 +2,7 @@ import re
 from bs4 import BeautifulSoup
 from collections import OrderedDict
 
-PHRASE_PARTS_TO_IGNORE = ['a', 'am', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'did', 'do', 'does', 'done', 'for', 'from', 'had', 'has', 'have', 'he', 'her', 'his', 'i', 'in', 'into', 'less', 'let', 'may', 'might', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'our', 'she', 'than', 'the', 'their', 'then', 'they', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'who', 'whom', 'with', 'will', 'were', 'your', 'you', 'would', 'could', 'should', 'shall', 'can']
+PHRASE_PARTS_TO_IGNORE = ['a', 'am', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'did', 'do', 'does', 'done', 'for', 'from', 'had', 'has', 'have', 'i', 'in', 'into', 'less', 'let', 'may', 'might', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'than', 'the', 'their', 'then', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'who', 'whom', 'with', 'will', 'were', 'your', 'you', 'would', 'could', 'should', 'shall', 'can']
 
 
 def get_title_from_html(html):
@@ -37,40 +37,52 @@ def get_phrases_to_highlight(html, header_tag=None):
     return phrases
 
 
-def mark_phrase_in_text(text, phrase, tag=None):
+def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, ignore_small_words=True):
     if not tag:
         tag = '<span class="highlight">'
     tag_name = tag[1:-1].split(' ')[0]
+    patterns = []
+    replaces = []
+    is_html = '<' in text and '>' in text
     parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', phrase)
-    processed_text = ''
-    to_process_text = text
-    for idx, part in enumerate(parts):
-        part = part.strip()
-        if not part or (idx != len(parts) - 1 and part.lower() in PHRASE_PARTS_TO_IGNORE):
-            continue
-        if re.findall('<[^>]+>', to_process_text):
-            words = [re.escape(word.strip()) for word in re.findall(r'\w+|\W+', part)]
-            split_pattern = '(' + r'(\s*|(\s*</*[^>]+>\s*)+)'.join(words) + ')'
-        else:
-            split_pattern = '(' + re.escape(part) + ')'
-        split_pattern += '(?![^<]*>)'  # don't match within HTML tags
-        splits = re.split(split_pattern, to_process_text, 1)
-        processed_text += splits[0]
-        if len(splits) > 1:
-            processed_text += f'{tag}{splits[1]}</{tag_name}>'
-            if len(splits) > 2:
-                to_process_text = splits[-1]
+    if ignore_small_words:
+        filtered_parts = []
+        for parts_idx, part in enumerate(parts):
+            if parts_idx + 1 >= len(parts) or part.lower() not in PHRASE_PARTS_TO_IGNORE:
+                filtered_parts.append(part)
+        parts = filtered_parts
+    for occ in range(1, occurrence + 1):
+        start_tag = ''
+        end_tag = ''
+        if occ == occurrence:
+            start_tag = tag
+            end_tag = f'</{tag_name}>'
+        for part_idx, part in enumerate(parts):
+            part = part.strip()
+            if is_html:
+                words = [re.escape(word.strip()) for word in re.findall(r'\w+|\W+', part)]
+                for word_idx, word in enumerate(words):
+                    patterns.append(f'({word})')
+                    replaces.append(f'{start_tag}\\{len(replaces)+1}{end_tag}')
+                    if word_idx + 1 != len(words):
+                        patterns.append(r'(\s*|(?:\s*</*[^>]+>\s*)+)')
+                        replaces.append(f'\\{len(replaces)+1}')
             else:
-                to_process_text = ''
-        else:
-            to_process_text = ''
-    if to_process_text:
-        processed_text += to_process_text
-    if processed_text != text:
-        return processed_text
+                patterns.append(f'({re.escape(part)})')
+                replaces.append(f'{start_tag}\\{len(replaces)+1}{end_tag}')
+            patterns.append('(?![^<]*>)')  # don't match within HTML tags
+            if part_idx + 1 < len(parts):
+                patterns.append('(.*?)')
+                replaces.append(f'\\{len(replaces)+1}')
+        if occ < occurrence:
+            patterns.append('(.*?)')
+            replaces.append(f'\\{len(replaces) + 1}')
+    pattern = ''.join(patterns)
+    replace = ''.join(replaces)
+    return re.sub(pattern, replace, text, 1)
 
 
-def find_quote_variation_in_text(text, phrase):
+def find_quote_variation_in_text(text, phrase, occurrence=1, ignore_small_words=True):
     quote_variations = [
         # All curly quotes made straight
         phrase.replace('‘', "'").replace('’', "'").replace('“', '"').replace('”', '"'),
@@ -90,7 +102,8 @@ def find_quote_variation_in_text(text, phrase):
         phrase.replace('‘', "'")]
     for quote_variation in quote_variations:
         if quote_variation != phrase:
-            marked_text = mark_phrase_in_text(text, quote_variation)
+            marked_text = mark_phrase_in_text(text, quote_variation, occurrence=occurrence,
+                                              ignore_small_words=ignore_small_words)
             if marked_text:
                 return quote_variation
 

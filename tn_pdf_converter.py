@@ -18,11 +18,11 @@ import markdown2
 import general_tools.html_tools as html_tools
 from glob import glob
 from bs4 import BeautifulSoup
-from pdf_converter import PdfConverter, run_converter
+from pdf_converter import PdfConverter, run_converter, DEFAULT_TAG
 from usfm_tools.transform import UsfmTransform
 from general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
 from general_tools.file_utils import write_file, read_file, load_json_object
-from general_tools.resource_tools import get_latest_version
+from general_tools.resource_tools import get_latest_version, get_latest_version_path
 from general_tools.usfm_utils import usfm3_to_usfm2
 from resource import Resource
 
@@ -69,9 +69,25 @@ class TnPdfConverter(PdfConverter):
         else:
             return ''
 
+    def setup_dirs(self):
+        super().setup_dirs()
+        self.tn_resources_dir = os.path.join(self.working_dir, 'tn_resources')
+
+    def setup_resources(self):
+        ult_version = get_latest_version(os.path.join(self.tn_resources_dir, 'en/bibles/ult'))
+        if self.resources['ult'].tag == DEFAULT_TAG and ult_version:
+            ult_version = ult_version[1]
+            self.logger.info(f'Changing ULT tag from `master` to `{ult_version}`')
+            self.resources['ult'].tag = ult_version
+        ust_version = get_latest_version(os.path.join(self.tn_resources_dir, 'en/bibles/ust'))
+        if self.resources['ust'].tag == DEFAULT_TAG and ust_version:
+            ust_version = ust_version[1]
+            self.logger.info(f'Changing UST tag from `master` to `{ust_version}`')
+            self.resources['ust'].tag = ust_version
+        super().setup_resources()
+
     def get_body_html(self):
         self.logger.info('Creating tN for {0}...'.format(self.file_project_and_tag_id))
-        self.tn_resources_dir = os.path.join(self.working_dir, 'tn_resources')
         self.populate_tn_book_data()
         self.populate_tw_words_data()
         self.populate_chapters_and_verses()
@@ -352,7 +368,8 @@ class TnPdfConverter(PdfConverter):
                 </div>
 '''
                         chunk_notes += verse_notes
-                        verse_words = ''
+
+                        verse_words = f'<h3>{self.project_title} {chapter}:{verse}</h3>'
                         tw_words = self.get_tw_words(chapter, verse)
                         for tw_word in tw_words:
                             tw_rc_link = tw_word['contextId']['rc']
@@ -365,10 +382,9 @@ class TnPdfConverter(PdfConverter):
                                 tw_rc = self.tw_rcs[tw_rc_link]
                             verse_words += f'''
                 <div class="verse-word">
-                    <h3 class="verse-note-title">{tw_rc.title}</h3>
+                    <h4 class="verse-note-title">{tw_rc.title}</h4>
                     <div class="verse-note-text">
-                        has been aligned as <em><strong>{alignment}</strong></em> in 
-                        <span class="verse-note-reference">{self.project_title} {chapter}:{verse}</span>
+                        has been aligned as <em><a href="{tw_rc.rc_link}">{alignment}</a></em> 
                     </div>
                 </div>
 '''
@@ -444,9 +460,9 @@ class TnPdfConverter(PdfConverter):
     def populate_tw_words_data(self):
         groups = ['kt', 'names', 'other']
         if int(self.book_number) < 41:
-            ol_path = get_latest_version(os.path.join(self.tn_resources_dir, 'hbo/translationHelps/translationWords'))
+            ol_path = get_latest_version_path(os.path.join(self.tn_resources_dir, 'hbo/translationHelps/translationWords'))
         else:
-            ol_path = get_latest_version(os.path.join(self.tn_resources_dir, 'el-x-koine/translationHelps/translationWords'))
+            ol_path = get_latest_version_path(os.path.join(self.tn_resources_dir, 'el-x-koine/translationHelps/translationWords'))
         if not os.path.isdir(ol_path):
             self.logger.error(f'{ol_path} not found! Please make sure you ran `setup.sh` in the `tn` dir')
             exit(1)
@@ -502,7 +518,7 @@ class TnPdfConverter(PdfConverter):
                           flags=re.IGNORECASE | re.MULTILINE)
         return html
 
-    def get_ult_with_tw_words(self, rc, chapter, first_verse, last_verse):
+    def get_ult_with_tw_words(self, rc, chapter, first_verse, last_verse, ignore_small_words=True):
         html = self.get_plain_scripture(self.ult_id, chapter, first_verse, last_verse)
         footnotes_split = re.compile('<div class="footnotes">', flags=re.MULTILINE | re.IGNORECASE)
         verses_and_footnotes = footnotes_split.split(html, maxsplit=1)
@@ -524,9 +540,21 @@ class TnPdfConverter(PdfConverter):
                 orig_verse_html = verse_html
                 for word in sorted_words:
                     tw_rc = word['contextId']['rc']
-                    marked_verse_html = html_tools.mark_phrase_in_text(verse_html, word['text'], f'<a href="{tw_rc}">')
+                    occurrence = word['contextId']['occurrence']
+                    marked_verse_html = html_tools.mark_phrase_in_text(verse_html, word['text'],
+                                                                       occurrence=occurrence,
+                                                                       tag=f'<a href="{tw_rc}">',
+                                                                       ignore_small_words=ignore_small_words)
                     if not marked_verse_html:
-                        fix = html_tools.find_quote_variation_in_text(orig_verse_html, word['text'])
+                        fix = html_tools.find_quote_variation_in_text(orig_verse_html, word['text'],
+                                                                      occurrence=occurrence,
+                                                                      ignore_small_words=ignore_small_words)
+                        if not fix and occurrence > 1:
+                            marked_verse_html = html_tools.mark_phrase_in_text(verse_html, word['text'],
+                                                                               occurrence=1,
+                                                                               ignore_small_words=ignore_small_words)
+                            if marked_verse_html:
+                                fix = f'(occurrence = {occurrence}, only occurrence 1 is found)'
                         self.add_bad_highlight(rc, orig_verse_html, tw_rc, word['text'], fix)
                     else:
                         verse_html = marked_verse_html
@@ -540,7 +568,7 @@ class TnPdfConverter(PdfConverter):
         return new_html
 
     def get_tw_words(self, chapter, verse):
-        latest_version = get_latest_version(os.path.join(self.tn_resources_dir, f'{self.lang_code}/bibles/{self.ult_id}'))
+        latest_version = get_latest_version_path(os.path.join(self.tn_resources_dir, f'{self.lang_code}/bibles/{self.ult_id}'))
         path = f'{latest_version}/{self.project_id}/{chapter}.json'
         words = []
         data = load_json_object(path)

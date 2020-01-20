@@ -22,6 +22,12 @@ def get_latest_version(path_to_versions):
                 os.path.isdir(os.path.join(path_to_versions, d))]
     if versions and len(versions):
         sort_alphanumeric(versions)
-        return os.path.join(path_to_versions, versions[-1])
+        return versions[-1]
+
+
+def get_latest_version_path(path_to_versions):
+    latest_version = get_latest_version(path_to_versions)
+    if latest_version:
+        return os.path.join(path_to_versions, latest_version)
     else:
         return path_to_versions

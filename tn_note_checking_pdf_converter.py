@@ -29,7 +29,6 @@ class TnNoteCheckingPdfConverter(TnPdfConverter):
         tn_title = f'{self.project_title} {chapter}:{first_verse}'
         if first_verse != last_verse:
             tn_title += f'-{last_verse}'
-        tn_title += ' - NOTES'
         tn_chunk_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{str(first_verse).zfill(3)}/{str(last_verse).zfill(3)}'
         tn_chunk_rc = self.add_rc(tn_chunk_rc_link, title=tn_title)
         # make an RC for all the verses in this chunk in case they are reference
