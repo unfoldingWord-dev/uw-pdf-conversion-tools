@@ -29,6 +29,7 @@ from resource import Resource
 DEFAULT_ULT_ID = 'ult'
 DEFAULT_UST_ID = 'ust'
 VERSIFICATION_GITHUB_URL = 'https://git.door43.org/Door43-Catalog/versification.git'
+QUOTES_TO_IGNORE = ['general information:', 'connecting statement:']
 
 
 class TnPdfConverter(PdfConverter):
@@ -608,7 +609,7 @@ class TnPdfConverter(PdfConverter):
                 for tn_note in sorted_tn_notes:
                     tn_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{str(verse_num).zfill(3)}'
                     marked_verse_html = html_tools.mark_phrase_in_text(verse_html, tn_note['quote'])
-                    if not marked_verse_html:
+                    if not marked_verse_html and tn_note['quote'].lower() not in QUOTES_TO_IGNORE:
                         fix = html_tools.find_quote_variation_in_text(orig_verse_html, tn_note['quote'])
                         self.add_bad_highlight(rc, orig_verse_html, tn_rc_link, tn_note['quote'], fix)
                     else:
