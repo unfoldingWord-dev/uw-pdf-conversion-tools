@@ -15,6 +15,7 @@ import re
 import argparse
 import csv
 import markdown2
+import subprocess
 import general_tools.html_tools as html_tools
 from glob import glob
 from bs4 import BeautifulSoup
@@ -44,6 +45,8 @@ class TnPdfConverter(PdfConverter):
         self.resources['ust'].resource_name = self.ust_id
         self.resources['ust'].repo_name = f'{self.lang_code}_{self.ust_id}'
         self.resources['versification'] = Resource('versification', 'versification', url=VERSIFICATION_GITHUB_URL)
+        self.resources['ugnt'].repo_name = 'el-x-koine_ugnt'
+        self.resources['uhb'].repo_name = 'hbo_uhb'
 
         self.book_number = BOOK_NUMBERS[self.project_id]
         self.chapters_and_verses = {}
@@ -52,7 +55,6 @@ class TnPdfConverter(PdfConverter):
         self.tn_book_data = {}
         self.tw_words_data = {}
         self.tw_rcs = {}
-        self.tn_resources_dir = None
         self.last_ended_with_quote_tag = False
         self.last_ended_with_paragraph_tag = False
         self.open_quote = False
@@ -70,22 +72,9 @@ class TnPdfConverter(PdfConverter):
         else:
             return ''
 
-    def setup_dirs(self):
-        super().setup_dirs()
-        self.tn_resources_dir = os.path.join(self.working_dir, 'tn_resources')
-
     def setup_resources(self):
-        ult_version = get_latest_version(os.path.join(self.tn_resources_dir, 'en/bibles/ult'))
-        if self.resources['ult'].tag == DEFAULT_TAG and ult_version:
-            ult_version = ult_version[1]
-            self.logger.info(f'Changing ULT tag from `master` to `{ult_version}`')
-            self.resources['ult'].tag = ult_version
-        ust_version = get_latest_version(os.path.join(self.tn_resources_dir, 'en/bibles/ust'))
-        if self.resources['ust'].tag == DEFAULT_TAG and ust_version:
-            ust_version = ust_version[1]
-            self.logger.info(f'Changing UST tag from `master` to `{ust_version}`')
-            self.resources['ust'].tag = ust_version
         super().setup_resources()
+        subprocess.call(f'node -r esm "{self.converters_dir}/tn_resources/processBibles.js" {self.lang_code} "{self.working_dir}" {self.ult_id} {self.ust_id}', shell=True)
 
     def get_body_html(self):
         self.logger.info('Creating tN for {0}...'.format(self.file_project_and_tag_id))
@@ -464,11 +453,12 @@ class TnPdfConverter(PdfConverter):
     def populate_tw_words_data(self):
         groups = ['kt', 'names', 'other']
         if int(self.book_number) < 41:
-            ol_path = get_latest_version_path(os.path.join(self.tn_resources_dir, 'hbo/translationHelps/translationWords'))
+            bible = 'uhb'
         else:
-            ol_path = get_latest_version_path(os.path.join(self.tn_resources_dir, 'el-x-koine/translationHelps/translationWords'))
+            bible = 'ugnt'
+        ol_path = self.resources[bible].repo_dir + '_' + self.resources[bible].tag + '_package_tw_group_data'
         if not os.path.isdir(ol_path):
-            self.logger.error(f'{ol_path} not found! Please make sure you ran `setup.sh` in the `tn` dir')
+            self.logger.error(f'{ol_path} not found!')
             exit(1)
         words = {}
         for group in groups:
@@ -572,10 +562,10 @@ class TnPdfConverter(PdfConverter):
         return new_html
 
     def get_tw_words(self, chapter, verse):
-        latest_version = get_latest_version_path(os.path.join(self.tn_resources_dir, f'{self.lang_code}/bibles/{self.ult_id}'))
-        path = f'{latest_version}/{self.project_id}/{chapter}.json'
+        ult_package_dir = os.path.join(self.resources['ult'].repo_dir + '_' + self.resources['ult'].tag + '_package')
+        chapter_json_path = f'{ult_package_dir}/{self.project_id}/{chapter}.json'
         words = []
-        data = load_json_object(path)
+        data = load_json_object(chapter_json_path)
         chapter = int(chapter)
         if chapter in self.tw_words_data and verse in self.tw_words_data[chapter]:
             context_ids = self.tw_words_data[int(chapter)][int(verse)]
@@ -859,7 +849,7 @@ def main(tn_class):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--ust-id', dest='ust_id', default=DEFAULT_UST_ID, required=False, help="UST ID")
     parser.add_argument('--ult-id', dest='ult_id', default=DEFAULT_ULT_ID, required=False, help="ULT ID")
-    run_converter(['tn', 'ult', 'ust', 'ta', 'tw'], tn_class, all_project_ids=BOOK_NUMBERS.keys(), parser=parser)
+    run_converter(['tn', 'ult', 'ust', 'ta', 'tw', 'ugnt', 'uhb'], tn_class, all_project_ids=BOOK_NUMBERS.keys(), parser=parser)
 
 
 if __name__ == '__main__':
