@@ -1,0 +1,171 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Test twGroupDataHelpers.generateTwGroupDataFromAlignedBible() Test that milestones are properly constructed using inchrist for phm 1`] = `
+Array [
+  Object {
+    "comments": false,
+    "contextId": Object {
+      "groupId": "inchrist",
+      "occurrence": 1,
+      "quote": Array [
+        Object {
+          "occurrence": 1,
+          "word": "ἐν",
+        },
+        Object {
+          "occurrence": 1,
+          "word": "Χριστῷ",
+        },
+      ],
+      "reference": Object {
+        "bookId": "phm",
+        "chapter": 1,
+        "verse": 8,
+      },
+      "strong": Array [
+        "G17220",
+        "G55470",
+      ],
+      "tool": "translationWords",
+    },
+    "nothingToSelect": false,
+    "priority": 1,
+    "reminders": false,
+    "selections": false,
+    "verseEdits": false,
+  },
+  Object {
+    "comments": false,
+    "contextId": Object {
+      "groupId": "inchrist",
+      "occurrence": 1,
+      "quote": Array [
+        Object {
+          "occurrence": 2,
+          "word": "ἐν",
+        },
+        Object {
+          "occurrence": 1,
+          "word": "Κυρίῳ",
+        },
+      ],
+      "reference": Object {
+        "bookId": "phm",
+        "chapter": 1,
+        "verse": 16,
+      },
+      "strong": Array [
+        "G17220",
+        "G29620",
+      ],
+      "tool": "translationWords",
+    },
+    "nothingToSelect": false,
+    "priority": 1,
+    "reminders": false,
+    "selections": false,
+    "verseEdits": false,
+  },
+  Object {
+    "comments": false,
+    "contextId": Object {
+      "groupId": "inchrist",
+      "occurrence": 1,
+      "quote": Array [
+        Object {
+          "occurrence": 1,
+          "word": "ἐν",
+        },
+        Object {
+          "occurrence": 1,
+          "word": "Κυρίῳ",
+        },
+      ],
+      "reference": Object {
+        "bookId": "phm",
+        "chapter": 1,
+        "verse": 20,
+      },
+      "strong": Array [
+        "G17220",
+        "G29620",
+      ],
+      "tool": "translationWords",
+    },
+    "nothingToSelect": false,
+    "priority": 1,
+    "reminders": false,
+    "selections": false,
+    "verseEdits": false,
+  },
+  Object {
+    "comments": false,
+    "contextId": Object {
+      "groupId": "inchrist",
+      "occurrence": 1,
+      "quote": Array [
+        Object {
+          "occurrence": 2,
+          "word": "ἐν",
+        },
+        Object {
+          "occurrence": 1,
+          "word": "Χριστῷ",
+        },
+      ],
+      "reference": Object {
+        "bookId": "phm",
+        "chapter": 1,
+        "verse": 20,
+      },
+      "strong": Array [
+        "G17220",
+        "G55470",
+      ],
+      "tool": "translationWords",
+    },
+    "nothingToSelect": false,
+    "priority": 1,
+    "reminders": false,
+    "selections": false,
+    "verseEdits": false,
+  },
+  Object {
+    "comments": false,
+    "contextId": Object {
+      "groupId": "inchrist",
+      "occurrence": 1,
+      "quote": Array [
+        Object {
+          "occurrence": 1,
+          "word": "ἐν",
+        },
+        Object {
+          "occurrence": 1,
+          "word": "Χριστῷ",
+        },
+        Object {
+          "occurrence": 1,
+          "word": "Ἰησοῦ",
+        },
+      ],
+      "reference": Object {
+        "bookId": "phm",
+        "chapter": 1,
+        "verse": 23,
+      },
+      "strong": Array [
+        "G17220",
+        "G55470",
+        "G24240",
+      ],
+      "tool": "translationWords",
+    },
+    "nothingToSelect": false,
+    "priority": 1,
+    "reminders": false,
+    "selections": false,
+    "verseEdits": false,
+  },
+]
+`;
