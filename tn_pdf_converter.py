@@ -410,7 +410,7 @@ class TnPdfConverter(PdfConverter):
                     previous_first_verse = first_verse
 
             for first_verse in sorted(chapter_chunk_data.keys()):
-                self.logger.info(f'Generating article from chunk data for {chapter}{first_verse}...')
+                self.logger.info(f'Generating article from chunk data for {chapter}:{first_verse}...')
                 tn_html += self.get_tn_chunk_article(chapter_chunk_data, chapter, first_verse)
 
         tn_html += "\n</section>\n\n"
