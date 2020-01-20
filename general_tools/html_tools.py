@@ -41,8 +41,9 @@ def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, ignore_small_words
     if not tag:
         tag = '<span class="highlight">'
     tag_name = tag[1:-1].split(' ')[0]
-    patterns = []
-    replaces = []
+    pattern = ''
+    replace = ''
+    replace_var = 1
     is_html = '<' in text and '>' in text
     parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', phrase)
     if ignore_small_words:
@@ -61,24 +62,28 @@ def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, ignore_small_words
             part = part.strip()
             if is_html:
                 words = [re.escape(word.strip()) for word in re.findall(r'\w+|\W+', part)]
+                pattern += '('
                 for word_idx, word in enumerate(words):
-                    patterns.append(f'({word})')
-                    replaces.append(f'{start_tag}\\{len(replaces)+1}{end_tag}')
-                    if word_idx + 1 != len(words):
-                        patterns.append(r'(\s*|(?:\s*</*[^>]+>\s*)+)')
-                        replaces.append(f'\\{len(replaces)+1}')
+                    if word.strip():
+                        pattern += word
+                        if word_idx + 1 != len(words):
+                            pattern += r'(?:\s*|(?:\s*</*[^>]+>\s*)+)'
+                pattern += ')'
+                replace += f'{start_tag}\\{replace_var}{end_tag}'
+                replace_var += 1
             else:
-                patterns.append(f'({re.escape(part)})')
-                replaces.append(f'{start_tag}\\{len(replaces)+1}{end_tag}')
-            patterns.append('(?![^<]*>)')  # don't match within HTML tags
+                pattern += f'({re.escape(part)})'
+                replace += f'{start_tag}\\{replace_var}{end_tag}'
+                replace_var += 1
+            pattern += '(?![^<]*>)'  # don't match within HTML tags
             if part_idx + 1 < len(parts):
-                patterns.append('(.*?)')
-                replaces.append(f'\\{len(replaces)+1}')
+                pattern += '(.*?)'
+                replace += f'\\{replace_var}'
+                replace_var += 1
         if occ < occurrence:
-            patterns.append('(.*?)')
-            replaces.append(f'\\{len(replaces) + 1}')
-    pattern = ''.join(patterns)
-    replace = ''.join(replaces)
+            pattern += '(.*?)'
+            replace += f'\\{replace_var}'
+            replace_var += 1
     return re.sub(pattern, replace, text, 1)
 
 
