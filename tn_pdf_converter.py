@@ -319,6 +319,7 @@ class TnPdfConverter(PdfConverter):
             self.verse_to_chunk[self.pad(chapter)] = {}
             self.logger.info(f'Chapter {chapter}...')
             if 'intro' in self.tn_book_data[chapter]:
+                self.logger.info('Generating chapter info...')
                 intro = markdown2.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
                 intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', intro, 1, flags=re.MULTILINE | re.IGNORECASE)
                 intro_title = html_tools.get_title_from_html(intro)
@@ -345,6 +346,7 @@ class TnPdfConverter(PdfConverter):
                     last_verse = chapter_verses['first_verses'][idx+1] - 1
                 else:
                     last_verse = int(BOOK_CHAPTER_VERSES[self.project_id][chapter])
+                self.logger.info(f'Generating chunk {chapter}:{first_verse}-{last_verse}...')
 
                 chunk_notes = ''
                 chunk_words = ''
@@ -408,6 +410,7 @@ class TnPdfConverter(PdfConverter):
                     previous_first_verse = first_verse
 
             for first_verse in sorted(chapter_chunk_data.keys()):
+                self.logger.info('Generating article from chunk data...')
                 tn_html += self.get_tn_chunk_article(chapter_chunk_data, chapter, first_verse)
 
         tn_html += "\n</section>\n\n"
