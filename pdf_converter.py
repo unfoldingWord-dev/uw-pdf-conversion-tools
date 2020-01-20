@@ -1036,6 +1036,6 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
             args_dict['resources'] = resources
             converter = pdf_converter_class(**args_dict)
             project_id_str = f'_{project_id}' if project_id else ''
-            converter.logger.info(f'Starting PDF Converter for {resources.main.repo_name}_{resources.main.tag}{project_id_str}...')
+            converter.logger.info(f'Starting PDF Converter for {converter.name}_{converter.main_resource.tag}{project_id_str}...')
             converter.run()
             del converter
