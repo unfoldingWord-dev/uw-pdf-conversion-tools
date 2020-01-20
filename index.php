@@ -5,7 +5,6 @@
     <title>Resource list</title>
   </head>
 <body>
-a
 <?php
 date_default_timezone_set('US/Eastern');
 $dirs = array();
