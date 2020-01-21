@@ -17,6 +17,7 @@ import csv
 import markdown2
 import subprocess
 import general_tools.html_tools as html_tools
+from subprocess import check_output, STDOUT, CalledProcessError
 from glob import glob
 from bs4 import BeautifulSoup
 from pdf_converter import PdfConverter, run_converter
@@ -87,10 +88,11 @@ class TnPdfConverter(PdfConverter):
 
     def setup_resources(self):
         super().setup_resources()
-        if not os.path.exists(self.ult_package_dir) or \
+        if True or not os.path.exists(self.ult_package_dir) or \
                 not os.path.exists(self.ugnt_package_dir) or not os.path.exists(self.ugnt_tw_dir) or \
                 not os.path.exists(self.uhb_package_dir) or not os.path.exists(self.uhb_tw_dir):
-            subprocess.call(f'cd "{self.converters_dir}/tn_resources" && node -r esm processBibles.js {self.lang_code} "{self.working_dir}" {self.ult_id} {self.ust_id}', shell=True)
+            cmd = f'cd "{self.converters_dir}/tn_resources" && node processBibles.js {self.lang_code} "{self.working_dir}333" {self.ult_id} {self.ust_id}'
+            check_output(cmd, stderr=STDOUT, shell=True)
 
     def get_body_html(self):
         self.logger.info('Creating tN for {0}...'.format(self.file_project_and_tag_id))
@@ -477,7 +479,7 @@ class TnPdfConverter(PdfConverter):
             exit(1)
         words = {}
         for group in groups:
-            files_path = os.path.join(tw_path, f'/{group}/groups/{self.project_id}', '*.json')
+            files_path = os.path.join(tw_path, f'{group}/groups/{self.project_id}', '*.json')
             files = glob(files_path)
             for file in files:
                 base = os.path.splitext(os.path.basename(file))[0]

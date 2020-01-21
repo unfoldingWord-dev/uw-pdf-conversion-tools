@@ -1,1 +1,0 @@
-What is authority level 3?
