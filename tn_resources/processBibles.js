@@ -32,11 +32,11 @@ const processBibles = (langId, workingDir, ultId, ustId) => {
     const repoPath = path.join(workingDir, repo);
     const packagePath = path.join(workingDir, repo + '_master_package');
     const twGroupDataPath = path.join(packagePath + '_tw_group_data');
-    if (fs.pathExistsSync(packagePath))
+    if (! fs.pathExistsSync(packagePath))
       fs.mkdirSync(packagePath);
     SourceContentUpdater.parseBiblePackage(resource, repoPath, packagePath);
     if (resource.languageId === 'hbo' || resource.languageId === 'el-x-koine') {
-      if (fs.pathExistsSync(twGroupDataPath))
+      if (! fs.pathExistsSync(twGroupDataPath))
         fs.mkdirSync(twGroupDataPath);
       SourceContentUpdater.generateTwGroupDataFromAlignedBible(resource, packagePath, twGroupDataPath);
     }
