@@ -88,7 +88,7 @@ class TnPdfConverter(PdfConverter):
     def setup_resources(self):
         super().setup_resources()
         if self.update:
-            cmd = f'node "{self.converters_dir}/tn_resources/processBibles.js" {self.lang_code} "{self.working_dir}33" {self.ult_id} {self.ust_id}'
+            cmd = f'node "{self.converters_dir}/tn_resources/processBibles.js" {self.lang_code} "{self.working_dir}" {self.ult_id} {self.ust_id}'
             self.logger.info(f'Running: {cmd}')
             ret = subprocess.call(cmd, shell=True)
             if ret:
