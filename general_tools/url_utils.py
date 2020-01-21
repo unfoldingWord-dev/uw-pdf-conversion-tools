@@ -3,11 +3,7 @@ from contextlib import closing
 import json
 import shutil
 import sys
-
-try:
-    import urllib.request as urllib2
-except ImportError:
-    import urllib2
+import urllib.request as urllib2
 
 
 def get_url(url, catch_exception=False):
@@ -42,15 +38,18 @@ def download_file(url, outfile):
     _download_file(url, outfile, urlopen=urllib2.urlopen)
 
 
-def _download_file(url, outfile, urlopen):
+def _download_file(url, outfile, urlopen, handle_error=False):
     try:
         with closing(urlopen(url)) as request:
             with open(outfile, 'wb') as fp:
                 shutil.copyfileobj(request, fp)
     except IOError as err:
-        print('ERROR retrieving %s' % url)
-        print(err)
-        sys.exit(1)
+        if handle_error:
+            print('ERROR retrieving %s' % url)
+            print(err)
+            sys.exit(1)
+        else:
+            raise err
 
 
 def get_languages():

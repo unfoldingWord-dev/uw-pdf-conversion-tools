@@ -32,7 +32,7 @@ LOGO_MAP = {
 class Resource(object):
 
     def __init__(self, resource_name, repo_name, tag=DEFAULT_TAG, owner=DEFAULT_OWNER, manifest=None, url=None,
-                 logo_url=None, offline=False):
+                 logo_url=None, offline=False, update=True):
         self.resource_name = resource_name
         self.repo_name = repo_name
         self.tag = tag
@@ -41,6 +41,7 @@ class Resource(object):
         self.url = url
         self._logo_url = logo_url
         self.offline = offline
+        self.update = not offline and update
 
         self.repo_dir = None
         self.git = None
@@ -85,10 +86,10 @@ class Resource(object):
                     if os.path.exists(self.repo_dir):
                         break
         self.git = git.Git(self.repo_dir)
-        if not self.offline:
+        if self.update:
             self.git.fetch()
         self.git.checkout(self.tag)
-        if self.tag == DEFAULT_TAG and not self.offline:
+        if self.tag == DEFAULT_TAG and self.update:
             self.git.pull()
         self.commit = self.git.rev_parse('HEAD', short=10)
 

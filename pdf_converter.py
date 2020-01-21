@@ -16,9 +16,7 @@ import logging
 import tempfile
 import markdown2
 import shutil
-import subprocess
 import string
-import requests
 import sys
 import argparse
 import jsonpickle
@@ -48,7 +46,7 @@ APPENDIX_RESOURCES = ['ta', 'tw']
 class PdfConverter:
 
     def __init__(self, resources: Resources, project_id=None, working_dir=None, output_dir=None,
-                 lang_code=DEFAULT_LANG_CODE, regenerate=False, logger=None, offline=False, **kwargs):
+                 lang_code=DEFAULT_LANG_CODE, regenerate=False, logger=None, offline=False, update=True, **kwargs):
         self.resources = resources
         self.main_resource = self.resources.main
         self.project_id = project_id
@@ -58,6 +56,7 @@ class PdfConverter:
         self.regenerate = regenerate
         self.logger = logger
         self.offline = offline
+        self.update = not offline and update
 
         self.logger_handler = None
         self.wp_logger = logging.getLogger('weasyprint')
@@ -235,17 +234,18 @@ class PdfConverter:
 
     def run(self):
         self.setup_dirs()
+        self.setup_logging_to_file()
         self.setup_resources()
 
         self.html_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}.html')
         self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}.pdf')
 
-        self.setup_logging_to_file()
         self.determine_if_regeneration_needed()
         self.generate_html()
         self.generate_pdf()
 
     def setup_dirs(self):
+        self.logger.info('Setting up directories...')
         if not self.working_dir:
             if 'WORKING_DIR' in os.environ:
                 self.working_dir = os.environ['WORKING_DIR']
@@ -253,6 +253,7 @@ class PdfConverter:
             else:
                 self.working_dir = tempfile.mkdtemp(prefix=f'{self.main_resource.repo_name}-')
                 self.remove_working_dir = True
+        self.logger.info(f'Working directory is {self.working_dir}')
 
         if not self.output_dir:
             if 'OUTPUT_DIR' in os.environ:
@@ -261,6 +262,7 @@ class PdfConverter:
             if not self.output_dir:
                 self.output_dir = self.working_dir
                 self.remove_working_dir = False
+        self.logger.info(f'Output directory is {self.output_dir}')
 
         if not os.path.exists(self.working_dir):
             os.makedirs(self.working_dir)
@@ -271,24 +273,30 @@ class PdfConverter:
         self.output_res_dir = os.path.join(self.output_dir, self.name)
         if not os.path.exists(self.output_res_dir):
             os.mkdir(self.output_res_dir)
+        self.logger.info(f'Resource output directory is {self.output_res_dir}')
 
         self.images_dir = os.path.join(self.output_res_dir, 'images')
         if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
+        self.logger.info(f'Images directory is {self.images_dir}')
 
         self.save_dir = os.path.join(self.output_res_dir, 'save')
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
+        self.logger.info(f'Save directory is {self.save_dir}')
 
         self.log_dir = os.path.join(self.output_res_dir, 'log')
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
+        self.logger.info(f'Log directory is {self.log_dir}')
 
         possible_styles = [self.lang_code, self.name, self.main_resource.resource_name, f'{self.lang_code}_{self.name}']
         for style in possible_styles:
             style_file = os.path.join(self.output_res_dir, f'css/{style}_style.css')
             if os.path.exists(style_file):
-                self.add_style_sheet(f'css/{style}_style.css')
+                style_path = f'css/{style}_style.css'
+                self.add_style_sheet(style_path)
+                self.logger.info(f'Adding CSS style sheet: {style_path}')
 
         css_link = os.path.join(self.output_res_dir, 'css')
         css_path = os.path.join(self.converters_dir, 'templates/css')
@@ -297,13 +305,16 @@ class PdfConverter:
         index_link = os.path.join(self.output_dir, 'index.php')
         index_path = os.path.join(self.converters_dir, 'index.php')
         symlink(index_path, index_link)
+        self.logger.info(f'index.php file linked to {index_link}')
 
     def setup_logging_to_file(self):
+        self.logger.info('Setting up log files')
         if self.logger_handler:
             self.logger.removeHandler(self.logger_handler)
         log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_logger.log')
         self.logger_handler = logging.FileHandler(log_file)
         self.logger.addHandler(self.logger_handler)
+        self.logger.info(f'Logging script output to {log_file}')
 
         link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_tag_id}_logger.log')
         symlink(log_file, link_file_path, True)
@@ -313,6 +324,7 @@ class PdfConverter:
         self.wp_logger_handler = logging.FileHandler(log_file)
         self.wp_logger_handler.setLevel(logging.DEBUG)
         self.wp_logger.addHandler(self.wp_logger_handler)
+        self.logger.info(f'Logging WeasyPrint output to {log_file}')
 
         link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_tag_id}_weasyprint.log')
         symlink(log_file, link_file_path, True)
@@ -384,7 +396,8 @@ class PdfConverter:
 
         if not self.bad_links:
             self.logger.info('No bad links for this version!')
-            subprocess.call(f'rm -f "{link_file_path}"', shell=True)
+            if os.path.exists(link_file_path):
+                os.remove(link_file_path)
             return
 
         bad_links_html = '''
@@ -428,7 +441,8 @@ class PdfConverter:
 
         if not self.bad_highlights:
             self.logger.info('No bad highlights for this version!')
-            subprocess.call(f'rm -f "{link_file_path}"', shell=True)
+            if os.path.exists(link_file_path):
+                os.remove(link_file_path)
             return
 
         bad_highlights_html = f'''
@@ -480,13 +494,18 @@ class PdfConverter:
         self.logger.info(f'BAD HIGHLIGHTS file can be found at {save_file}')
 
     def setup_resource(self, resource):
+        self.logger.info(f'Setting up resource {resource.resource_name}...')
         resource.clone(self.working_dir)
         self.generation_info[resource.repo_name] = {'tag': resource.tag, 'commit': resource.commit}
         logo_path = os.path.join(self.images_dir, resource.logo_file)
         if not os.path.exists(logo_path) and not self.offline:
-            download_file(resource.logo_url, logo_path)
+            try:
+                download_file(resource.logo_url, logo_path)
+            except IOError:
+                self.logger.error(f'No logo file found for {resource.logo_url}')
 
     def setup_resources(self):
+        self.logger.info('Setting up resources...')
         for resource_name, resource in self.resources.items():
             self.setup_resource(resource)
 
@@ -1020,6 +1039,7 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     lang_codes = args.lang_codes
     owner = args.owner
     offline = args.offline
+    update = not offline
     if not lang_codes:
         lang_codes = [DEFAULT_LANG_CODE]
     project_ids = args.project_ids
@@ -1038,13 +1058,16 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                 logo = None
                 if logo_url and resource_name == resource_names[0]:
                     logo = logo_url
-                resource = Resource(resource_name=resource_name, repo_name=repo_name, tag=tag, owner=owner, logo_url=logo, offline=offline)
+                resource = Resource(resource_name=resource_name, repo_name=repo_name, tag=tag, owner=owner, logo_url=logo, offline=offline, update=update)
                 resources[resource_name] = resource
             args_dict['lang_code'] = lang_code
             args_dict['project_id'] = project_id
             args_dict['resources'] = resources
+            args_dict['offline'] = offline
+            args_dict['update'] = update
             converter = pdf_converter_class(**args_dict)
             project_id_str = f'_{project_id}' if project_id else ''
             converter.logger.info(f'Starting PDF Converter for {converter.name}_{converter.main_resource.tag}{project_id_str}...')
             converter.run()
             del converter
+            update = False

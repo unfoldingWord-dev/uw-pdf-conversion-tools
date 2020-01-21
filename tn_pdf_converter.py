@@ -17,7 +17,6 @@ import csv
 import markdown2
 import subprocess
 import general_tools.html_tools as html_tools
-from subprocess import check_output, STDOUT, CalledProcessError
 from glob import glob
 from bs4 import BeautifulSoup
 from pdf_converter import PdfConverter, run_converter
@@ -88,14 +87,10 @@ class TnPdfConverter(PdfConverter):
 
     def setup_resources(self):
         super().setup_resources()
-        if not self.offline and (not os.path.exists(self.ult_package_dir) or
-                                 not os.path.exists(self.ugnt_package_dir) or not os.path.exists(self.ugnt_tw_dir) or
-                                 not os.path.exists(self.uhb_package_dir) or not os.path.exists(self.uhb_tw_dir)):
+        if self.update:
             cmd = f'node "{self.converters_dir}/tn_resources/processBibles.js" {self.lang_code} "{self.working_dir}333" {self.ult_id} {self.ust_id}'
             self.logger.info(f'Running: {cmd}')
             ret = subprocess.call(cmd, shell=True)
-            print(ret)
-            exit(1)
 
     def get_body_html(self):
         self.logger.info('Creating tN for {0}...'.format(self.file_project_and_tag_id))
