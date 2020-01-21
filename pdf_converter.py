@@ -79,7 +79,7 @@ class PdfConverter:
         self.translations = {}
         self.remove_working_dir = False
         self.converters_dir = os.path.dirname(os.path.realpath(__file__))
-        self.style_sheets = ['css/style.css']
+        self.style_sheets = []
 
         self._name = self.main_resource.resource_name
         self._project = None
@@ -170,6 +170,7 @@ class PdfConverter:
             return project['title']
 
     def add_style_sheet(self, style_sheet):
+        self.logger.info(f'Adding CSS style sheet: {style_sheet}')
         self.style_sheets.append(style_sheet)
 
     def translate(self, key):
@@ -290,13 +291,13 @@ class PdfConverter:
             os.makedirs(self.log_dir)
         self.logger.info(f'Log directory is {self.log_dir}')
 
+        self.add_style_sheet('css/style.css')
         possible_styles = [self.lang_code, self.name, self.main_resource.resource_name, f'{self.lang_code}_{self.name}']
         for style in possible_styles:
-            style_file = os.path.join(self.output_res_dir, f'css/{style}_style.css')
-            if os.path.exists(style_file):
-                style_path = f'css/{style}_style.css'
-                self.add_style_sheet(style_path)
-                self.logger.info(f'Adding CSS style sheet: {style_path}')
+            style_file = f'css/{style}_style.css'
+            style_path = os.path.join(self.converters_dir, f'templates/{style_file}')
+            if os.path.exists(style_path):
+                self.add_style_sheet(style_file)
 
         css_link = os.path.join(self.output_res_dir, 'css')
         css_path = os.path.join(self.converters_dir, 'templates/css')

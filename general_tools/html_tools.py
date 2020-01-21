@@ -46,7 +46,7 @@ def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, break_on_word=True
     replace_var = 1
     is_html = '<' in text and '>' in text
     word_break = ''
-    if word_break:
+    if break_on_word:
         word_break = r'\b'
     parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', phrase)
     if ignore_small_words:
