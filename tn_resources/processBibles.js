@@ -46,8 +46,7 @@ const processBibles = (langId, workingDir, ultId, ustId) => {
 // run as main
 if(require.main === module) {
   if (process.argv.length < 4) {
-    console.error('Syntax: node processBibles.js <lang> <working_dir> [ult_id] [ust_id]');
-    return 1;
+    throw Error('Syntax: node processBibles.js <lang> <working_dir> [ult_id] [ust_id]');
   }
   const lang = process.argv[2];
   const workingDir = process.argv[3];
@@ -60,8 +59,7 @@ if(require.main === module) {
     ustId = process.argv[5];
   }
   if (!fs.existsSync(workingDir)) {
-    console.error('Working Directory does not exist: ' + workingDir);
-    return 1;
+    throw Error('Working Directory does not exist: ' + workingDir);
   }
   processBibles(lang, workingDir, ultId, ustId);
 }
