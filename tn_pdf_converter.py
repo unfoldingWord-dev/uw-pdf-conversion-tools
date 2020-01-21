@@ -552,27 +552,35 @@ class TnPdfConverter(PdfConverter):
                 words = self.get_tw_words(chapter, verse_num)
                 sorted_words = sorted(words, key=lambda w: w['text'], reverse=True)
                 orig_verse_html = verse_html
-                for word in sorted_words:
+                for word_idx, word in enumerate(sorted_words):
+                    word_count = word_idx + 1
+                    phrase = word['text']
                     tw_rc = word['contextId']['rc']
+                    tag_classes = ['tw-wod-link']
+                    if '…' in phrase or '...' in phrase:
+                        tag_classes += ['split-tw-word', f'split-tw-word-{word_count}',
+                                       f'split-tw-word-{"odd" if word_count % 2 else "even"}']
+                    tag = f'<a href="{tw_rc}" classes="{" ".join(tag_classes)}">'
                     occurrence = word['contextId']['occurrence']
-                    marked_verse_html = html_tools.mark_phrase_in_text(verse_html, word['text'],
+                    marked_verse_html = html_tools.mark_phrase_in_text(verse_html, phrase,
                                                                        occurrence=occurrence,
-                                                                       tag=f'<a href="{tw_rc}">',
+                                                                       tag=tag,
                                                                        ignore_small_words=ignore_small_words)
                     if not marked_verse_html:
-                        marked_verse_html = html_tools.mark_phrase_in_text(verse_html, word['text'],
+                        marked_verse_html = html_tools.mark_phrase_in_text(verse_html, phrase,
                                                                            occurrence=occurrence,
-                                                                           tag=f'<a href="{tw_rc}">',
+                                                                           tag=tag,
                                                                            ignore_small_words=ignore_small_words,
                                                                            break_on_word=False)
                     if not marked_verse_html:
-                        fix = html_tools.find_quote_variation_in_text(orig_verse_html, word['text'],
+                        fix = html_tools.find_quote_variation_in_text(orig_verse_html, phrase,
                                                                       occurrence=occurrence,
                                                                       ignore_small_words=ignore_small_words)
                         if not fix and occurrence > 1:
-                            marked_verse_html = html_tools.mark_phrase_in_text(verse_html, word['text'],
+                            marked_verse_html = html_tools.mark_phrase_in_text(verse_html, phrase,
                                                                                occurrence=1,
-                                                                               ignore_small_words=ignore_small_words)
+                                                                               ignore_small_words=ignore_small_words,
+                                                                               break_on_word=False)
                             if marked_verse_html:
                                 fix = f'(occurrence = {occurrence}, only occurrence 1 is found)'
                         self.add_bad_highlight(rc, orig_verse_html, tw_rc, word['text'], fix)

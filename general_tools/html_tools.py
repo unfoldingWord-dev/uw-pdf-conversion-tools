@@ -65,7 +65,7 @@ def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, break_on_word=True
             part = part.strip()
             if is_html:
                 words = [re.escape(word.strip()) for word in re.findall(r'\w+|\W+', part)]
-                pattern += rf'{wod_break}('
+                pattern += rf'{word_break}('
                 for word_idx, word in enumerate(words):
                     if word.strip():
                         pattern += word
