@@ -37,7 +37,7 @@ def get_phrases_to_highlight(html, header_tag=None):
     return phrases
 
 
-def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, ignore_small_words=True):
+def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, break_on_word=True, ignore_small_words=True):
     if not tag:
         tag = '<span class="highlight">'
     tag_name = tag[1:-1].split(' ')[0]
@@ -45,6 +45,9 @@ def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, ignore_small_words
     replace = ''
     replace_var = 1
     is_html = '<' in text and '>' in text
+    word_break = ''
+    if word_break:
+        word_break = r'\b'
     parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', phrase)
     if ignore_small_words:
         filtered_parts = []
@@ -62,17 +65,17 @@ def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, ignore_small_words
             part = part.strip()
             if is_html:
                 words = [re.escape(word.strip()) for word in re.findall(r'\w+|\W+', part)]
-                pattern += r'\b('
+                pattern += rf'{wod_break}('
                 for word_idx, word in enumerate(words):
                     if word.strip():
                         pattern += word
                         if word_idx + 1 != len(words):
                             pattern += r'(?:\s*|(?:\s*</*[^>]+>\s*)+)'
-                pattern += r')\b'
+                pattern += rf'){word_break}'
                 replace += f'{start_tag}\\{replace_var}{end_tag}'
                 replace_var += 1
             else:
-                pattern += rf'\b({re.escape(part)})\b'
+                pattern += rf'{word_break}({re.escape(part)}){word_break}'
                 replace += f'{start_tag}\\{replace_var}{end_tag}'
                 replace_var += 1
             pattern += '(?![^<]*>)'  # don't match within HTML tags
