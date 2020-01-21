@@ -9,6 +9,7 @@ NOTE: Python 3 Only
 cd /opt && git clone https://github.com/unfoldingWord-dev/uw-pdf-conversion-tools.git
 cd /opt/uw-pdf-conversion-tools && pip3 install -r requirements.txt
 cd /opt/uw-pdf-conversion-tools
+./setup_tn_resources.sh # only needed one time, for tn_* PDF converters
 ./run.sh <converter> [-hr] [-l <lang>] [-w <working_dir>] [-o <output_dir>] [-p <project>] [--owner <owner>] [--<resource>-tag <tag>] 
 ```
 
@@ -20,6 +21,8 @@ cd /opt/uw-pdf-conversion-tools
   - obs_tn_pdf_converter
   - ta_pdf_converter
   - tn_pdf_converter
+  - tn_note_checking_pdf_converter
+  - tn_word_checking_pdf_converter
   - tq_pdf_converter
   - tw_pdf_converter
 
@@ -38,6 +41,7 @@ optional arguments:
   -o OUTPUT_DIR, --output OUTPUT_DIR
                         Output Directory. Default: <current directory>
   --owner OWNER         Owner of the resource repo on GitHub. Default: unfoldingWord
+  --offline             Do not download repos and images (use local copies)
   --<resource>-tag <tag> For every resource used, you can specify a branch or tag.
                          Default: master (run `./run.sh <converter> -h` for possible tags)
 ```
@@ -58,4 +62,5 @@ optional arguments:
 
 # Notes
  - Language being generate must have a locale file in the `./locale` directory. You can copy the `English-en_US.json` file to a new language and update the strings on the right.
+   (Not needed for OBS PDF)
  - A index.php will be linked to in your output dir to list all of the latest versions of the resources generated

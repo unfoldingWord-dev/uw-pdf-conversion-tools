@@ -62,17 +62,17 @@ def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, ignore_small_words
             part = part.strip()
             if is_html:
                 words = [re.escape(word.strip()) for word in re.findall(r'\w+|\W+', part)]
-                pattern += '('
+                pattern += r'\b('
                 for word_idx, word in enumerate(words):
                     if word.strip():
                         pattern += word
                         if word_idx + 1 != len(words):
                             pattern += r'(?:\s*|(?:\s*</*[^>]+>\s*)+)'
-                pattern += ')'
+                pattern += r')\b'
                 replace += f'{start_tag}\\{replace_var}{end_tag}'
                 replace_var += 1
             else:
-                pattern += f'({re.escape(part)})'
+                pattern += rf'\b({re.escape(part)})\b'
                 replace += f'{start_tag}\\{replace_var}{end_tag}'
                 replace_var += 1
             pattern += '(?![^<]*>)'  # don't match within HTML tags
@@ -84,7 +84,12 @@ def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, ignore_small_words
             pattern += '(.*?)'
             replace += f'\\{replace_var}'
             replace_var += 1
-    return re.sub(pattern, replace, text, 1)
+    marked_text = re.sub(pattern, replace, text, 1, flags=re.MULTILINE)
+    if marked_text != text and tag_name == 'a':
+        # <a> tags can't be nested, so we need to split the outer <a> tag around the inner one
+        marked_text = re.sub('<a>(.*?)(?!</a>)(\s*)<a>(.*?)(?!<a>)</a>(\s*)(.*?)(?!<a>)</a>',
+                             r'<a>\1</a>\2<a>\3</a>\4<a>\3</a>', marked_text, flags=re.MULTILINE)
+    return marked_text
 
 
 def find_quote_variation_in_text(text, phrase, occurrence=1, ignore_small_words=True):

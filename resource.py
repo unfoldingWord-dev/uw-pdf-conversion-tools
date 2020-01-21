@@ -27,13 +27,12 @@ LOGO_MAP = {
     'obs-sn': 'obs',
     'obs-sq': 'obs'
 }
-RUN_LOCALLY = False
 
 
 class Resource(object):
 
     def __init__(self, resource_name, repo_name, tag=DEFAULT_TAG, owner=DEFAULT_OWNER, manifest=None, url=None,
-                 logo_url=None):
+                 logo_url=None, offline=False):
         self.resource_name = resource_name
         self.repo_name = repo_name
         self.tag = tag
@@ -41,6 +40,8 @@ class Resource(object):
         self._manifest = manifest
         self.url = url
         self._logo_url = logo_url
+        self.offline = offline
+
         self.repo_dir = None
         self.git = None
         self.commit = None
@@ -67,24 +68,27 @@ class Resource(object):
         if not self.url:
             self.url = self.get_resource_git_url(self.repo_name, self.owner)
         self.repo_dir = os.path.join(working_dir, self.repo_name)
-        if not os.path.isdir(self.repo_dir):
+        if not self.offline and not os.path.exists(self.repo_dir):
             try:
                 git.Repo.clone_from(self.url, self.repo_dir)
-            except git.GitCommandError:
+            except git.GitCommandError as orig_err:
                 owners = OWNERS
-                for owner in owners:
+                for owner_idx, owner in enumerate(owners):
                     self.url = self.get_resource_git_url(self.repo_name, owner)
                     try:
                         git.Repo.clone_from(self.url, self.repo_dir)
                     except git.GitCommandError:
-                        continue
-                    if os.path.isdir(self.repo_dir):
+                        if owner_idx + 1 == len(owners):
+                            raise orig_err
+                        else:
+                            continue
+                    if os.path.exists(self.repo_dir):
                         break
         self.git = git.Git(self.repo_dir)
-        if not RUN_LOCALLY:
+        if not self.offline:
             self.git.fetch()
         self.git.checkout(self.tag)
-        if self.tag == DEFAULT_TAG and not RUN_LOCALLY:
+        if self.tag == DEFAULT_TAG and not self.offline:
             self.git.pull()
         self.commit = self.git.rev_parse('HEAD', short=10)
 

@@ -50,7 +50,7 @@ class TnPdfConverter(PdfConverter):
         self.resources['ult'].repo_name = f'{self.lang_code}_{self.ult_id}'
         self.resources['ust'].resource_name = self.ust_id
         self.resources['ust'].repo_name = f'{self.lang_code}_{self.ust_id}'
-        self.resources['versification'] = Resource('versification', 'versification', url=VERSIFICATION_GITHUB_URL)
+        self.resources['versification'] = Resource('versification', 'versification', url=VERSIFICATION_GITHUB_URL, offline=self.offline)
         self.resources['ugnt'].repo_name = 'el-x-koine_ugnt'
         self.resources['uhb'].repo_name = 'hbo_uhb'
 
@@ -88,11 +88,14 @@ class TnPdfConverter(PdfConverter):
 
     def setup_resources(self):
         super().setup_resources()
-        if True or not os.path.exists(self.ult_package_dir) or \
-                not os.path.exists(self.ugnt_package_dir) or not os.path.exists(self.ugnt_tw_dir) or \
-                not os.path.exists(self.uhb_package_dir) or not os.path.exists(self.uhb_tw_dir):
-            cmd = f'cd "{self.converters_dir}/tn_resources" && node processBibles.js {self.lang_code} "{self.working_dir}333" {self.ult_id} {self.ust_id}'
-            check_output(cmd, stderr=STDOUT, shell=True)
+        if not self.offline and (not os.path.exists(self.ult_package_dir) or
+                                 not os.path.exists(self.ugnt_package_dir) or not os.path.exists(self.ugnt_tw_dir) or
+                                 not os.path.exists(self.uhb_package_dir) or not os.path.exists(self.uhb_tw_dir)):
+            cmd = f'node "{self.converters_dir}/tn_resources/processBibles.js" {self.lang_code} "{self.working_dir}333" {self.ult_id} {self.ust_id}'
+            self.logger.info(f'Running: {cmd}')
+            ret = subprocess.call(cmd, shell=True)
+            print(ret)
+            exit(1)
 
     def get_body_html(self):
         self.logger.info('Creating tN for {0}...'.format(self.file_project_and_tag_id))
@@ -569,6 +572,7 @@ class TnPdfConverter(PdfConverter):
                         self.add_bad_highlight(rc, orig_verse_html, tw_rc, word['text'], fix)
                     else:
                         verse_html = marked_verse_html
+
                 new_html += f'''
         <div class="verse">
             <span class="v-num">
@@ -621,6 +625,7 @@ class TnPdfConverter(PdfConverter):
                         self.add_bad_highlight(rc, orig_verse_html, tn_rc_link, tn_note['quote'], fix)
                     else:
                         verse_html = marked_verse_html
+
                 new_html += f'''
         <div class="verse">
             <span class="v-num">

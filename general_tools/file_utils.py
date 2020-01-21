@@ -3,19 +3,49 @@ import codecs
 import json
 import os
 import zipfile
-import sys
 import shutil
 import yaml
 from mimetypes import MimeTypes
+import tempfile
 
-# we need this to check for string versus object
-PY3 = sys.version_info[0] == 3
 
-if PY3:
-    string_types = str,
-else:
-    # noinspection PyCompatibility
-    string_types = basestring,
+def symlink(target, link_name, overwrite=False):
+    """
+    Create a symbolic link named link_name pointing to target.
+    If link_name exists then FileExistsError is raised, unless overwrite=True.
+    When trying to overwrite a directory, IsADirectoryError is raised.
+    """
+    if not overwrite:
+        if not os.path.exists(link_name):
+            os.symlink(target, link_name)
+        return
+
+    # os.replace() may fail if files are on different filesystems
+    link_dir = os.path.dirname(link_name)
+
+    # Create link to target with temporary filename
+    while True:
+        temp_link_name = tempfile.mktemp(dir=link_dir)
+
+        # os.* functions mimic as closely as possible system functions
+        # The POSIX symlink() returns EEXIST if link_name already exists
+        # https://pubs.opengroup.org/onlinepubs/9699919799/functions/symlink.html
+        try:
+            os.symlink(target, temp_link_name)
+            break
+        except FileExistsError:
+            pass
+
+    # Replace link_name with temp_link_name
+    try:
+        # Pre-empt os.replace on a directory with a nicer message
+        if os.path.isdir(link_name):
+            raise IsADirectoryError(f"Cannot symlink over existing directory: '{link_name}'")
+        os.replace(temp_link_name, link_name)
+    except Exception:
+        if os.path.islink(temp_link_name):
+            os.remove(temp_link_name)
+        raise
 
 
 def unzip(source_file, destination_dir):
@@ -121,7 +151,7 @@ def write_file(file_name, file_contents, indent=2):
     # make sure the directory exists
     make_dir(os.path.dirname(file_name))
 
-    if isinstance(file_contents, string_types):
+    if isinstance(file_contents, str):
         text_to_write = file_contents
     else:
         if os.path.splitext(file_name)[1] == '.yaml':
@@ -140,6 +170,7 @@ def get_mime_type(path):
     if not mime_type:
         mime_type = "text/{0}".format(os.path.splitext(path)[1])
     return mime_type
+
 
 def get_files(dir, relative_paths=False, include_directories=False, topdown=False, extensions=None, exclude=None):
     file_list = []

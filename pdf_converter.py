@@ -28,7 +28,8 @@ from typing import List, Type
 from bs4 import BeautifulSoup
 from abc import abstractmethod
 from weasyprint import HTML
-from general_tools.file_utils import write_file, read_file, load_json_object
+from general_tools.file_utils import write_file, read_file, load_json_object, symlink
+from general_tools.url_utils import download_file
 from resource import Resource, Resources
 from rc_link import ResourceContainerLink
 
@@ -47,7 +48,7 @@ APPENDIX_RESOURCES = ['ta', 'tw']
 class PdfConverter:
 
     def __init__(self, resources: Resources, project_id=None, working_dir=None, output_dir=None,
-                 lang_code=DEFAULT_LANG_CODE, regenerate=False, logger=None, **kwargs):
+                 lang_code=DEFAULT_LANG_CODE, regenerate=False, logger=None, offline=False, **kwargs):
         self.resources = resources
         self.main_resource = self.resources.main
         self.project_id = project_id
@@ -56,6 +57,7 @@ class PdfConverter:
         self.lang_code = lang_code
         self.regenerate = regenerate
         self.logger = logger
+        self.offline = offline
 
         self.logger_handler = None
         self.wp_logger = logging.getLogger('weasyprint')
@@ -260,33 +262,41 @@ class PdfConverter:
                 self.output_dir = self.working_dir
                 self.remove_working_dir = False
 
+        if not os.path.exists(self.working_dir):
+            os.makedirs(self.working_dir)
+
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+
         self.output_res_dir = os.path.join(self.output_dir, self.name)
-        if not os.path.isdir(self.output_res_dir):
-            os.makedirs(self.output_res_dir)
+        if not os.path.exists(self.output_res_dir):
+            os.mkdir(self.output_res_dir)
 
         self.images_dir = os.path.join(self.output_res_dir, 'images')
-        if not os.path.isdir(self.images_dir):
+        if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
 
         self.save_dir = os.path.join(self.output_res_dir, 'save')
-        if not os.path.isdir(self.save_dir):
+        if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
 
         self.log_dir = os.path.join(self.output_res_dir, 'log')
-        if not os.path.isdir(self.log_dir):
+        if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
 
         possible_styles = [self.lang_code, self.name, self.main_resource.resource_name, f'{self.lang_code}_{self.name}']
         for style in possible_styles:
             style_file = os.path.join(self.output_res_dir, f'css/{style}_style.css')
-            if os.path.isfile(style_file):
+            if os.path.exists(style_file):
                 self.add_style_sheet(f'css/{style}_style.css')
 
+        css_link = os.path.join(self.output_res_dir, 'css')
         css_path = os.path.join(self.converters_dir, 'templates/css')
-        subprocess.call(f'ln -sf "{css_path}" "{self.output_res_dir}"', shell=True)
+        symlink(css_path, css_link)
 
+        index_link = os.path.join(self.output_dir, 'index.php')
         index_path = os.path.join(self.converters_dir, 'index.php')
-        subprocess.call(f'ln -sf "{index_path}" "{self.output_dir}"', shell=True)
+        symlink(index_path, index_link)
 
     def setup_logging_to_file(self):
         if self.logger_handler:
@@ -296,7 +306,7 @@ class PdfConverter:
         self.logger.addHandler(self.logger_handler)
 
         link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_tag_id}_logger.log')
-        subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
+        symlink(log_file, link_file_path, True)
 
         self.wp_logger.setLevel(logging.DEBUG)
         log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_weasyprint.log')
@@ -305,7 +315,7 @@ class PdfConverter:
         self.wp_logger.addHandler(self.wp_logger_handler)
 
         link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_tag_id}_weasyprint.log')
-        subprocess.call(f'ln -sf "{log_file}" "{link_file_path}"', shell=True)
+        symlink(log_file, link_file_path, True)
 
     def generate_html(self):
         if self.regenerate or not os.path.exists(self.html_file):
@@ -346,7 +356,7 @@ class PdfConverter:
             write_file(self.html_file, html)
 
             link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}.html')
-            subprocess.call(f'ln -sf "{self.html_file}" "{link_file_path}"', shell=True)
+            symlink(self.html_file, link_file_path, True)
 
             self.save_resource_data()
             self.save_bad_links_html()
@@ -364,7 +374,7 @@ class PdfConverter:
             self.logger.info(f'PDF file located at {self.pdf_file}')
 
             link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}.pdf')
-            subprocess.call(f'ln -sf "{self.pdf_file}" "{link_file_path}"', shell=True)
+            symlink(self.pdf_file, link_file_path, True)
         else:
             self.logger.info(
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
@@ -409,7 +419,7 @@ class PdfConverter:
         html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_commit_id}', link='', body=bad_links_html)
         save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_links.html')
         write_file(save_file, html)
-        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+        symlink(save_file, link_file_path, True)
 
         self.logger.info(f'BAD LINKS HTML file can be found at {save_file}')
 
@@ -465,7 +475,7 @@ class PdfConverter:
 
         save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_highlights.html')
         write_file(save_file, html)
-        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+        symlink(save_file, link_file_path, True)
 
         self.logger.info(f'BAD HIGHLIGHTS file can be found at {save_file}')
 
@@ -473,9 +483,8 @@ class PdfConverter:
         resource.clone(self.working_dir)
         self.generation_info[resource.repo_name] = {'tag': resource.tag, 'commit': resource.commit}
         logo_path = os.path.join(self.images_dir, resource.logo_file)
-        if not os.path.isfile(logo_path):
-            command = f'cd "{self.images_dir}" && curl -O "{resource.logo_url}"'
-            subprocess.call(command, shell=True)
+        if not os.path.exists(logo_path) and not self.offline:
+            download_file(resource.logo_url, logo_path)
 
     def setup_resources(self):
         for resource_name, resource in self.resources.items():
@@ -504,22 +513,22 @@ class PdfConverter:
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.rcs))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_rcs.json')
-        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+        symlink(save_file, link_file_path, True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_appendix_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.appendix_rcs))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_appendix_rcs.json')
-        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+        symlink(save_file, link_file_path, True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_links.json')
         write_file(save_file, jsonpickle.dumps(self.bad_links))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_bad_links.json')
-        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+        symlink(save_file, link_file_path, True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_highlights.json')
         write_file(save_file, jsonpickle.dumps(self.bad_highlights))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_bad_highlights.json')
-        subprocess.call(f'ln -sf "{save_file}" "{link_file_path}"', shell=True)
+        symlink(save_file, link_file_path, True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_tag_id}_generation_info.json')
         write_file(save_file, jsonpickle.dumps(self.generation_info))
@@ -541,10 +550,8 @@ class PdfConverter:
                 filename = re.search(r'/([\w_-]+[.](jpg|gif|png))$', url).group(1)
                 img['src'] = f'images/downloaded/{filename}'
                 filepath = os.path.join(img_dir, filename)
-                if not os.path.exists(filepath):
-                    with open(filepath, 'wb') as f:
-                        response = requests.get(url)
-                        f.write(response.content)
+                if not os.path.exists(filepath) and not self.offline:
+                    download_file(url, filepath)
         return str(soup)
 
     @abstractmethod
@@ -1004,6 +1011,7 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                         help='Output Directory. Default: <current directory>')
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False,
                         help=f'Owner of the resource repo on GitHub. Default: {DEFAULT_OWNER}')
+    parser.add_argument('--offline', dest='offline', action='store_true', help="Do not download repos and images")
     for resource_name in resource_names:
         parser.add_argument(f'--{resource_name}-tag', dest=resource_name, default=DEFAULT_TAG, required=False,
                             help=f'For every resource used, you can specify a branch or tag. Default: {DEFAULT_TAG}')
@@ -1011,6 +1019,7 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     args = parser.parse_args(sys.argv[1:])
     lang_codes = args.lang_codes
     owner = args.owner
+    offline = args.offline
     if not lang_codes:
         lang_codes = [DEFAULT_LANG_CODE]
     project_ids = args.project_ids
@@ -1029,7 +1038,7 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                 logo = None
                 if logo_url and resource_name == resource_names[0]:
                     logo = logo_url
-                resource = Resource(resource_name=resource_name, repo_name=repo_name, tag=tag, owner=owner, logo_url=logo)
+                resource = Resource(resource_name=resource_name, repo_name=repo_name, tag=tag, owner=owner, logo_url=logo, offline=offline)
                 resources[resource_name] = resource
             args_dict['lang_code'] = lang_code
             args_dict['project_id'] = project_id
