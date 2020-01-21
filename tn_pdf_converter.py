@@ -564,12 +564,12 @@ class TnPdfConverter(PdfConverter):
                                                                        occurrence=occurrence,
                                                                        tag=tag,
                                                                        ignore_small_words=ignore_small_words)
-                    if not marked_verse_html:
-                        marked_verse_html = html_tools.mark_phrase_in_text(verse_html, phrase,
-                                                                           occurrence=occurrence,
-                                                                           tag=tag,
-                                                                           ignore_small_words=ignore_small_words,
-                                                                           break_on_word=False)
+                    # if not marked_verse_html:
+                    #     marked_verse_html = html_tools.mark_phrase_in_text(verse_html, phrase,
+                    #                                                        occurrence=occurrence,
+                    #                                                        tag=tag,
+                    #                                                        ignore_small_words=ignore_small_words,
+                    #                                                        break_on_word=False)
                     if not marked_verse_html:
                         fix = html_tools.find_quote_variation_in_text(orig_verse_html, phrase,
                                                                       occurrence=occurrence,
@@ -577,8 +577,7 @@ class TnPdfConverter(PdfConverter):
                         if not fix and occurrence > 1:
                             marked_verse_html = html_tools.mark_phrase_in_text(verse_html, phrase,
                                                                                occurrence=1,
-                                                                               ignore_small_words=ignore_small_words,
-                                                                               break_on_word=False)
+                                                                               ignore_small_words=ignore_small_words)
                             if marked_verse_html:
                                 fix = f'(occurrence = {occurrence}, only occurrence 1 is found)'
                         self.add_bad_highlight(rc, orig_verse_html, tw_rc, word['text'], fix)
@@ -632,9 +631,9 @@ class TnPdfConverter(PdfConverter):
                 for tn_note in sorted_tn_notes:
                     tn_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{str(verse_num).zfill(3)}'
                     marked_verse_html = html_tools.mark_phrase_in_text(verse_html, tn_note['quote'])
-                    if not marked_verse_html:
-                        marked_verse_html = html_tools.mark_phrase_in_text(verse_html, tn_note['quote'],
-                                                                           break_on_word=False)
+                    # if not marked_verse_html:
+                    #     marked_verse_html = html_tools.mark_phrase_in_text(verse_html, tn_note['quote'],
+                    #                                                        break_on_word=False)
                     if not marked_verse_html and tn_note['quote'].lower() not in QUOTES_TO_IGNORE:
                         fix = html_tools.find_quote_variation_in_text(orig_verse_html, tn_note['quote'])
                         self.add_bad_highlight(rc, orig_verse_html, tn_rc_link, tn_note['quote'], fix)
