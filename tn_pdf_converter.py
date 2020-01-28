@@ -19,12 +19,12 @@ import subprocess
 import general_tools.html_tools as html_tools
 from glob import glob
 from bs4 import BeautifulSoup
+from collections import OrderedDict
 from pdf_converter import PdfConverter, run_converter
 from tx_usfm_tools.singleVerseHtmlRenderer import SingleVerseHtmlRender
 from general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
 from general_tools.file_utils import read_file, load_json_object
 from general_tools.usfm_utils import usfm3_to_usfm2
-from resource import Resource
 
 DEFAULT_ULT_ID = 'ult'
 DEFAULT_UST_ID = 'ust'
@@ -294,7 +294,8 @@ class TnPdfConverter(PdfConverter):
                             </div>
                             <div class="col2">
                                 {self.get_tn_article_text(chapter, verse)}
-                                {self.get_tw_html_list(chapter, verse)}
+                                {self.get_tw_html_list(self.ult_id, chapter, verse)}
+                                {self.get_tw_html_list(self.ust_id, chapter, verse)}
                             </div>
                     </div>
                 </article>
@@ -302,23 +303,27 @@ class TnPdfConverter(PdfConverter):
         tn_rc.set_article(tn_article)
         return tn_article
 
-    def get_tw_html_list(self, chapter, verse):
-        words = self.get_tw_words(self.ult_id, chapter, verse)
-        if not len(words):
+    def get_tw_html_list(self, resource_id, chapter, verse):
+        words = self.get_tw_words(resource_id, chapter, verse)
+        if not words:
             return ''
-        links = []
+        links = OrderedDict()
         for word_idx, word in enumerate(words):
             word_count = word_idx + 1
             phrase = word['text']
             tw_rc = word['contextId']['rc']
-            links.append(f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}">{phrase}</a>')
-        translation_words = f'''
-            <h3>{self.resources['tw'].simple_title}</h3>
-            <ul class="tw-list">
-                <li>{'</li><li>'.join(links)}</li>
-            </ul>
+            occurrence = word['contextId']['occurrence']
+            occurrence_text = ''
+            if occurrence > 1:
+                occurrence_text = f' ({occurrence})'
+            links[phrase] = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}">{phrase}</a>{occurrence_text}'
+        tw_html = f'''
+                <h3>{self.resources['tw'].simple_title} - {resource_id.upper()}</h3>
+                <ul class="tw-list">
+                    <li>{'</li><li>'.join(links.values())}</li>
+                </ul>
 '''
-        return translation_words
+        return tw_html
 
     def get_scripture(self, chapter, verse, rc=None):
         ult_with_tw_words = self.get_scripture_with_tw_words(self.ult_id, chapter, verse, rc)
