@@ -61,6 +61,8 @@ def mark_phrase_in_html(html, phrase, occurrence=1, tag='<span class="highlight"
     to_process_index = 0
     for part_idx, part in enumerate(parts):
         part = part.strip()
+        if not part:
+            continue
         word_break = r'\b'
         if not break_on_word:
             word_break = ''
