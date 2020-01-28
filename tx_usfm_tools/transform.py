@@ -1,7 +1,7 @@
 import os
 import logging
 
-from . import singlehtmlRenderer
+from tx_usfm_tools import singlehtmlRenderer
 
 
 

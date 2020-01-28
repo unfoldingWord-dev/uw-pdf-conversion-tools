@@ -32,7 +32,7 @@ LOGO_MAP = {
 class Resource(object):
 
     def __init__(self, resource_name, repo_name, tag=DEFAULT_TAG, owner=DEFAULT_OWNER, manifest=None, url=None,
-                 logo_url=None, offline=False, update=True):
+                 logo_url=None, offline=False, update=True, background_resource=False):
         self.resource_name = resource_name
         self.repo_name = repo_name
         self.tag = tag
@@ -42,6 +42,7 @@ class Resource(object):
         self._logo_url = logo_url
         self.offline = offline
         self.update = not offline and update
+        self.background_resource = background_resource
 
         self.repo_dir = None
         self.git = None

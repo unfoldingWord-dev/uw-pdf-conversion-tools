@@ -1,6 +1,5 @@
 import re
-from bs4 import BeautifulSoup
-from collections import OrderedDict
+from bs4 import BeautifulSoup, Tag
 
 PHRASE_PARTS_TO_IGNORE = ['a', 'am', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'did', 'do', 'does', 'done', 'for', 'from', 'had', 'has', 'have', 'i', 'in', 'into', 'less', 'let', 'may', 'might', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'than', 'the', 'their', 'then', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'who', 'whom', 'with', 'will', 'were', 'your', 'you', 'would', 'could', 'should', 'shall', 'can']
 
@@ -37,62 +36,83 @@ def get_phrases_to_highlight(html, header_tag=None):
     return phrases
 
 
-def mark_phrase_in_text(text, phrase, occurrence=1, tag=None, break_on_word=True, ignore_small_words=True):
-    if not tag:
-        tag = '<span class="highlight">'
-    tag_name = tag[1:-1].split(' ')[0]
-    pattern = ''
-    replace = ''
-    replace_var = 1
-    is_html = '<' in text and '>' in text
-    word_break = ''
-    if break_on_word:
-        word_break = r'\b'
+def get_strings(wrapper):
+    strings = []
+    for el in wrapper.contents:
+        if type(el) == Tag:
+            strings += get_strings(el)
+        else:
+            strings.append(el)
+    return strings
+
+
+def mark_phrase_in_html(html, phrase, occurrence=1, tag='<span class="highlight">', break_on_word=True, ignore_small_words=True):
+    soup = BeautifulSoup(html, 'html.parser')
+    strings = get_strings(soup)
+    text = soup.text
     parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', phrase)
     if ignore_small_words:
         filtered_parts = []
         for parts_idx, part in enumerate(parts):
+            part = part.strip()
             if parts_idx + 1 >= len(parts) or part.lower() not in PHRASE_PARTS_TO_IGNORE:
                 filtered_parts.append(part)
         parts = filtered_parts
-    for occ in range(1, occurrence + 1):
-        start_tag = ''
-        end_tag = ''
-        if occ == occurrence:
-            start_tag = tag
-            end_tag = f'</{tag_name}>'
-        for part_idx, part in enumerate(parts):
-            part = part.strip()
-            if is_html:
-                words = [re.escape(word.strip()) for word in re.findall(r'\w+|\W+', part)]
-                pattern += rf'{word_break}('
-                for word_idx, word in enumerate(words):
-                    if word.strip():
-                        pattern += word
-                        if word_idx + 1 != len(words):
-                            pattern += r'(?:\s*|(?:\s*</*[^>]+>\s*)+)'
-                pattern += rf'){word_break}'
-                replace += f'{start_tag}\\{replace_var}{end_tag}'
-                replace_var += 1
-            else:
-                pattern += rf'{word_break}({re.escape(part)}){word_break}'
-                replace += f'{start_tag}\\{replace_var}{end_tag}'
-                replace_var += 1
-            pattern += '(?![^<]*>)'  # don't match within HTML tags
-            if part_idx + 1 < len(parts):
-                pattern += '(.*?)'
-                replace += f'\\{replace_var}'
-                replace_var += 1
-        if occ < occurrence:
-            pattern += '(.*?)'
-            replace += f'\\{replace_var}'
-            replace_var += 1
-    marked_text = re.sub(pattern, replace, text, 1, flags=re.MULTILINE)
-    if marked_text != text and tag_name == 'a':
-        # <a> tags can't be nested, so we need to split the outer <a> tag around the inner one
-        marked_text = re.sub('<a>(.*?)(?!</a>)(\s*)<a>(.*?)(?!<a>)</a>(\s*)(.*?)(?!<a>)</a>',
-                             r'<a>\1</a>\2<a>\3</a>\4<a>\3</a>', marked_text, flags=re.MULTILINE)
-    return marked_text
+    to_process_index = 0
+    for part_idx, part in enumerate(parts):
+        part = part.strip()
+        word_break = r'\b'
+        if not break_on_word:
+            word_break = ''
+        indices = [(i.start() + to_process_index, i.end() + to_process_index) for i in re.finditer(f'{word_break}{re.escape(part)}{word_break}', text[to_process_index:])]
+        if len(indices) < occurrence:
+            return
+        part_start = indices[occurrence - 1][0]
+        part_end = indices[occurrence - 1][1]
+
+        string = strings.pop(0)
+        while (to_process_index + len(string)) <= part_start:
+            to_process_index += len(string)
+            string = strings.pop(0)
+
+        while to_process_index < part_end:
+            match_start = part_start - to_process_index
+            match_end = part_end - to_process_index
+            if match_start < 0:
+                match_start = 0
+            if match_end > len(string):
+                match_end = len(string)
+
+            pre_match_str = string[:match_start]
+            pre_match = soup.new_string(pre_match_str)
+            string.replace_with(pre_match)
+
+            match_str = string[match_start:match_end]
+            match_tag_soup = BeautifulSoup(tag, 'html.parser')
+            match_tag = match_tag_soup.find()
+            match_tag.string = match_str
+            pre_match.insert_after(match_tag)
+
+            if match_end < len(string):
+                post_match_str = string[match_end:]
+                post_match = soup.new_string(post_match_str)
+                match_tag.insert_after(post_match)
+                strings.insert(0, post_match)
+
+            to_process_index += match_end
+            if to_process_index < part_end:
+                string = strings.pop(0)
+        occurrence = 1
+    return str(soup)
+
+
+def unnest_a_links(html):
+    # This cleans up nested <a> links by separating the links and making sure links don't start and end with spaces
+    # See https://regex101.com/r/HWO7JO/2 for example usage
+    while re.search('<a[^>]*>((?!</a[^>]*>).)*?<a', html):
+        html = re.sub(r'<a([^>]*)>(\s*)((?:(?!</*a[^>]*>).)*?)(\s*)<a([^>]*)>(\s*)((?:(?:(?!</*a[^>]*>).)*?|</a>(?:(?!</*a[^>]*>).)*?<a[^>]*>)*?)(\s*)</a>(\s*)((?:(?!</*a[^>]*>).)*?)(\s*)</a>',
+                      r'\2<span class="nested-link nested-link-outer"><a\1>\3</a>\4\6<span class="nested-link nested-link-inner"><a\5>\7</a></span>\8\9<a\1>\10</a></span>\11', html, flags=re.MULTILINE)
+    return html
 
 
 def find_quote_variation_in_text(text, phrase, occurrence=1, ignore_small_words=True):
@@ -115,7 +135,7 @@ def find_quote_variation_in_text(text, phrase, occurrence=1, ignore_small_words=
         phrase.replace('‘', "'")]
     for quote_variation in quote_variations:
         if quote_variation != phrase:
-            marked_text = mark_phrase_in_text(text, quote_variation, occurrence=occurrence,
+            marked_text = mark_phrase_in_html(text, quote_variation, occurrence=occurrence,
                                               ignore_small_words=ignore_small_words)
             if marked_text:
                 return quote_variation
@@ -151,9 +171,14 @@ def decrement_headers(html, minimum_header=2, decrease=1):
     return html
 
 
-def make_first_header_section_header(html):
+def make_first_header_section_header(html, level=None, no_toc=False):
     soup = BeautifulSoup(html, 'html.parser')
     header = soup.find(re.compile(r'^h\d'))
+    classes = ['section-header']
+    if no_toc:
+        classes.append('no-toc')
     if header:
-        header['class'] = header.get('class', []) + ['section-header']
+        header['class'] = header.get('class', []) + classes
+        if level:
+            header.name = f'h{level}'
     return str(soup)

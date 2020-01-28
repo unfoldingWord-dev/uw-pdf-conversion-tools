@@ -20,15 +20,14 @@ import general_tools.html_tools as html_tools
 from glob import glob
 from bs4 import BeautifulSoup
 from pdf_converter import PdfConverter, run_converter
-from usfm_tools.transform import UsfmTransform
+from tx_usfm_tools.singleVerseHtmlRenderer import SingleVerseHtmlRender
 from general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
-from general_tools.file_utils import write_file, read_file, load_json_object
+from general_tools.file_utils import read_file, load_json_object
 from general_tools.usfm_utils import usfm3_to_usfm2
 from resource import Resource
 
 DEFAULT_ULT_ID = 'ult'
 DEFAULT_UST_ID = 'ust'
-VERSIFICATION_GITHUB_URL = 'https://git.door43.org/Door43-Catalog/versification.git'
 QUOTES_TO_IGNORE = ['general information:', 'connecting statement:']
 
 
@@ -49,14 +48,11 @@ class TnPdfConverter(PdfConverter):
         self.resources['ult'].repo_name = f'{self.lang_code}_{self.ult_id}'
         self.resources['ust'].resource_name = self.ust_id
         self.resources['ust'].repo_name = f'{self.lang_code}_{self.ust_id}'
-        self.resources['versification'] = Resource('versification', 'versification', url=VERSIFICATION_GITHUB_URL, offline=self.offline)
         self.resources['ugnt'].repo_name = 'el-x-koine_ugnt'
         self.resources['uhb'].repo_name = 'hbo_uhb'
 
         self.book_number = BOOK_NUMBERS[self.project_id]
-        self.chapters_and_verses = {}
         self.verse_usfm = {}
-        self.chunks_text = {}
         self.tn_book_data = {}
         self.tw_words_data = {}
         self.tw_rcs = {}
@@ -64,7 +60,6 @@ class TnPdfConverter(PdfConverter):
         self.last_ended_with_paragraph_tag = False
         self.open_quote = False
         self.next_follows_quote = False
-        self.verse_to_chunk = {}
 
     @property
     def name(self):
@@ -99,9 +94,8 @@ class TnPdfConverter(PdfConverter):
         self.logger.info('Creating tN for {0}...'.format(self.file_project_and_tag_id))
         self.populate_tn_book_data()
         self.populate_tw_words_data()
-        self.populate_chapters_and_verses()
-        self.populate_verse_usfm()
-        self.populate_chunks_text()
+        self.populate_verse_usfm(self.ult_id)
+        self.populate_verse_usfm(self.ust_id)
         return self.get_tn_html()
 
     def pad(self, num):
@@ -160,103 +154,28 @@ class TnPdfConverter(PdfConverter):
                 exit(1)
         return usfm
 
-    def populate_chunks_text(self):
-        save_dir = os.path.join(self.output_dir, 'chunks_text')
-        save_file = os.path.join(save_dir, '{0}.json'.format(self.file_project_and_tag_id))
-        if not self.regenerate and os.path.isfile(save_file):
-            self.chunks_text = load_json_object(save_file)
-            return
-
-        chunks_text = {}
-        for chapter_data in self.chapters_and_verses:
-            chapter = chapter_data['chapter']
-            chunks_text[str(chapter)] = {}
-            for idx, first_verse in enumerate(chapter_data['first_verses']):
-                if len(chapter_data['first_verses']) > idx+1:
-                    last_verse = chapter_data['first_verses'][idx+1] - 1
-                else:
-                    last_verse = int(BOOK_CHAPTER_VERSES[self.project_id][str(chapter)])
-                chunks_text[str(chapter)][str(first_verse)] = {
-                    'first_verse': first_verse,
-                    'last_verse': last_verse
-                }
-                for resource in [self.ult_id, self.ust_id]:
-                    verses_in_chunk = []
-                    for verse in range(first_verse, last_verse+1):
-                        if resource not in self.verse_usfm:
-                            self.logger.error('{0} not in verse_usfm!!!'.format(resource))
-                            self.logger.error(self.verse_usfm)
-                            exit(1)
-                        if chapter not in self.verse_usfm[resource]:
-                            self.logger.error('Chapter {0} not in {1}!!!'.format(chapter, resource))
-                            exit(1)
-                        if verse not in self.verse_usfm[resource][chapter]:
-                            self.logger.error('{0}:{1} not in {2}!!!'.format(chapter, verse, resource))
-                            if len(verses_in_chunk) or resource != self.ult_id:
-                                self.verse_usfm[resource][chapter][verse] = ''
-                            else:
-                                exit(1)
-                        verses_in_chunk.append(self.verse_usfm[resource][chapter][verse])
-                    chunk_usfm = '\n'.join(verses_in_chunk)
-                    if resource not in chunks_text[str(chapter)][str(first_verse)]:
-                        chunks_text[str(chapter)][str(first_verse)][resource] = {}
-                    chunks_text[str(chapter)][str(first_verse)][resource] = {
-                        'usfm': chunk_usfm,
-                        'html': self.get_chunk_html(chunk_usfm, resource, chapter, first_verse)
-                    }
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            write_file(save_file, chunks_text)
-        self.chunks_text = chunks_text
-
-    def populate_verse_usfm(self):
-        self.populate_verse_usfm_ult()
-        self.populate_verse_usfm_ust()
-
-    def populate_verse_usfm_ust(self):
+    def populate_verse_usfm(self, resource_id):
         book_data = {}
-        book_file = os.path.join(self.resources['ust'].repo_dir, f'{self.book_number}-{self.project_id.upper()}.usfm')
+        book_file = os.path.join(self.resources[resource_id].repo_dir, f'{self.book_number}-{self.project_id.upper()}.usfm')
         usfm3 = read_file(book_file)
         usfm2 = usfm3_to_usfm2(usfm3)
         chapters = usfm2.split(r'\c ')
         for chapter_usfm in chapters[1:]:
-            chapter = int(re.findall(r'(\d+)', chapter_usfm)[0])
+            chapter = re.findall(r'(\d+)', chapter_usfm)[0]
             book_data[chapter] = {}
             chapter_usfm = r'\c '+chapter_usfm
             verses = chapter_usfm.split(r'\v ')
             for verse_usfm in verses[1:]:
-                verse = int(re.findall(r'(\d+)', verse_usfm)[0])
-                verse_usfm = r'\v '+verse_usfm
-                if re.match(r'^\\v \d+\s*$', verse_usfm, flags=re.MULTILINE):
-                    verse_usfm = ''
-                book_data[chapter][verse] = verse_usfm
-        self.verse_usfm[self.ust_id] = book_data
-
-    def populate_verse_usfm_ult(self):
-        book_data = {}
-        book_file = os.path.join(self.resources['ult'].repo_dir, f'{self.book_number}-{self.project_id.upper()}.usfm')
-        usfm3 = read_file(book_file)
-        usfm2 = usfm3_to_usfm2(usfm3)
-        chapters = usfm2.split(r'\c ')
-        for chapter_usfm in chapters[1:]:
-            chapter = int(re.findall(r'(\d+)', chapter_usfm)[0])
-            book_data[chapter] = {}
-            chapter_usfm = r'\c '+chapter_usfm
-            verses = chapter_usfm.split(r'\v ')
-            for verse_usfm in verses[1:]:
-                verse = int(re.findall(r'(\d+)', verse_usfm)[0])
-                verse_usfm = r'\v '+verse_usfm
-                if re.match(r'^\\v \d+\s*$', verse_usfm, flags=re.MULTILINE):
-                    verse_usfm = ''
-                book_data[chapter][verse] = verse_usfm
-        self.verse_usfm[self.ult_id] = book_data
-
-    def populate_chapters_and_verses(self):
-        versification_file = os.path.join(self.resources['versification'].repo_dir, 'bible', 'ufw', 'chunks',
-                                          f'{self.project_id}.json')
-        self.chapters_and_verses = {}
-        if os.path.isfile(versification_file):
-            self.chapters_and_verses = load_json_object(versification_file)
+                from_verse, to_verse = re.findall(r'^(\d+)(?:-(\d+))*', verse_usfm)[0]
+                if not to_verse:
+                    to_verse = from_verse
+                for verse in range(int(from_verse), int(to_verse)+1):
+                    verse = str(verse)
+                    book_data[chapter][verse] = {}
+                    new_verse_usfm = rf'\v {verse_usfm}'
+                    book_data[chapter][verse]['usfm'] = new_verse_usfm
+                    book_data[chapter][verse]['html'] = self.get_verse_html(new_verse_usfm, resource_id, chapter, verse)
+        self.verse_usfm[resource_id] = book_data
 
     @staticmethod
     def unicode_csv_reader(utf8_data, dialect=csv.excel, **kwargs):
@@ -298,176 +217,146 @@ class TnPdfConverter(PdfConverter):
 
     def get_tn_html(self):
         tn_html = f'''
-<section id="tn-{self.project_id}">
-<div class="resource-title-page">
-    <img src="images/{self.main_resource.logo_file}" class="logo" alt="UTN">
-    <h1 class="section-header">{self.title}</h1>
-    <h2>{self.project_title}</h2>
-</div>
+<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
+    <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
+        <img src="images/{self.main_resource.logo_file}" class="logo" alt="UTN">
+        <h1 class="section-header">{self.title}</h1>
+        <h2 class="section-header">{self.project_title}</h2>
+    </article>
 '''
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
-            intro = markdown2.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].replace('<br>', '\n'))
-            intro_title = html_tools.get_title_from_html(intro)
-            intro = self.fix_tn_links(intro, 'intro')
-            intro = html_tools.increment_headers(intro)
-            intro = html_tools.decrement_headers(intro, 4)  # bring headers of 3 or more down 1
-            intro = re.sub(r'<h(\d+)>', r'<h\1 class="section-header">', intro, 1, flags=re.IGNORECASE | re.MULTILINE)
+            book_intro = markdown2.markdown(self.tn_book_data['front']['intro'][0]['OccurrenceNote'].replace('<br>', '\n'))
+            book_intro_title = html_tools.get_title_from_html(book_intro)
+            book_intro = self.fix_tn_links(book_intro, 'intro')
+            book_intro = html_tools.make_first_header_section_header(book_intro, level=3)
             # HANDLE FRONT INTRO RC LINKS
-            intro_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/front/intro'
-            intro_rc = self.add_rc(intro_rc_link, title=intro_title)
-            self.verse_to_chunk['front'] = {'intro': intro_title}
-            intro += f'''
-<article id="{intro_rc.article_id}">
-    {intro}
-</article>
+            book_intro_rc_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/front/intro'
+            book_intro_rc = self.add_rc(book_intro_rc_link, title=book_intro_title)
+            book_intro = f'''
+    <article id="{book_intro_rc.article_id}">
+        {book_intro}
+    </article>
 '''
-            intro_rc.set_article(intro)
-            tn_html += intro
-        for chapter_verses in self.chapters_and_verses:
-            chapter = str(chapter_verses['chapter'])
-            self.verse_to_chunk[self.pad(chapter)] = {}
+            book_intro_rc.set_article(book_intro)
+            tn_html += book_intro
+        for chapter in BOOK_CHAPTER_VERSES[self.project_id]:
             self.logger.info(f'Chapter {chapter}...')
+            chapter_title = f'{self.project_title} {chapter}'
+            # HANDLE INTRO RC LINK
+            chapter_rc_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(chapter)}'
+            chapter_rc = self.add_rc(chapter_rc_link, title=chapter_title)
+            tn_html += f'''
+    <section id="{chapter_rc.article_id}" class="tn-chapter">
+        <h3 class="section-header">{chapter_title}</h3>
+'''
             if 'intro' in self.tn_book_data[chapter]:
                 self.logger.info('Generating chapter info...')
-                intro = markdown2.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
-                intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', intro, 1, flags=re.MULTILINE | re.IGNORECASE)
-                intro_title = html_tools.get_title_from_html(intro)
-                intro = self.fix_tn_links(intro, chapter)
-                intro = html_tools.increment_headers(intro)
-                intro = html_tools.decrement_headers(intro, 5, 2)  # bring headers of 5 or more down 2
-                intro = re.sub(r'<h(\d+)>', r'<h\1 class="section-header">', intro, 1, flags=re.IGNORECASE | re.MULTILINE)
+                chapter_intro = markdown2.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
+                # Remove leading 0 from chapter heading
+                chapter_intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', chapter_intro, 1, flags=re.MULTILINE | re.IGNORECASE)
+                chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True)
+                chapter_intro_title = html_tools.get_title_from_html(chapter_intro)
+                chapter_intro = self.fix_tn_links(chapter_intro, chapter)
                 # HANDLE INTRO RC LINK
-                intro_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/intro'
-                intro_rc = self.add_rc(intro_rc_link, title=intro_title)
-                self.verse_to_chunk[self.pad(chapter)]['intro'] = intro_title
-                intro = f'''
-<article id="{intro_rc.article_id}">
-    {intro}
-</article>
+                chapter_intro_rc_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(chapter)}/chapter_intro'
+                chapter_intro_rc = self.add_rc(chapter_intro_rc_link, title=chapter_intro_title)
+                chapter_intro = f'''
+        <article id="{chapter_intro_rc.article_id}">
+            {chapter_intro}
+        </article>
 '''
-                intro_rc.set_article(intro)
-                tn_html += intro
+                chapter_intro_rc.set_article(chapter_intro)
+                tn_html += chapter_intro
 
-            chapter_chunk_data = {}
-            previous_first_verse = None
-            for idx, first_verse in enumerate(chapter_verses['first_verses']):
-                if idx < len(chapter_verses['first_verses'])-1:
-                    last_verse = chapter_verses['first_verses'][idx+1] - 1
-                else:
-                    last_verse = int(BOOK_CHAPTER_VERSES[self.project_id][chapter])
-                self.logger.info(f'Generating chunk {chapter}:{first_verse}-{last_verse}...')
-
-                chunk_notes = ''
-                chunk_words = ''
-                for verse in range(first_verse, last_verse + 1):
-                    if str(verse) in self.tn_book_data[chapter]:
-                        verse_notes = ''
-                        tn_notes = self.get_tn_notes(chapter, verse)
-                        for tn_note in tn_notes:
-                            note = markdown2.markdown(tn_note['note'].replace('<br>', "\n"))
-                            note = re.sub(r'</*p[^>]*>', '', note, flags=re.IGNORECASE | re.MULTILINE)
-                            if first_verse != last_verse:
-                                chapter_verse = f'({chapter}:{verse})'
-                            else:
-                                chapter_verse = ''
-                            verse_notes += f'''
-                <div class="verse-note">
-                    <h3 class="verse-note-title">{tn_note['quote']} <span class="verse-note-reference">{chapter_verse}</span></h3>
-                    <div class="verse-note-text">
-                        {note}
-                    </div>
-                </div>
+            for verse in range(1,  int(BOOK_CHAPTER_VERSES[self.project_id][chapter]) + 1):
+                verse = str(verse)
+                self.logger.info(f'Generating verse {chapter}:{verse}...')
+                tn_html += self.get_tn_article(chapter, verse)
+            tn_html += '''
+    </section>
 '''
-                        chunk_notes += verse_notes
-
-                        verse_words = f'<h3>{self.project_title} {chapter}:{verse}</h3>'
-                        tw_words = self.get_tw_words(chapter, verse)
-                        for tw_word in tw_words:
-                            tw_rc_link = tw_word['contextId']['rc']
-                            alignment = tw_word['text']
-                            if tw_rc_link not in self.tw_rcs:
-                                tw_rc = self.create_rc(tw_rc_link)
-                                self.get_tw_article_html(tw_rc)
-                                self.tw_rcs[tw_rc_link] = tw_rc
-                            else:
-                                tw_rc = self.tw_rcs[tw_rc_link]
-                            verse_words += f'''
-                <div class="verse-word">
-                    <h4 class="verse-note-title">{tw_rc.title}</h4>
-                    <div class="verse-note-text">
-                        has been aligned as <em><a href="{tw_rc.rc_link}">{alignment}</a></em> 
-                    </div>
-                </div>
+        tn_html += '''
+</section>
 '''
-                        chunk_words += verse_words
-
-                chunk_notes = html_tools.decrement_headers(chunk_notes, 5)  # bring headers of 5 or more #'s down 1
-                chunk_notes = self.fix_tn_links(chunk_notes, chapter)
-
-                if previous_first_verse and \
-                        (not chunk_notes or not chapter_chunk_data[previous_first_verse]['chunk_notes']):
-                    if chunk_notes:
-                        chapter_chunk_data[previous_first_verse]['chunk_notes'] = chunk_notes
-                    chapter_chunk_data[previous_first_verse]['last_verse'] = last_verse
-                else:
-                    chapter_chunk_data[first_verse] = {
-                        'chunk_notes': chunk_notes,
-                        'chunk_words': chunk_words,
-                        'first_verse': first_verse,
-                        'last_verse': last_verse,
-                    }
-                    previous_first_verse = first_verse
-
-            for first_verse in sorted(chapter_chunk_data.keys()):
-                self.logger.info(f'Generating article from chunk data for {chapter}:{first_verse}...')
-                tn_html += self.get_tn_chunk_article(chapter_chunk_data, chapter, first_verse)
-
-        tn_html += "\n</section>\n\n"
         self.logger.info('Done generating tN HTML.')
         return tn_html
 
-    def get_tn_chunk_article(self, chapter_chunk_data, chapter, first_verse):
-        last_verse = chapter_chunk_data[first_verse]['last_verse']
-        chunk_notes = chapter_chunk_data[first_verse]['chunk_notes']
-        tn_title = f'{self.project_title} {chapter}:{first_verse}'
-        if first_verse != last_verse:
-            tn_title += f'-{last_verse}'
-        tn_chunk_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{str(first_verse).zfill(3)}/{str(last_verse).zfill(3)}'
-        tn_chunk_rc = self.add_rc(tn_chunk_rc_link, title=tn_title)
-        # make an RC for all the verses in this chunk in case they are reference
-        for verse in range(first_verse, last_verse + 1):
-            verse_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{str(verse).zfill(3)}'
-            self.add_rc(verse_rc_link, title=tn_title, article_id=tn_chunk_rc.article_id)
-            self.verse_to_chunk[self.pad(chapter)][str(verse).zfill(3)] = tn_title
-        ult_with_tw_words = self.get_ult_with_tw_words(tn_chunk_rc, int(chapter), first_verse, last_verse)
-        ult_with_tn_quotes = self.get_ult_with_tn_quotes(tn_chunk_rc, int(chapter), first_verse, last_verse)
-
-        ust_scripture = self.get_plain_scripture(self.ust_id, int(chapter), first_verse, last_verse)
-        if not ust_scripture:
-            ust_scripture = '&nbsp;'
-        scripture = f'''
-                    <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
-                    <div class="bible-text">{ult_with_tw_words}</div>
-                    <div class="bible-text hidden">{ult_with_tn_quotes}</div>
-                    <h3 class="bible-resource-title">{self.ust_id.upper()}</h3>
-                    <div class="bible-text">{ust_scripture}</div>
-'''
-
-        chunk_article = f'''
-                <article id="{tn_chunk_rc.article_id}">
-                    <h2 class="section-header">{tn_title}</h2>
+    def get_tn_article(self, chapter, verse):
+        tn_title = f'{self.project_title} {chapter}:{verse}'
+        tn_rc_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
+        tn_rc = self.add_rc(tn_rc_link, title=tn_title)
+        tn_article = f'''
+                <article id="{tn_rc.article_id}">
+                    <h3 class="section-header no-toc">{tn_title}</h3>
                     <div class="tn-notes">
                             <div class="col1">
-                                {scripture}
+                                {self.get_scripture(chapter, verse, tn_rc)}
                             </div>
                             <div class="col2">
-                                {chunk_notes}
+                                {self.get_tn_article_text(chapter, verse)}
+                                {self.get_tw_html_list(chapter, verse)}
                             </div>
                     </div>
                 </article>
 '''
-        tn_chunk_rc.set_article(chunk_article)
-        return chunk_article
+        tn_rc.set_article(tn_article)
+        return tn_article
+
+    def get_tw_html_list(self, chapter, verse):
+        words = self.get_tw_words(self.ult_id, chapter, verse)
+        if not len(words):
+            return ''
+        links = []
+        for word_idx, word in enumerate(words):
+            word_count = word_idx + 1
+            phrase = word['text']
+            tw_rc = word['contextId']['rc']
+            links.append(f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}">{phrase}</a>')
+        translation_words = f'''
+            <h3>{self.resources['tw'].simple_title}</h3>
+            <ul class="tw-list">
+                <li>{'</li><li>'.join(links)}</li>
+            </ul>
+'''
+        return translation_words
+
+    def get_scripture(self, chapter, verse, rc=None):
+        ult_with_tw_words = self.get_scripture_with_tw_words(self.ult_id, chapter, verse, rc)
+        ult_with_tw_words = self.get_scripture_with_tn_quotes(self.ult_id, chapter, verse, rc, ult_with_tw_words)
+        ust_with_tw_words = self.get_scripture_with_tw_words(self.ust_id, chapter, verse, rc)
+        ust_with_tw_words = self.get_scripture_with_tn_quotes(self.ust_id, chapter, verse, rc, ust_with_tw_words)
+
+        scripture = f'''
+            <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
+            <div class="bible-text">{ult_with_tw_words}</div>
+            <h3 class="bible-resource-title">{self.ust_id.upper()}</h3>
+            <div class="bible-text">{ust_with_tw_words}</div>
+'''
+        return scripture
+
+    def get_tn_article_text(self, chapter, verse):
+        verse_notes = ''
+        if verse in self.tn_book_data[chapter]:
+            tn_notes = self.get_tn_notes(chapter, verse)
+            for tn_note in tn_notes:
+                note = markdown2.markdown(tn_note['note'].replace('<br>', "\n"))
+                note = re.sub(r'</*p[^>]*>', '', note, flags=re.IGNORECASE | re.MULTILINE)
+                verse_notes += f'''
+        <div class="verse-note">
+            <h3 class="verse-note-title">{tn_note['quote']}</h3>
+            <div class="verse-note-text">
+                {note}
+            </div>
+        </div>
+'''
+        else:
+            verse_notes += f'''
+        <div class="no-notes">
+            ({self.translate('no_notes_for_this_verse')})
+        </div>
+'''
+        verse_notes = self.fix_tn_links(verse_notes, chapter)
+        return verse_notes
 
     def populate_tw_words_data(self):
         groups = ['kt', 'names', 'other']
@@ -488,8 +377,8 @@ class TnPdfConverter(PdfConverter):
                 occurrences = load_json_object(file)
                 for occurrence in occurrences:
                     context_id = occurrence['contextId']
-                    chapter = context_id['reference']['chapter']
-                    verse = context_id['reference']['verse']
+                    chapter = str(context_id['reference']['chapter'])
+                    verse = str(context_id['reference']['verse'])
                     context_id['rc'] = tw_rc_link
                     if chapter not in words:
                         words[chapter] = {}
@@ -498,29 +387,24 @@ class TnPdfConverter(PdfConverter):
                     words[chapter][verse].append(context_id)
         self.tw_words_data = words
 
-    def get_plain_scripture(self, resource, chapter, first_verse, last_verse=None):
-        verses = ''
+    def get_plain_scripture(self, resource, chapter, verse):
+        data = self.verse_usfm[resource][chapter][verse]
+        footnotes_split = re.compile('<div class="footnotes">', flags=re.IGNORECASE | re.MULTILINE)
+        verses_and_footnotes = re.split(footnotes_split, data['html'], maxsplit=1)
+        scripture = verses_and_footnotes[0]
         footnotes = ''
-        if not last_verse:
-            last_verse = first_verse
-        while first_verse <= last_verse:
-            data = self.chunks_text[str(chapter)][str(first_verse)]
-            footnotes_split = re.compile('<div class="footnotes">', flags=re.IGNORECASE | re.MULTILINE)
-            verses_and_footnotes = re.split(footnotes_split, data[resource]['html'], maxsplit=1)
-            verses += verses_and_footnotes[0]
-            if len(verses_and_footnotes) == 2:
-                footnote = f'<div class="footnotes">{verses_and_footnotes[1]}'
-                if footnotes:
-                    footnote = footnote.replace('<hr class="footnotes-hr"/>', '')
-                footnotes += footnote
-            first_verse = data['last_verse'] + 1
+        if len(verses_and_footnotes) == 2:
+            footnote = f'<div class="footnotes">{verses_and_footnotes[1]}'
+            if footnotes:
+                footnote = footnote.replace('<hr class="footnotes-hr"/>', '')
+            footnotes += footnote
         html = ''
-        if verses:
-            verses = re.sub(r'\s*<span class="v-num"', '</div><div class="verse"><span class="v-num"', verses, flags=re.IGNORECASE | re.MULTILINE)
-            verses = re.sub(r'^</div>', '', verses)
-            if verses and '<div class="verse">' in verses:
-                verses += '</div>'
-            html = verses + footnotes
+        if scripture:
+            scripture = re.sub(r'\s*<span class="v-num"', '</div><div class="verse"><span class="v-num"', scripture, flags=re.IGNORECASE | re.MULTILINE)
+            scripture = re.sub(r'^</div>', '', scripture)
+            if scripture and '<div class="verse">' in scripture:
+                scripture += '</div>'
+            html = scripture + footnotes
             html = re.sub(r'\s*\n\s*', ' ', html, flags=re.IGNORECASE | re.MULTILINE)
             html = re.sub(r'\s*</*p[^>]*>\s*', ' ', html, flags=re.IGNORECASE | re.MULTILINE)
             html = html.strip()
@@ -530,129 +414,101 @@ class TnPdfConverter(PdfConverter):
                           flags=re.IGNORECASE | re.MULTILINE)
         return html
 
-    def get_ult_with_tw_words(self, rc, chapter, first_verse, last_verse, ignore_small_words=True):
-        html = self.get_plain_scripture(self.ult_id, chapter, first_verse, last_verse)
-        footnotes_split = re.compile('<div class="footnotes">', flags=re.MULTILINE | re.IGNORECASE)
-        verses_and_footnotes = footnotes_split.split(html, maxsplit=1)
-        verses_html = verses_and_footnotes[0]
-        footer_html = ''
+    def get_scripture_with_tw_words(self, resource_id, chapter, verse, rc=None, ignore_small_words=True):
+        scripture = self.get_plain_scripture(resource_id, chapter, verse)
+        footnotes_split = re.compile('<div class="footnotes">', flags=re.IGNORECASE | re.MULTILINE)
+        verses_and_footnotes = re.split(footnotes_split, scripture, maxsplit=1)
+        scripture = verses_and_footnotes[0]
+        footnote = ''
         if len(verses_and_footnotes) == 2:
-            footer_html = f'<div class="footnotes">{verses_and_footnotes[1]}'
-        regex = re.compile(rf'<div class="verse"><span class="v-num" id="{self.ult_id}-\d+-ch-\d+-v-\d+"><sup><strong>(\d+)</strong></sup></span>')
-        verses_split = regex.split(verses_html)
-        verses = {}
-        for i in range(1, len(verses_split), 2):
-            verses[int(verses_split[i])] = verses_split[i+1]
-        new_html = verses_split[0]
-        for verse_num in range(first_verse, last_verse+1):
-            if verse_num in verses:
-                verse_html = verses[verse_num]
-                words = self.get_tw_words(chapter, verse_num)
-                sorted_words = sorted(words, key=lambda w: w['text'], reverse=True)
-                orig_verse_html = verse_html
-                for word_idx, word in enumerate(sorted_words):
-                    word_count = word_idx + 1
-                    phrase = word['text']
-                    tw_rc = word['contextId']['rc']
-                    tag_classes = ['tw-wod-link']
-                    if '…' in phrase or '...' in phrase:
-                        tag_classes += ['split-tw-word', f'split-tw-word-{word_count}',
-                                       f'split-tw-word-{"odd" if word_count % 2 else "even"}']
-                    tag = f'<a href="{tw_rc}" classes="{" ".join(tag_classes)}">'
-                    occurrence = word['contextId']['occurrence']
-                    marked_verse_html = html_tools.mark_phrase_in_text(verse_html, phrase,
-                                                                       occurrence=occurrence,
-                                                                       tag=tag,
+            footnote = f'<div class="footnotes">{verses_and_footnotes[1]}'
+        occurrences = {}
+        orig_scripture = scripture
+        words = self.get_tw_words(resource_id, chapter, verse)
+        for word_idx, word in enumerate(words):
+            word_count = word_idx + 1
+            phrase = word['text']
+            tw_rc = word['contextId']['rc']
+            occurrence = word['contextId']['occurrence']
+            if phrase in occurrences and occurrences[phrase] >= occurrence:
+                occurrence = occurrences[phrase] + 1
+            occurrences[phrase] = occurrence
+            split = ''
+            if '…' in phrase or '...' in phrase:
+                split = ' split'
+            tag = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}{split}">'
+            marked_verse_html = html_tools.mark_phrase_in_html(scripture, phrase,
+                                                               occurrence=occurrence,
+                                                               tag=tag,
+                                                               ignore_small_words=ignore_small_words)
+            # if not marked_verse_html:
+            #     marked_verse_html = html_tools.mark_phrase_in_html(verse_html, phrase,
+            #                                                        occurrence=occurrence,
+            #                                                        tag=tag,
+            #                                                        ignore_small_words=ignore_small_words,
+            #                                                        break_on_word=False)
+            if not marked_verse_html:
+                fix = html_tools.find_quote_variation_in_text(orig_scripture, phrase,
+                                                              occurrence=occurrence,
+                                                              ignore_small_words=ignore_small_words)
+                if not fix and occurrence > 1:
+                    marked_verse_html = html_tools.mark_phrase_in_html(scripture, phrase,
+                                                                       occurrence=1,
                                                                        ignore_small_words=ignore_small_words)
-                    # if not marked_verse_html:
-                    #     marked_verse_html = html_tools.mark_phrase_in_text(verse_html, phrase,
-                    #                                                        occurrence=occurrence,
-                    #                                                        tag=tag,
-                    #                                                        ignore_small_words=ignore_small_words,
-                    #                                                        break_on_word=False)
-                    if not marked_verse_html:
-                        fix = html_tools.find_quote_variation_in_text(orig_verse_html, phrase,
-                                                                      occurrence=occurrence,
-                                                                      ignore_small_words=ignore_small_words)
-                        if not fix and occurrence > 1:
-                            marked_verse_html = html_tools.mark_phrase_in_text(verse_html, phrase,
-                                                                               occurrence=1,
-                                                                               ignore_small_words=ignore_small_words)
-                            if marked_verse_html:
-                                fix = f'(occurrence = {occurrence}, only occurrence 1 is found)'
-                        self.add_bad_highlight(rc, orig_verse_html, tw_rc, word['text'], fix)
-                    else:
-                        verse_html = marked_verse_html
+                    if marked_verse_html:
+                        fix = f'(occurrence = {occurrence}, only occurrence 1 is found)'
+                if rc:
+                    self.add_bad_highlight(rc, orig_scripture, tw_rc, word['text'], fix)
+            else:
+                scripture = marked_verse_html
+        scripture += footnote
+        return scripture
 
-                new_html += f'''
-        <div class="verse">
-            <span class="v-num">
-                <sup><strong>{verse_num}</strong></sup>
-            </span>{verse_html}
-'''
-        new_html += footer_html
-        return new_html
-
-    def get_tw_words(self, chapter, verse):
-        ult_package_dir = os.path.join(self.resources['ult'].repo_dir + '_' + self.resources['ult'].tag + '_package')
-        chapter_json_path = f'{ult_package_dir}/{self.project_id}/{chapter}.json'
+    def get_tw_words(self, resource_id, chapter, verse):
+        package_dir = os.path.join(self.resources[resource_id].repo_dir + '_' + self.resources[resource_id].tag + '_package')
+        chapter_json_path = f'{package_dir}/{self.project_id}/{chapter}.json'
         words = []
         data = load_json_object(chapter_json_path)
-        chapter = int(chapter)
         if chapter in self.tw_words_data and verse in self.tw_words_data[chapter]:
-            context_ids = self.tw_words_data[int(chapter)][int(verse)]
-            verse_objects = data[str(verse)]['verseObjects']
-            for context_id in context_ids:
-                aligned_text = self.get_aligned_text(verse_objects, context_id)
-                if aligned_text:
-                    words.append({'text': aligned_text, 'contextId': context_id})
+            context_ids = self.tw_words_data[chapter][verse]
+            if verse in data:
+                verse_objects = data[verse]['verseObjects']
+                for context_id in context_ids:
+                    aligned_text = self.get_aligned_text(verse_objects, context_id)
+                    if aligned_text:
+                        words.append({'text': aligned_text, 'contextId': context_id})
         return words
 
-    def get_ult_with_tn_quotes(self, rc, chapter, first_verse, last_verse):
-        html = self.get_plain_scripture(self.ult_id, chapter, first_verse, last_verse)
-        footnotes_split = re.compile('<div class="footnotes">', flags=re.MULTILINE | re.IGNORECASE)
-        verses_and_footnotes = footnotes_split.split(html, maxsplit=1)
-        verses_html = verses_and_footnotes[0]
-        footer_html = ''
+    def get_scripture_with_tn_quotes(self, resource, chapter, verse, rc, scripture, ignore_small_words=False):
+        if not scripture:
+            scripture = self.get_plain_scripture(resource, chapter, verse)
+        footnotes_split = re.compile('<div class="footnotes">', flags=re.IGNORECASE | re.MULTILINE)
+        verses_and_footnotes = re.split(footnotes_split, scripture, maxsplit=1)
+        scripture = verses_and_footnotes[0]
+        footnote = ''
         if len(verses_and_footnotes) == 2:
-            footer_html = f'<div class="footnotes">{verses_and_footnotes[1]}'
-        regex = re.compile(rf'<div class="verse"><span class="v-num" id="{self.ult_id}-\d+-ch-\d+-v-\d+"><sup><strong>(\d+)</strong></sup></span>')
-        verses_split = regex.split(verses_html)
-        verses = {}
-        for i in range(1, len(verses_split), 2):
-            verses[int(verses_split[i])] = verses_split[i+1]
-        new_html = verses_split[0]
-        for verse_num in range(first_verse, last_verse+1):
-            if verse_num in verses:
-                verse_html = verses[verse_num]
-                tn_notes = self.get_tn_notes(chapter, verse_num)
-                sorted_tn_notes = sorted(tn_notes, key=lambda w: w['quote'], reverse=True)
-                orig_verse_html = verse_html
-                for tn_note in sorted_tn_notes:
-                    tn_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{str(verse_num).zfill(3)}'
-                    marked_verse_html = html_tools.mark_phrase_in_text(verse_html, tn_note['quote'])
-                    # if not marked_verse_html:
-                    #     marked_verse_html = html_tools.mark_phrase_in_text(verse_html, tn_note['quote'],
-                    #                                                        break_on_word=False)
-                    if not marked_verse_html and tn_note['quote'].lower() not in QUOTES_TO_IGNORE:
-                        fix = html_tools.find_quote_variation_in_text(orig_verse_html, tn_note['quote'])
-                        self.add_bad_highlight(rc, orig_verse_html, tn_rc_link, tn_note['quote'], fix)
-                    else:
-                        verse_html = marked_verse_html
-
-                new_html += f'''
-        <div class="verse">
-            <span class="v-num">
-                <sup><strong>{verse_num}</strong></sup>
-            </span>{verse_html}
-'''
-        new_html += footer_html
-        return new_html
+            footnote = f'<div class="footnotes">{verses_and_footnotes[1]}'
+        tn_notes = self.get_tn_notes(chapter, verse)
+        orig_scripture = scripture
+        for tn_note_idx, tn_note in enumerate(tn_notes):
+            phrase = tn_note['quote']
+            tn_rc_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(chapter)}/{str(verse).zfill(3)}'
+            split = ''
+            if '…' in phrase or '...' in phrase:
+                split = ' split'
+            tag = f'<span class="highlight tn-phrase tn-phrase-{tn_note_idx+1}{split}">'
+            marked_verse_html = html_tools.mark_phrase_in_html(scripture, phrase, ignore_small_words=ignore_small_words)
+            if not marked_verse_html:
+                if tn_note['quote'].lower() not in QUOTES_TO_IGNORE:
+                    fix = html_tools.find_quote_variation_in_text(orig_scripture, tn_note['quote'])
+                    self.add_bad_highlight(rc, orig_scripture, tn_rc_link, tn_note['quote'], fix)
+            else:
+                scripture = marked_verse_html
+        scripture += footnote
+        return scripture
 
     def get_tn_notes(self, chapter, verse):
         notes = []
-        chapter = str(chapter)
-        verse = str(verse)
         if chapter in self.tn_book_data and str(verse) in self.tn_book_data[chapter]:
             for data in self.tn_book_data[chapter][str(verse)]:
                 note = {
@@ -778,37 +634,30 @@ class TnPdfConverter(PdfConverter):
                 # link to another book, which we don't link to so link removed
                 return linked_text
             elif link.startswith('../'):
-                # links to another chunk in another chapter
+                # links to another verse in another chapter
                 link = os.path.splitext(link)[0]
                 parts = link.split('/')
                 if len(parts) == 3:
                     # should have two numbers, the chapter and the verse
                     c = parts[1]
                     v = parts[2]
-                    new_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(c)}/{v.zfill(3)}'
+                    new_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(c)}/{v.zfill(3)}'
                 if len(parts) == 2:
-                    # shouldn't be here, but just in case, assume link to the first chunk of the given chapter
+                    # shouldn't be here, but just in case, assume link to the first verse of the given chapter
                     c = parts[1]
-                    new_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(c)}/001'
+                    new_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(c)}/001'
             elif link.startswith('./'):
                 # link to another verse in the same chapter
                 link = os.path.splitext(link)[0]
                 parts = link.split('/')
                 v = parts[1]
-                new_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{v.zfill(3)}'
+                new_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(chapter)}/{v.zfill(3)}'
             return f'<a{before_href}href="{new_link}"{after_href}>{linked_text}</a>'
         regex = re.compile(r'<a([^>]+)href="(\.[^"]+)"([^>]*)>(.*?)</a>')
         html = regex.sub(replace_link, html)
         return html
 
-    def get_chunk_html(self, usfm, resource, chapter, verse):
-        usfm_chunks_path = os.path.join(self.working_dir, 'usfm_chunks',
-                                        f'usfm-{self.lang_code}-{resource}-{self.project_id}-{chapter}-{verse}')
-        filename_base = f'{resource}-{self.project_id}-{chapter}-{verse}'
-        html_file = os.path.join(usfm_chunks_path, f'{filename_base}.html')
-        usfm_file = os.path.join(usfm_chunks_path, f'{filename_base}.usfm')
-        if not os.path.exists(usfm_chunks_path):
-            os.makedirs(usfm_chunks_path)
+    def get_verse_html(self, usfm, resource_id, chapter, verse):
         usfm = rf'''\id {self.project_id.upper()}
 \ide UTF-8
 \h {self.project_title}
@@ -816,9 +665,7 @@ class TnPdfConverter(PdfConverter):
 
 \c {chapter}
 {usfm}'''
-        write_file(usfm_file, usfm)
-        UsfmTransform.buildSingleHtml(usfm_chunks_path, usfm_chunks_path, filename_base)
-        html = read_file(os.path.join(usfm_chunks_path, filename_base+'.html'))
+        html, warnings = SingleVerseHtmlRender(self.project_id.upper(), usfm).render()
         soup = BeautifulSoup(html, 'html.parser')
         header = soup.find('h1')
         if header:
@@ -827,16 +674,14 @@ class TnPdfConverter(PdfConverter):
         if chapter:
             chapter.decompose()
         for span in soup.find_all('span', {'class': 'v-num'}):
-            span['id'] = f"{resource}-{span['id']}"
-        html = ''.join(['%s' % x for x in soup.body.contents])
-        write_file(html_file, html)
+            span['id'] = re.sub(r'^(.*)-v-([\d-]+)', rf'{resource_id}-\1-v-{verse}', span['id'])
+        html = ''.join(['%s' % x for x in soup.body.contents]).strip()
         return html
 
     def get_ggo_back_to_html(self, source_rc):
         if source_rc.linking_level == 0:
             return ''
         go_back_tos = []
-        done = {}
         book_started = False
         for rc_link in source_rc.references:
             if rc_link in self.rcs:
@@ -844,32 +689,17 @@ class TnPdfConverter(PdfConverter):
                 chapter = rc.chapter
                 verse = rc.verse
                 if chapter == 'front':
-                    if chapter in self.verse_to_chunk and verse in self.verse_to_chunk[chapter]:
-                        text = self.verse_to_chunk[chapter][verse]
-                    else:
-                        text = 'Intro to {0}'.format(self.project_title)
-                        self.verse_to_chunk[chapter][verse] = text
+                    text = rc.title
                 elif verse == 'intro':
-                    if chapter in self.verse_to_chunk and verse in self.verse_to_chunk[chapter]:
-                        text = self.verse_to_chunk[chapter][verse]
-                    else:
-                        text = '{0} {1} Notes'.format(self.project_title, chapter)
-                        self.verse_to_chunk[chapter][verse] = text
+                    text = rc.title
                     book_started = True
                 else:
-                    if chapter in self.verse_to_chunk and verse in self.verse_to_chunk[chapter]:
-                        if book_started:
-                            text = self.verse_to_chunk[chapter][verse].split(' ')[-1]
-                        else:
-                            text = self.verse_to_chunk[chapter][verse]
+                    if book_started:
+                        text = rc.title.split(' ')[-1]
                     else:
-                        text = '{0} {1}:{2}'.format(self.project_title, chapter.lstrip('0'), verse.lstrip('0'))
-                        self.verse_to_chunk[chapter][verse] = text
+                        text = rc.title
                     book_started = True
-                if text and self.verse_to_chunk[chapter][verse] not in done:
-                    go_back_tos.append('<a href="#{0}">{1}</a>'.format(rc.article_id, text))
-                done[self.verse_to_chunk[chapter][verse]] = True
-                done[rc_link] = True
+                go_back_tos.append('<a href="#{0}">{1}</a>'.format(rc.article_id, text))
         go_back_to_html = ''
         if len(go_back_tos):
             go_back_tos_string = '; '.join(go_back_tos)
@@ -881,11 +711,13 @@ class TnPdfConverter(PdfConverter):
         return go_back_to_html
 
 
-def main(tn_class):
+def main(tn_class, resource_names=None):
+    if not resource_names:
+        resource_names = ['tn', 'ult', 'ust', 'ta', 'tw', 'ugnt', 'uhb']
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--ust-id', dest='ust_id', default=DEFAULT_UST_ID, required=False, help="UST ID")
     parser.add_argument('--ult-id', dest='ult_id', default=DEFAULT_ULT_ID, required=False, help="ULT ID")
-    run_converter(['tn', 'ult', 'ust', 'ta', 'tw', 'ugnt', 'uhb'], tn_class, all_project_ids=BOOK_NUMBERS.keys(), parser=parser)
+    run_converter(resource_names, tn_class, all_project_ids=BOOK_NUMBERS.keys(), parser=parser)
 
 
 if __name__ == '__main__':

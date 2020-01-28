@@ -1,9 +1,9 @@
 import logging
 import re
 
-from .abstractRenderer import AbstractRenderer
-from .books import bookKeys, bookNames, silNames, readerNames, bookKeyForIdValue
-from .parseUsfm import UsfmToken
+from tx_usfm_tools.abstractRenderer import AbstractRenderer
+from tx_usfm_tools.books import bookKeys, bookNames, silNames, readerNames, bookKeyForIdValue
+from tx_usfm_tools.parseUsfm import UsfmToken
 
 #
 #   Simplest renderer. Ignores everything except ascii text.
@@ -289,7 +289,7 @@ class SingleHTMLRenderer(AbstractRenderer):
         self.stopLI()
         self.closeFootnote()
         self.cv = token.value.zfill(3)
-        self.write(' <span id="{0}-ch-{1}-v-{2}" class="v-num"><sup><strong>{3}</strong></sup></span>'.
+        self.write(' <span id="{0}-ch-{1}-v-{2}" class="v-num"><sup><b>{3}</b></sup></span>'.
                    format(self.cb, self.cc, self.cv, token.value))
     def renderVA_S(self, token):
         assert not token.value
@@ -354,10 +354,10 @@ class SingleHTMLRenderer(AbstractRenderer):
 
     def renderSC_S(self, token):
         assert not token.value
-        self.write('<strong>')
+        self.write('<b>')
     def renderSC_E(self, token):
         assert not token.value
-        self.write('</strong>')
+        self.write('</b>')
 
     def renderQS_S(self, token):
         assert not token.value
@@ -416,43 +416,58 @@ class SingleHTMLRenderer(AbstractRenderer):
     # def render_imt(self, token):
     #     self.write('\n\n<h2>' + token.value + '</h2>')
     def render_imt1(self, token):
+        self.stopLI()
+        self.closeParagraph()
         self.write('\n\n<h2>' + token.value + '</h2>')
     def render_imt2(self, token):
+        self.stopLI()
+        self.closeParagraph()
         self.write('\n\n<h3>' + token.value + '</h3>')
     def render_imt3(self, token):
+        self.stopLI()
+        self.closeParagraph()
         self.write('\n\n<h4>' + token.value + '</h4>')
 
     # def render_is(self, token):
     #     self.stopLI()
     #     self.closeParagraph()
     #     self.write('\n\n<h4 style="text-align:center">' + token.getValue() + '</h4>')
-    def render_is1(self, token):
+    def render_is1(self, token) -> None:
         self.stopLI()
         self.closeParagraph()
         self.write('\n\n<h4 style="text-align:center">' + token.getValue() + '</h4>')
-    def render_is2(self, token):
+    def render_is2(self, token) -> None:
         self.stopLI()
         self.closeParagraph()
         self.write('\n\n<h5 style="text-align:center">' + token.getValue() + '</h5>')
-    def render_is3(self, token):
+    def render_is3(self, token) -> None:
         self.stopLI()
         self.closeParagraph()
         self.write('\n\n<h5">' + token.getValue() + '</h5>')
 
-    def render_ip(self, token):
+    def render_iot(self, token) -> None:
+        self.stopLI()
+        self.closeParagraph()
+        self.write('\n\n<h2>' + token.value + '</h2>')
+    def render_io1(self, token):
+        self.stopLI()
+        self.closeParagraph()
+        self.write('<span class="io1">' + token.value + '</span>')
+
+    def render_ip(self, token) -> None:
         assert not token.value
         self.stopLI()
         self.closeParagraph()
         self.write('\n\n<p>')
         self.inParagraph = True
 
-    def render_ipi(self, token):
+    def render_ipi(self, token) -> None:
         assert not token.value
         self.stopLI()
         self.closeParagraph()
         self.writeIndent(2)
 
-    def render_im(self, token):
+    def render_im(self, token) -> None:
         assert not token.value
         # TODO: This should NOT be identical to render_ip
         self.stopLI()

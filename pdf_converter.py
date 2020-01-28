@@ -48,7 +48,6 @@ class PdfConverter:
     def __init__(self, resources: Resources, project_id=None, working_dir=None, output_dir=None,
                  lang_code=DEFAULT_LANG_CODE, regenerate=False, logger=None, offline=False, update=True, **kwargs):
         self.resources = resources
-        self.main_resource = self.resources.main
         self.project_id = project_id
         self.working_dir = working_dir
         self.output_dir = output_dir
@@ -105,6 +104,10 @@ class PdfConverter:
         if self.wp_logger_handler:
             self.wp_logger.removeHandler(self.wp_logger_handler)
             self.wp_logger_handler.close()
+
+    @property
+    def main_resource(self):
+        return self.resources.main
 
     @property
     def name(self):
@@ -342,11 +345,14 @@ class PdfConverter:
 
             self.logger.info('Generating body HTML...')
             body_html = self.get_body_html()
+            self.logger.info('Generating appendix RCs...')
             self.get_appendix_rcs()
             self.all_rcs = {**self.rcs, **self.appendix_rcs}
             if 'ta' in self.resources:
+                self.logger.info('Generating UTA appendix HTML...')
                 body_html += self.get_appendix_html(self.resources['ta'])
             if 'tw' in self.resources:
+                self.logger.info('Generating UTW appendix HTML...')
                 body_html += self.get_appendix_html(self.resources['tw'])
             self.logger.info('Fixing links in body HTML...')
             body_html = self.fix_links(body_html)
@@ -356,8 +362,10 @@ class PdfConverter:
             self.logger.info('Generating Contributors HTML...')
             body_html += self.get_contributors_html()
             body_html = self.download_all_images(body_html)
+            write_file(os.path.join(self.output_res_dir, 'test.html'), body_html)
             self.logger.info('Generating TOC HTML...')
             body_html, toc_html = self.get_toc_html(body_html)
+            self.logger.info('Done generating TOC HTML.')
 
             with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
                 html_template = string.Template(template_file.read())
@@ -590,9 +598,9 @@ class PdfConverter:
 '''
         prev_toc_level = 0
         soup = BeautifulSoup(body_html, 'html.parser')
-        done = {}
         heading_titles = [None, None, None, None, None, None]
-        for header in soup.find_all(re.compile(r'^h\d'), {'class': 'section-header'}):
+        headers = soup.find_all(re.compile(r'^h\d'), {'class': 'section-header'})
+        for header in headers:
             toc_level = int(header.get('toc-level', header.name[1]))
             # Handle closing of ul/li tags or handle the opening of new ul tags
             if toc_level > prev_toc_level:
@@ -612,15 +620,15 @@ class PdfConverter:
                 parent = header.find_parent(['article', 'section'])
                 article_id = parent.get('id')
             heading_titles[toc_level-1] = header.text
-            if article_id and article_id not in done:
+            if article_id:
                 rc = self.get_rc_by_article_id(article_id)
                 if rc:
                     toc_title = rc.toc_title
                 else:
                     toc_title = header.text
-                toc_html += f'<li><a href="#{article_id}"><span>{toc_title}</span></a>\n'
+                if 'no-toc' not in header['class']:
+                    toc_html += f'<li><a href="#{article_id}"><span>{toc_title}</span></a>\n'
                 prev_toc_level = toc_level
-                done[article_id] = True
                 header_tag = soup.new_tag('span', **{'class': 'hidden heading-right'})
                 header_tag.string = ' :: '.join(filter(None, heading_titles[1:toc_level]))
                 # if len(header_tag.string) > 80:
@@ -658,7 +666,7 @@ class PdfConverter:
     <h1>{self.translate('license.copyrights_and_licensing')}</h1>
 '''
         for resource_name, resource in self.resources.items():
-            if not resource.manifest:
+            if resource.background_resource or not resource.manifest:
                 continue
             title = resource.title
             version = resource.version
@@ -679,10 +687,12 @@ class PdfConverter:
         return license_html
 
     def get_contributors_html(self):
-        contributors_html = '<section id="contributors" class="no-header">'
+        contributors_html = ''''
+<section id="contributors" class="no-header">
+'''
         for idx, resource_name in enumerate(self.resources.keys()):
             resource = self.resources[resource_name]
-            if not resource.manifest or not resource.contributors:
+            if resource.background_resource or not resource.manifest or not resource.contributors:
                 continue
             contributors = resource.contributors
             contributors_list_classes = 'contributors-list'
@@ -698,7 +708,9 @@ class PdfConverter:
             for contributor in contributors:
                 contributors_html += f'<div class="contributor">{contributor}</div>'
             contributors_html += '</div>'
-        contributors_html += '</section>'
+        contributors_html += ''''
+</section>
+'''
         return contributors_html
 
     def replace(self, m):
@@ -783,6 +795,7 @@ class PdfConverter:
     def crawl_ta_tw_deep_linking(self, source_rc: ResourceContainerLink):
         if not source_rc.article or source_rc.linking_level > APPENDIX_LINKING_LEVEL + 1:
             return
+        self.logger.info(f'Crawling {source_rc.rc_link}...')
         # get all rc links. the "?:" in the regex means to not leave the (ta|tw) match in the result
         rc_links = re.findall(r'rc://[A-Z0-9_*-]+/(?:ta|tw)/[A-Z0-9/_*-]+', source_rc.article, flags=re.IGNORECASE | re.MULTILINE)
         for rc_link in rc_links:
@@ -801,6 +814,7 @@ class PdfConverter:
             rc.add_reference(source_rc)
             if not rc.article:
                 if rc.resource == 'ta':
+                    self.logger.info(f'Getting articles for {rc.rc_link}...')
                     self.get_ta_article_html(rc, source_rc)
                 elif rc.resource == 'tw':
                     self.get_tw_article_html(rc, source_rc)
@@ -812,7 +826,6 @@ class PdfConverter:
                     del self.appendix_rcs[rc.rc_link]
 
     def get_appendix_html(self, resource):
-        self.logger.info(f'Generating {resource.resource_name} appendix html...')
         html = ''
         filtered_rcs = dict(filter(lambda x: x[1].resource == resource.resource_name and
                                    x[1].linking_level == APPENDIX_LINKING_LEVEL,

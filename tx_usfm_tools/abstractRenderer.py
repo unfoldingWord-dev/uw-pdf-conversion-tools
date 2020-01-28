@@ -1,7 +1,7 @@
 import logging
 
-from .books import loadBooks, silNames
-from .parseUsfm import parseString
+from tx_usfm_tools.books import loadBooks, silNames
+from tx_usfm_tools.parseUsfm import parseString
 
 
 

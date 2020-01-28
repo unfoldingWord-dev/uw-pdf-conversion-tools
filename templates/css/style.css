@@ -168,9 +168,9 @@ h1.section-header {
 }
 
 h1, h2, h3, h4, h5, h6 {
-    page-break-before: auto !important;
+    page-break-before: avoid !important;
+    break-before: avoid-page !important;
     page-break-after: avoid !important;
-    break-before: auto !important;
     break-after: avoid-page !important;
 }
 
