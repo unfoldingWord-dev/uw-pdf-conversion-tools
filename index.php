@@ -17,6 +17,12 @@ while(false != ($file = readdir($dir))) {
 
 natsort($dirs); // sort.
 
+echo '<p>';
+foreach($dirs as $dir) {
+    echo '<a href="#'.$dir.'">'.$dir.'</a>'."<br/>\n";
+}
+echo '</p>';
+
 // print.
 foreach($dirs as $dir) {
     $files = array();
