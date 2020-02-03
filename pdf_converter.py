@@ -521,21 +521,22 @@ class PdfConverter:
     def determine_if_regeneration_needed(self):
         # check if any commit hashes have changed
         old_info = self.get_previous_generation_info()
-        if not old_info:
-            self.logger.info(f'Looks like this is a new commit of {self.file_commit_id}. Generating PDF.')
-            self.regenerate = True
-        else:
-            for resource in self.generation_info:
-                if resource in old_info and resource in self.generation_info:
-                    old_tag = old_info[resource]['tag']
-                    new_tag = self.generation_info[resource]['tag']
-                    old_commit = old_info[resource]['commit']
-                    new_commit = self.generation_info[resource]['commit']
-                    if old_tag != new_tag or old_commit != new_commit:
-                        self.logger.info(f'Resource {resource} has changed: {old_tag} => {new_tag}, {old_commit} => {new_commit}. REGENERATING PDF.')
-                        self.regenerate = True
-                else:
-                    self.regenerate = True
+        for resource_id in self.generation_info:
+            dirty = False
+            if old_info and resource_id in old_info and resource_id in self.generation_info:
+                old_tag = old_info[resource_id]['tag']
+                new_tag = self.generation_info[resource_id]['tag']
+                old_commit = old_info[resource_id]['commit']
+                new_commit = self.generation_info[resource_id]['commit']
+                if old_tag != new_tag or old_commit != new_commit:
+                    self.logger.info(f'Resource {resource_id} has changed: {old_tag} => {new_tag}, {old_commit} => {new_commit}. REGENERATING PDF.')
+                    dirty = True
+            else:
+                self.logger.info(f'Looks like this the first run for {self.file_commit_id}.')
+                dirty = True
+            if dirty:
+                self.regenerate = True
+                self.resources[resource_id].dirty = True
 
     def save_resource_data(self):
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_rcs.json')

@@ -11,8 +11,14 @@
   "dependencies": {
     "babel-polyfill": "^6.26.0",
     "fs-extra": "^8.1.0",
+    "js-yaml": "^3.13.1",
     "path-extra": "^4.3.0",
-    "tc-source-content-updater": "^0.6.15",
+    "tc-source-content-updater": "^0.6.16-beta2",
     "usfm-js": "^2.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.8.3",
+    "@babel/preset-env": "^7.8.3",
+    "@babel/register": "^7.8.3"
   }
 }

@@ -47,6 +47,7 @@ class Resource(object):
         self.repo_dir = None
         self.git = None
         self.commit = None
+        self.dirty = False
 
     @property
     def logo_url(self):

@@ -5,8 +5,10 @@ import os
 import zipfile
 import shutil
 import yaml
-from mimetypes import MimeTypes
 import tempfile
+from glob import glob
+from mimetypes import MimeTypes
+from distutils.version import LooseVersion
 
 
 def symlink(target, link_name, overwrite=False):
@@ -241,3 +243,31 @@ def remove(file_path, ignore_errors=True):
             pass
     else:
         os.remove(file_path)
+
+
+def get_latest_version_path(parent_path):
+    version = get_latest_version(parent_path)
+    if version:
+        return os.path.join(parent_path, version)
+    else:
+        return None
+
+
+def get_latest_version(parent_path):
+    versions = get_versions(parent_path)
+    if len(versions):
+        return versions[-1]
+    else:
+        return None
+
+
+def get_versions(parent_path):
+    versions = get_child_directories(parent_path, 'v[0-9]*')
+    versions.sort(key=LooseVersion)
+    return versions
+
+
+def get_child_directories(parent_path, mask='*'):
+    child_paths = glob(os.path.join(parent_path, mask))
+    child_dirs = [os.path.basename(child_path) for child_path in child_paths if os.path.isdir(child_path)]
+    return child_dirs
