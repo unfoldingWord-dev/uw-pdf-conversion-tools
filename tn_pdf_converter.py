@@ -210,7 +210,10 @@ class TnPdfConverter(PdfConverter):
                 break
             chapter = verse_data['Chapter'].lstrip('0')
             verse = verse_data['Verse'].lstrip('0')
-            occurrence = int(verse_data['Occurrence'])
+            if verse_data['Occurrence']:
+                occurrence = int(verse_data['Occurrence'])
+            else:
+                occurrence = 1
             tn_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}/{verse_data["ID"]}'
             tn_title = verse_data['GLQuote'] + ' (GLQuote)'
             if verse_data['OrigQuote']:
