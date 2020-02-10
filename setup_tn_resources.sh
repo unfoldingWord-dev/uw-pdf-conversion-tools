@@ -14,5 +14,5 @@ set -x
 MY_DIR=$(cd $(dirname "$0") && pwd)
 
 cd "$MY_DIR/tn_resources"
-npm i
+npm ci
 
