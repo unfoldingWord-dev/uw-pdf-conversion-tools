@@ -59,8 +59,8 @@ def mark_phrase_in_html(html, phrase, occurrence=1, tag='<span class="highlight"
     if ignore_small_words:
         filtered_parts = []
         for parts_idx, part in enumerate(phrase):
-            part = part.strip()
-            if parts_idx + 1 >= len(phrase) or part['word'].lower() not in PHRASE_PARTS_TO_IGNORE:
+            word = part['word'].strip()
+            if parts_idx + 1 >= len(phrase) or word.lower() not in PHRASE_PARTS_TO_IGNORE:
                 filtered_parts.append(part)
         phrase = filtered_parts
     to_process_index = 0
