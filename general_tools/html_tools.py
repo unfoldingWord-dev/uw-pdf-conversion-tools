@@ -50,23 +50,29 @@ def mark_phrase_in_html(html, phrase, occurrence=1, tag='<span class="highlight"
     soup = BeautifulSoup(html, 'html.parser')
     strings = get_strings(soup)
     text = soup.text
-    parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', phrase)
+    if isinstance(phrase, str):
+        parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', phrase)
+        phrase = []
+        for part in parts:
+            phrase.append({'word': part, 'occurrence': occurrence})
+            occurrence = 1
     if ignore_small_words:
         filtered_parts = []
-        for parts_idx, part in enumerate(parts):
+        for parts_idx, part in enumerate(phrase):
             part = part.strip()
-            if parts_idx + 1 >= len(parts) or part.lower() not in PHRASE_PARTS_TO_IGNORE:
+            if parts_idx + 1 >= len(phrase) or part['word'].lower() not in PHRASE_PARTS_TO_IGNORE:
                 filtered_parts.append(part)
-        parts = filtered_parts
+        phrase = filtered_parts
     to_process_index = 0
-    for part_idx, part in enumerate(parts):
-        part = part.strip()
-        if not part:
+    for part_idx, part in enumerate(phrase):
+        occurrence = part['occurrence']
+        word = part['word'].strip()
+        if not word:
             continue
         word_break = r'\b'
         if not break_on_word:
             word_break = ''
-        indices = [(i.start() + to_process_index, i.end() + to_process_index) for i in re.finditer(f'{word_break}{re.escape(part)}{word_break}', text[to_process_index:])]
+        indices = [(i.start() + to_process_index, i.end() + to_process_index) for i in re.finditer(f'{word_break}{re.escape(word)}{word_break}', text[to_process_index:])]
         if len(indices) < occurrence:
             return
         part_start = indices[occurrence - 1][0]
@@ -104,7 +110,6 @@ def mark_phrase_in_html(html, phrase, occurrence=1, tag='<span class="highlight"
             to_process_index += match_end
             if to_process_index < part_end:
                 string = strings.pop(0)
-        occurrence = 1
     return str(soup)
 
 

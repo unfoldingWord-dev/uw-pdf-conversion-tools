@@ -125,21 +125,21 @@ const processBibles = (langId, workingDir, ultId, ustId) => {
   SourceContentUpdater = new sourceContentUpdater();
   resourcesPath = path.join(workingDir, 'resources');
   fs.mkdirSync(resourcesPath, {recursive: true});
-  // processOLBible({
-  //   languageId: 'hbo',
-  //   resourceId: 'uhb',
-  //   downloadUrl: 'https://test.com'
-  // });
-  // processOLBible({
-  //   languageId: 'el-x-koine',
-  //   resourceId: 'ugnt',
-  //   downloadUrl: 'https://test.com'
-  // });
-  // processUWBible({
-  //   languageId: langId,
-  //   resourceId: ultId,
-  //   downloadUrl: 'https://test.com'
-  // });
+  processOLBible({
+    languageId: 'hbo',
+    resourceId: 'uhb',
+    downloadUrl: 'https://test.com'
+  });
+  processOLBible({
+    languageId: 'el-x-koine',
+    resourceId: 'ugnt',
+    downloadUrl: 'https://test.com'
+  });
+  processUWBible({
+    languageId: langId,
+    resourceId: ultId,
+    downloadUrl: 'https://test.com'
+  });
   processUWBible({
     languageId: langId,
     resourceId: ustId,

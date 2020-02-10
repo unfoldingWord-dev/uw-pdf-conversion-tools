@@ -13,9 +13,8 @@ This script generates the TN Word checking PDF
 import os
 from glob import glob
 from tn_pdf_converter import TnPdfConverter, main
-from general_tools.bible_books import BOOK_CHAPTER_VERSES
-from general_tools.file_utils import load_json_object
-from collections import OrderedDict
+from general_tools.file_utils import load_json_object, get_latest_version_path, get_child_directories
+from general_tools.html_tools import mark_phrase_in_html
 
 ORDERED_GROUPS = {
     'kt': 'Key Terms',
@@ -23,11 +22,16 @@ ORDERED_GROUPS = {
     'other': 'Other'
 }
 
+
 class TwCheckingPdfConverter(TnPdfConverter):
 
     @property
     def name(self):
         return 'tw-checking'
+
+    @property
+    def title(self):
+        return self.main_resource.title + ' - Checking'
 
     @property
     def main_resource(self):
@@ -49,43 +53,10 @@ class TwCheckingPdfConverter(TnPdfConverter):
     def get_body_html(self):
         self.add_style_sheet('css/tn_style.css')
         self.logger.info('Creating TW Checking for {0}...'.format(self.file_project_and_tag_id))
-        self.populate_tw_words_data()
         self.populate_verse_usfm(self.ult_id)
         self.populate_verse_usfm(self.ust_id)
+        self.populate_verse_usfm(self.ol_bible_id)
         return self.get_tw_checking_html()
-
-    def populate_tw_words_data(self):
-        if int(self.book_number) < 41:
-            tw_path = self.uhb_tw_dir
-        else:
-            tw_path = self.ugnt_tw_dir
-        for group in ORDERED_GROUPS:
-            self.tw_words_data[group] = {}
-            files_path = os.path.join(tw_path, f'{group}/groups/{self.project_id}', '*.json')
-            files = glob(files_path)
-            for file in files:
-                base = os.path.splitext(os.path.basename(file))[0]
-                tw_rc_link = f'rc://{self.lang_code}/tw/dict/bible/{group}/{base}'
-                tw_rc = self.create_rc(tw_rc_link)
-                self.get_tw_article_html(tw_rc_link)
-                self.tw_words_data[group][base] = {
-                    'rc': tw_rc,
-                    'data': []
-                }
-                occurrences = load_json_object(file)
-                for occurrence in occurrences:
-                    context_id = occurrence['contextId']
-                    chapter = str(context_id['reference']['chapter'])
-                    verse = str(context_id['reference']['verse'])
-                    ult_package_dir = os.path.join(self.resources['ult'].repo_dir + '_' + self.resources['ult'].tag + '_package')
-                    chapter_json_path = f'{ult_package_dir}/{self.project_id}/{chapter}.json'
-                    data = load_json_object(chapter_json_path)
-                    verse_objects = data[verse]['verseObjects']
-                    aligned_text = self.get_aligned_text(verse_objects, context_id)
-                    self.tw_words_data[group][base].append({
-                        'occurrence': occurrence,
-                        'aligned_text': aligned_text
-                    })
 
     def get_tw_checking_html(self):
         tw_html = f'''
@@ -97,82 +68,91 @@ class TwCheckingPdfConverter(TnPdfConverter):
     </article>
 '''
 
-        for group in ORDERED_GROUPS:
-            tw_html = f'''
-<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
-    <h3 class="section-header">{ORDERED_GROUPS[group]}</h3>
-'''
-            ordered_by_title = sorted(self.tw_words_data[group], key=lambda x: x['rc'].title)
-            for filename in ordered_by_title:
-                tw_html = f'''
-                    <article id="{}"
+        if int(self.book_number) < 41:
+            ol_lang = 'hbo'
+        else:
+            ol_lang = 'el-x-koine'
+        tw_path = os.path.join(self.working_dir, 'resources', ol_lang, 'translationHelps/translationWords')
+        if not tw_path:
+            self.logger.error(f'{tw_path} not found!')
+            exit(1)
+        tw_version_path = get_latest_version_path(tw_path)
+        if not tw_version_path:
+            self.logger.error(f'No versions found in {tw_path}!')
+            exit(1)
+
+        groups = get_child_directories(tw_version_path)
+        for group in groups:
+            files_path = os.path.join(tw_version_path, f'{group}/groups/{self.project_id}', '*.json')
+            files = glob(files_path)
+            for file in files:
+                base = os.path.splitext(os.path.basename(file))[0]
+                tw_rc_link = f'rc://{self.lang_code}/tw/dict/bible/{group}/{base}'
+                tw_rc = self.add_rc(tw_rc_link, title=base)
+                self.get_tw_article_html(tw_rc)
+                tw_html += f'''
+    <article id="{tw_rc.article_id}">
+        <h3 class="section-header">{tw_rc.title} ({tw_rc.rc_link})</h3>
+        <table width="100%">
 '''
 
-        for chapter in BOOK_CHAPTER_VERSES[self.project_id]:
-            self.logger.info(f'Chapter {chapter}...')
-            chapter_title = f'{self.project_title} {chapter}'
-            # HANDLE INTRO RC LINK
-            chapter_rc_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(chapter)}'
-            chapter_rc = self.add_rc(chapter_rc_link, title=chapter_title)
-            tw_html += f'''
-    <section id="{chapter_rc.article_id}" class="tn-chapter">
-        <h3 class="section-header">{chapter_title}</h3>
+                occurrences = load_json_object(file)
+                for occurrence in occurrences:
+                    context_id = occurrence['contextId']
+                    chapter = str(context_id['reference']['chapter'])
+                    verse = str(context_id['reference']['verse'])
+                    occurrence = int(context_id['occurrence'])
+                    for bible_id in [self.ult_id, self.ust_id]:
+                        quote = self.get_aligned_text(self.ult_id, context_id)
+                        scripture = self.get_plain_scripture(bible_id, chapter, verse)
+                        if quote:
+                            marked_html = mark_phrase_in_html(scripture, quote, occurrence, ignore_small_words=False)
+                            if marked_html:
+                                context_id[f'{bible_id}Text'] = marked_html
+                            else:
+                                context_id[f'{bible_id}Text'] = scripture
+                        context_id[f'{bible_id}Quote'] = quote
+                    scripture = self.get_plain_scripture(self.ol_bible_id, chapter, verse)
+                    marked_html = mark_phrase_in_html(scripture, context_id['quote'], occurrence, ignore_small_words=False)
+                    if marked_html:
+                        context_id['olText'] = marked_html
+                    else:
+                        context_id['olText'] = scripture
+                    tw_html += f'''
+            <tr>
+                <td>
+                    {chapter}:{verse}
+                </td>
+                <td>
+                    {context_id[f'{self.ult_id}Quote']}
+                </td>
+                <td>
+                    {context_id[f'{self.ult_id}Text']}
+                </td>
+                <td>
+                    {context_id[f'{self.ust_id}Quote']}
+                </td>
+                <td>
+                    {context_id[f'{self.ust_id}Text']}
+                </td>
+                <td>
+                    {context_id['quote']}
+                </td>
+                <td>
+                    {context_id['olText']}
+                </td>
+            </tr>
 '''
-            for verse in range(1,  int(BOOK_CHAPTER_VERSES[self.project_id][chapter]) + 1):
-                verse = str(verse)
-                self.logger.info(f'Generating verse {chapter}:{verse}...')
-                tw_html += self.get_tw_checking_article(chapter, verse)
             tw_html += '''
-    </section>
+        </table>
+    </article>
 '''
+
         tw_html += '''
 </section>
 '''
         self.logger.info('Done generating tW Checking HTML.')
         return tw_html
-
-    def get_tw_checking_article(self, chapter, verse):
-        tw_title = f'{self.project_title} {chapter}:{verse}'
-        tw_rc_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
-        tw_rc = self.add_rc(tw_rc_link, title=tw_title)
-        tw_article = f'''
-                <article id="{tw_rc.article_id}">
-                    <h3 class="section-header no-toc">{tw_title}</h3>
-                    <div class="tn-notes">
-                            <div class="col1">
-                                {self.get_scripture(chapter, verse, tw_rc)}
-                            </div>
-                            <div class="col2">
-                                {self.get_tw_checking_article_text(chapter, verse)}
-                            </div>
-                    </div>
-                </article>
-'''
-        tw_rc.set_article(tw_article)
-        return tw_article
-
-    def get_tw_checking_article_text(self, chapter, verse):
-        verse_words = ''
-        if verse in self.tw_words_data[chapter]:
-            tw_words = self.get_tw_words(chapter, verse)
-            for tw_word_idx, tw_word in enumerate(tw_words):
-                tw_rc_link = tw_word['contextId']['rc']
-                alignment = tw_word['text']
-                if tw_rc_link not in self.tw_rcs:
-                    tw_rc = self.create_rc(tw_rc_link)
-                    self.get_tw_article_html(tw_rc)
-                    self.tw_rcs[tw_rc_link] = tw_rc
-                else:
-                    tw_rc = self.tw_rcs[tw_rc_link]
-                verse_words += f'''
-        <div class="verse-word">
-            <h3 class="verse-note-title">{tw_rc.title}</h3>
-            <div class="verse-note-text">
-                has been aligned as <em><a href="{tw_rc.rc_link}" class="tw-phrase-{tw_word_idx + 1}">{alignment}</a></em> 
-            </div>
-        </div>
-'''
-        return verse_words
 
 
 if __name__ == '__main__':

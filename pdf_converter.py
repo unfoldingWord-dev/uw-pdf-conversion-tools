@@ -213,17 +213,17 @@ class PdfConverter:
         self.appendix_rcs[rc.rc_link] = rc
         return rc
 
-    def add_bad_link(self, source_rc, bad_rc_link, fix=None):
+    def add_bad_link(self, source_rc, bad_rc_link, message=None):
         if source_rc:
             if source_rc.rc_link not in self.bad_links:
                 self.bad_links[source_rc.rc_link] = {
                     'source_rc': source_rc,
                     'bad_links': {}
                 }
-            if bad_rc_link not in self.bad_links[source_rc.rc_link] or fix:
-                self.bad_links[source_rc.rc_link]['bad_links'][bad_rc_link] = fix
+            if bad_rc_link not in self.bad_links[source_rc.rc_link] or message:
+                self.bad_links[source_rc.rc_link]['bad_links'][bad_rc_link] = message
 
-    def add_bad_highlight(self, source_rc, text, rc_link, phrase, fix):
+    def add_bad_highlight(self, source_rc, text, rc_link, phrase, message=None):
         if source_rc:
             if source_rc.rc_link not in self.bad_highlights:
                 self.bad_highlights[source_rc.rc_link] = {
@@ -233,7 +233,7 @@ class PdfConverter:
                 }
             self.bad_highlights[source_rc.rc_link]['highlights'][rc_link] = {
                 'phrase': phrase,
-                'fix': fix
+                'fix': message
             }
 
     def run(self):
@@ -521,22 +521,26 @@ class PdfConverter:
     def determine_if_regeneration_needed(self):
         # check if any commit hashes have changed
         old_info = self.get_previous_generation_info()
-        for resource_id in self.generation_info:
-            dirty = False
-            if old_info and resource_id in old_info and resource_id in self.generation_info:
-                old_tag = old_info[resource_id]['tag']
-                new_tag = self.generation_info[resource_id]['tag']
-                old_commit = old_info[resource_id]['commit']
-                new_commit = self.generation_info[resource_id]['commit']
+        logged_message = False
+        for repo_name in self.generation_info:
+            new_commits = False
+            if old_info and repo_name in old_info and repo_name in self.generation_info:
+                old_tag = old_info[repo_name]['tag']
+                new_tag = self.generation_info[repo_name]['tag']
+                old_commit = old_info[repo_name]['commit']
+                new_commit = self.generation_info[repo_name]['commit']
                 if old_tag != new_tag or old_commit != new_commit:
-                    self.logger.info(f'Resource {resource_id} has changed: {old_tag} => {new_tag}, {old_commit} => {new_commit}. REGENERATING PDF.')
-                    dirty = True
+                    self.logger.info(f'Resource {repo_name} has changed: {old_tag} => {new_tag}, {old_commit} => {new_commit}. REGENERATING PDF.')
+                    new_commits = True
             else:
-                self.logger.info(f'Looks like this the first run for {self.file_commit_id}.')
-                dirty = True
-            if dirty:
+                if not logged_message:
+                    self.logger.info(f'Looks like this the first run for {self.file_commit_id}.')
+                    logged_message = True;
+                new_commits = True
+            if new_commits:
+                resource_id = repo_name.split('_', maxsplit=1)[1]
+                self.resources[resource_id].new_commits = True
                 self.regenerate = True
-                self.resources[resource_id].dirty = True
 
     def save_resource_data(self):
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_rcs.json')
@@ -559,11 +563,11 @@ class PdfConverter:
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_bad_highlights.json')
         symlink(save_file, link_file_path, True)
 
-        save_file = os.path.join(self.save_dir, f'{self.file_tag_id}_generation_info.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_generation_info.json')
         write_file(save_file, jsonpickle.dumps(self.generation_info))
 
     def get_previous_generation_info(self):
-        save_file = os.path.join(self.save_dir, f'{self.file_tag_id}_generation_info.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_project_and_tag_id}_generation_info.json')
         if os.path.isfile(save_file):
             return load_json_object(save_file)
         else:

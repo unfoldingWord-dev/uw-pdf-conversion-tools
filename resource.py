@@ -47,7 +47,7 @@ class Resource(object):
         self.repo_dir = None
         self.git = None
         self.commit = None
-        self.dirty = False
+        self.new_commits = False
 
     @property
     def logo_url(self):
@@ -79,7 +79,7 @@ class Resource(object):
                 for owner_idx, owner in enumerate(owners):
                     self.url = self.get_resource_git_url(self.repo_name, owner)
                     try:
-                        git.Repo.clone_from(self.url, self.repo_dir)
+                        git.Repo.clone(self.url, self.repo_dir, depth=1)
                     except git.GitCommandError:
                         if owner_idx + 1 == len(owners):
                             raise orig_err
