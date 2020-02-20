@@ -568,8 +568,9 @@ class TnPdfConverter(PdfConverter):
         if chapter in self.tw_words_data and verse in self.tw_words_data[chapter]:
             group_datas = self.tw_words_data[chapter][verse]
             for group_data in group_datas:
-                group_data['text'] = self.get_aligned_text(bible_id, group_data['contextId'])
-                words.append(group_data)
+                alignment = self.get_aligned_text(bible_id, group_data['contextId'])
+                if alignment:
+                    words.append(alignment)
         return words
 
     def get_scripture_with_tn_quotes(self, bible_id, chapter, verse, rc, scripture, ignore_small_words=False):
