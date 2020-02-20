@@ -518,7 +518,7 @@ class TnPdfConverter(PdfConverter):
                           flags=re.IGNORECASE | re.MULTILINE)
         return html
 
-    def get_scripture_with_tw_words(self, bible_id, chapter, verse, rc=None, ignore_small_words=True):
+    def get_scripture_with_tw_words(self, bible_id, chapter, verse, rc=None):
         scripture = self.get_plain_scripture(bible_id, chapter, verse)
         footnotes_split = re.compile('<div class="footnotes">', flags=re.IGNORECASE | re.MULTILINE)
         verses_and_footnotes = re.split(footnotes_split, scripture, maxsplit=1)
@@ -536,8 +536,7 @@ class TnPdfConverter(PdfConverter):
             if '…' in phrase or '...' in phrase:
                 split = ' split'
             tag = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}{split}">'
-            marked_verse_html = html_tools.mark_phrases_in_html(scripture, phrase, tag=tag,
-                                                                ignore_small_words=ignore_small_words)
+            marked_verse_html = html_tools.mark_phrases_in_html(scripture, phrase, tag=tag)
             if not marked_verse_html:
                 if rc:
                     self.add_bad_highlight(rc, orig_scripture, tw_rc, words)
@@ -573,7 +572,7 @@ class TnPdfConverter(PdfConverter):
                     words.append(alignment)
         return words
 
-    def get_scripture_with_tn_quotes(self, bible_id, chapter, verse, rc, scripture, ignore_small_words=False):
+    def get_scripture_with_tn_quotes(self, bible_id, chapter, verse, rc, scripture):
         if not scripture:
             scripture = self.get_plain_scripture(bible_id, chapter, verse)
         footnotes_split = re.compile('<div class="footnotes">', flags=re.IGNORECASE | re.MULTILINE)
@@ -599,8 +598,7 @@ class TnPdfConverter(PdfConverter):
             if len(phrase) > 1:
                 split = ' split'
             tag = f'<span class="highlight tn-phrase tn-phrase-{tn_note_idx+1}{split}">'
-            marked_verse_html = html_tools.mark_phrases_in_html(scripture, phrase, tag=tag,
-                                                                ignore_small_words=ignore_small_words)
+            marked_verse_html = html_tools.mark_phrases_in_html(scripture, phrase, tag=tag)
             if not marked_verse_html:
                 fix = None
                 if flatten_alignment(phrase).lower() not in QUOTES_TO_IGNORE:
