@@ -245,6 +245,7 @@ class PdfConverter:
         self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}.pdf')
 
         self.determine_if_regeneration_needed()
+        self.save_resource_data()
         self.generate_html()
         self.generate_pdf()
 
@@ -429,7 +430,9 @@ class PdfConverter:
                     message = bad_links[rc_link]
                 else:
                     message = 'linked article not found'
-                bad_links_html += f' - {message}'
+                if '\n' in message:
+                    message = f'<br/><pre>{message}</pre>'
+                bad_links_html += f': {message}'
                 bad_links_html += f'''
     </li>
 '''
@@ -535,7 +538,7 @@ class PdfConverter:
             else:
                 if not logged_message:
                     self.logger.info(f'Looks like this the first run for {self.file_commit_id}.')
-                    logged_message = True;
+                    logged_message = True
                 new_commits = True
             if new_commits:
                 resource_id = repo_name.split('_', maxsplit=1)[1]
