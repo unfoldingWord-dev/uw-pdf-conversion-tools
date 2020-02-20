@@ -587,7 +587,7 @@ class TnPdfConverter(PdfConverter):
         for tn_note_idx, tn_note in enumerate(tn_notes):
             gl_quote_phrase = [[{
                 'text': tn_note['GLQuote'],
-                'occurrence': int(tn_note['Occurrence'])
+                'occurrence': int(tn_note['Occurrence']) if int(tn_note['Occurrence']) > 0 else 1
             }]]
             if tn_note[f'{bible_id}Alignment']:
                 phrase = tn_note[f'{bible_id}Alignment']
