@@ -46,46 +46,44 @@ def get_strings(wrapper):
     return strings
 
 
-def mark_phrase_in_html(html, phrase, occurrence=1, tag='<span class="highlight">', break_on_word=True, ignore_small_words=True):
+def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on_word=True, ignore_small_words=True):
     soup = BeautifulSoup(html, 'html.parser')
-    strings = get_strings(soup)
     text = soup.text
-    if isinstance(phrase, str):
-        parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', phrase)
-        phrase = []
-        for part in parts:
-            phrase.append({'word': part, 'occurrence': occurrence})
-            occurrence = 1
-    if ignore_small_words:
-        filtered_parts = []
-        for parts_idx, part in enumerate(phrase):
-            word = part['word'].strip()
-            if parts_idx + 1 >= len(phrase) or word.lower() not in PHRASE_PARTS_TO_IGNORE:
-                filtered_parts.append(part)
-        phrase = filtered_parts
-    to_process_index = 0
-    for part_idx, part in enumerate(phrase):
-        occurrence = part['occurrence']
-        word = part['word'].strip()
-        if not word:
+    for phrase_idx, words in enumerate(phrases):
+        phrase = ''
+        for word in words:
+            phrase += word['text']
+        phrase = phrase.strip()
+
+        if not phrase or (phrase_idx < len(phrases) - 1 and phrase.lower() in PHRASE_PARTS_TO_IGNORE):
             continue
+
+        first_word = words[0]['text']
+        first_word_occurrence = words[0]['occurrence']
+
         word_break = r'\b'
         if not break_on_word:
             word_break = ''
-        indices = [(i.start() + to_process_index, i.end() + to_process_index) for i in re.finditer(f'{word_break}{re.escape(word)}{word_break}', text[to_process_index:])]
-        if len(indices) < occurrence:
-            return
-        part_start = indices[occurrence - 1][0]
-        part_end = indices[occurrence - 1][1]
 
+        start_indices = [i.start() for i in re.finditer(f'{word_break}{re.escape(first_word)}{word_break}', text)]
+        if len(start_indices) < first_word_occurrence:
+            return
+        phrase_start = start_indices[first_word_occurrence - 1]
+        phrase_end = start_indices[first_word_occurrence - 1] + len(phrase)
+
+        if phrase_end > len(text) or phrase != text[phrase_start:phrase_end]:
+            return
+
+        strings = get_strings(soup)
+        to_process_index = 0
         string = strings.pop(0)
-        while (to_process_index + len(string)) <= part_start:
+        while (to_process_index + len(string)) <= phrase_start:
             to_process_index += len(string)
             string = strings.pop(0)
 
-        while to_process_index < part_end:
-            match_start = part_start - to_process_index
-            match_end = part_end - to_process_index
+        while to_process_index < phrase_end:
+            match_start = phrase_start - to_process_index
+            match_end = phrase_end - to_process_index
             if match_start < 0:
                 match_start = 0
             if match_end > len(string):
@@ -108,7 +106,7 @@ def mark_phrase_in_html(html, phrase, occurrence=1, tag='<span class="highlight"
                 strings.insert(0, post_match)
 
             to_process_index += match_end
-            if to_process_index < part_end:
+            if to_process_index < phrase_end:
                 string = strings.pop(0)
     return str(soup)
 
@@ -142,8 +140,8 @@ def find_quote_variation_in_text(text, phrase, occurrence=1, ignore_small_words=
         phrase.replace('‘', "'")]
     for quote_variation in quote_variations:
         if quote_variation != phrase:
-            marked_text = mark_phrase_in_html(text, quote_variation, occurrence=occurrence,
-                                              ignore_small_words=ignore_small_words)
+            marked_text = mark_phrases_in_html(text, quote_variation, occurrence=occurrence,
+                                               ignore_small_words=ignore_small_words)
             if marked_text:
                 return quote_variation
 

@@ -23,6 +23,7 @@ from collections import OrderedDict
 from pdf_converter import PdfConverter, run_converter
 from tx_usfm_tools.singleVerseHtmlRenderer import SingleVerseHtmlRender
 from general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
+from general_tools.alignment_tools import get_alignment, flatten_alignment, flatten_quote
 from general_tools.file_utils import read_file, load_json_object, get_latest_version_path, get_child_directories
 from general_tools.usfm_utils import unalign_usfm
 
@@ -88,11 +89,12 @@ class TnPdfConverter(PdfConverter):
     def get_body_html(self):
         self.logger.info('Creating tN for {0}...'.format(self.file_project_and_tag_id))
         self.process_bibles()
+        self.populate_verse_usfm(self.ult_id)
+        self.populate_verse_usfm(self.ust_id)
+        self.populate_verse_usfm(self.ol_bible_id, self.ol_lang_code)
         self.populate_tw_words_data()
         self.populate_tn_groups_data()
         self.populate_tn_book_data()
-        self.populate_verse_usfm(self.ult_id)
-        self.populate_verse_usfm(self.ust_id)
         return self.get_tn_html()
 
     def pad(self, num):
@@ -151,16 +153,31 @@ class TnPdfConverter(PdfConverter):
                 exit(1)
         return usfm
 
-    def populate_verse_usfm(self, bible_id):
+    def populate_verse_usfm(self, bible_id, lang_code=None):
+        if not lang_code:
+            lang_code = self.lang_code
+        bible_path = os.path.join(self.working_dir, 'resources', lang_code, 'bibles', bible_id)
+        if not bible_path:
+            self.logger.error(f'{bible_path} not found!')
+            exit(1)
+        bible_version_path = get_latest_version_path(bible_path)
+        if not bible_version_path:
+            self.logger.error(f'No versions found in {bible_path}!')
+            exit(1)
+
         book_data = OrderedDict()
         book_file = os.path.join(self.resources[bible_id].repo_dir, f'{self.book_number}-{self.project_id.upper()}.usfm')
-        usfm3 = read_file(book_file)
-        usfm2 = unalign_usfm(usfm3)
-        chapters = usfm2.split(r'\c ')
+        book_usfm = read_file(book_file)
+        unaligned_usfm = unalign_usfm(book_usfm)
+        chapters = unaligned_usfm.split(r'\c ')
         for chapter_usfm in chapters[1:]:
             chapter = re.findall(r'(\d+)', chapter_usfm)[0]
             book_data[chapter] = OrderedDict()
             chapter_usfm = r'\c '+chapter_usfm
+
+            chapter_vo_file = os.path.join(bible_version_path, self.project_id, f'{chapter}.json')
+            chapter_verse_objects = load_json_object(chapter_vo_file)
+
             verses = chapter_usfm.split(r'\v ')
             for verse_usfm in verses[1:]:
                 from_verse, to_verse = re.findall(r'^(\d+)(?:-(\d+))*', verse_usfm)[0]
@@ -168,11 +185,17 @@ class TnPdfConverter(PdfConverter):
                     to_verse = from_verse
                 for verse in range(int(from_verse), int(to_verse)+1):
                     verse = str(verse)
-                    new_verse_usfm = rf'\v {verse_usfm}'
-                    new_verse_html = self.get_verse_html(new_verse_usfm, bible_id, chapter, verse)
+                    from_to_verse = f'{from_verse}-{to_verse}'
+                    if from_to_verse in chapter_verse_objects:
+                        usfm = rf'\v {from_to_verse} {self.get_text_from_verse_objects(chapter_verse_objects[from_to_verse])}'
+                    elif verse in chapter_verse_objects:
+                        usfm = rf'\v {verse} {self.get_text_from_verse_objects(chapter_verse_objects[verse]["verseObjects"])}'
+                    else:
+                        usfm = rf'\v {verse_usfm}'
+                    html = self.get_verse_html(usfm, bible_id, chapter, verse)
                     book_data[chapter][verse] = {
-                        'usfm': new_verse_usfm,
-                        'html': new_verse_html
+                        'usfm': usfm.strip(),
+                        'html': html.strip()
                     }
         self.verse_usfm[bible_id] = book_data
 
@@ -193,8 +216,8 @@ class TnPdfConverter(PdfConverter):
         for row in reader:
             verse_data = {
                 'contextId': None,
-                f'{self.ult_id}Quote': None,
-                f'{self.ust_id}Quote': None
+                f'{self.ult_id}Alignment': None,
+                f'{self.ust_id}Alignment': None
             }
             found = False
             for idx, field in enumerate(header):
@@ -219,39 +242,33 @@ class TnPdfConverter(PdfConverter):
             if verse_data['OrigQuote']:
                 context_id = None
                 if chapter in self.tn_groups_data and verse in self.tn_groups_data[chapter] and \
-                    self.tn_groups_data[chapter][verse]:
+                        self.tn_groups_data[chapter][verse]:
                     for c_id in self.tn_groups_data[chapter][verse]:
                         if c_id['quoteString'] == verse_data['OrigQuote'] and c_id['occurrence'] == occurrence:
                             context_id = c_id
                             break
                 if not context_id and chapter.isdigit() and verse.isdigit():
-                    parts = re.split(r'\s*s…\s*|\s*\.\.\.\s*', verse_data['OrigQuote'])
-                    if len(parts) > 1:
-                        quote = []
-                        for part in parts:
-                            quote.append({'word': part})
-                    else:
-                        quote = verse_data['OrigQuote']
                     context_id = {
                         'reference': {
                             'chapter': int(chapter),
                             'verse': int(verse)
                         },
-                        'quote': quote,
-                        'occurrence': verse_data['Occurrence']
+                        'quote': verse_data['OrigQuote'],
+                        'occurrence': verse_data['Occurrence'],
+                        'quoteString': verse_data['OrigQuote']
                     }
                 if context_id:
                     context_id['rc'] = tn_rc_link
                     verse_data['contextId'] = context_id
-                    verse_data[f'{self.ult_id}Quote'] = self.get_aligned_text(self.ult_id, context_id)
-                    verse_data[f'{self.ust_id}Quote'] = self.get_aligned_text(self.ust_id, context_id)
+                    verse_data[f'{self.ult_id}Alignment'] = self.get_aligned_text(self.ult_id, context_id)
+                    verse_data[f'{self.ust_id}Alignment'] = self.get_aligned_text(self.ust_id, context_id)
                 new_title = ''
-                if verse_data[f'{self.ult_id}Quote']:
-                    new_title = verse_data[f'{self.ult_id}Quote'] + f' ({self.ult_id.upper()})'
-                if verse_data[f'{self.ust_id}Quote']:
+                if verse_data[f'{self.ult_id}Alignment']:
+                    new_title = flatten_alignment(verse_data[f'{self.ult_id}Alignment']) + f' ({self.ult_id.upper()})'
+                if verse_data[f'{self.ust_id}Alignment']:
                     if new_title:
                         new_title += '; '
-                    new_title += verse_data[f'{self.ust_id}Quote'] + f' ({self.ust_id.upper()})'
+                    new_title += flatten_alignment(verse_data[f'{self.ust_id}Alignment']) + f' ({self.ust_id.upper()})'
                 if new_title:
                     tn_title = new_title
             tn_rc = self.create_rc(tn_rc_link, title=tn_title)
@@ -365,7 +382,8 @@ class TnPdfConverter(PdfConverter):
             occurrence_text = ''
             if occurrence > 1:
                 occurrence_text = f' ({occurrence})'
-            links[phrase] = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}">{phrase}</a>{occurrence_text}'
+            flat_phrase = flatten_alignment(phrase)
+            links[flat_phrase] = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}">{flat_phrase}</a>{occurrence_text}'
         tw_html = f'''
                 <h3>{self.resources['tw'].simple_title} - {resource_id.upper()}</h3>
                 <ul class="tw-list">
@@ -430,17 +448,16 @@ class TnPdfConverter(PdfConverter):
             for file in files:
                 base = os.path.splitext(os.path.basename(file))[0]
                 tw_rc_link = f'rc://{self.lang_code}/tw/dict/bible/{group}/{base}'
-                occurrences = load_json_object(file)
-                for occurrence in occurrences:
-                    context_id = occurrence['contextId']
-                    chapter = str(context_id['reference']['chapter'])
-                    verse = str(context_id['reference']['verse'])
-                    context_id['rc'] = tw_rc_link
+                tw_group_data = load_json_object(file)
+                for group_data in tw_group_data:
+                    chapter = str(group_data['contextId']['reference']['chapter'])
+                    verse = str(group_data['contextId']['reference']['verse'])
+                    group_data['contextId']['rc'] = tw_rc_link
                     if chapter not in words_data:
                         words_data[chapter] = OrderedDict()
                     if verse not in words_data[chapter]:
                         words_data[chapter][verse] = []
-                    words_data[chapter][verse].append(context_id)
+                    words_data[chapter][verse].append(group_data)
         self.tw_words_data = words_data
 
     def populate_tn_groups_data(self):
@@ -509,43 +526,21 @@ class TnPdfConverter(PdfConverter):
         footnote = ''
         if len(verses_and_footnotes) == 2:
             footnote = f'<div class="footnotes">{verses_and_footnotes[1]}'
-        occurrences = {}
         orig_scripture = scripture
         words = self.get_words(bible_id, chapter, verse)
         for word_idx, word in enumerate(words):
             word_count = word_idx + 1
             phrase = word['text']
             tw_rc = word['contextId']['rc']
-            occurrence = word['contextId']['occurrence']
-            if phrase in occurrences and occurrences[phrase] >= occurrence:
-                occurrence = occurrences[phrase] + 1
-            occurrences[phrase] = occurrence
             split = ''
             if '…' in phrase or '...' in phrase:
                 split = ' split'
             tag = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}{split}">'
-            marked_verse_html = html_tools.mark_phrase_in_html(scripture, phrase,
-                                                               occurrence=occurrence,
-                                                               tag=tag,
-                                                               ignore_small_words=ignore_small_words)
-            # if not marked_verse_html:
-            #     marked_verse_html = html_tools.mark_phrase_in_html(verse_html, phrase,
-            #                                                        occurrence=occurrence,
-            #                                                        tag=tag,
-            #                                                        ignore_small_words=ignore_small_words,
-            #                                                        break_on_word=False)
+            marked_verse_html = html_tools.mark_phrases_in_html(scripture, phrase, tag=tag,
+                                                                ignore_small_words=ignore_small_words)
             if not marked_verse_html:
-                fix = html_tools.find_quote_variation_in_text(orig_scripture, phrase,
-                                                              occurrence=occurrence,
-                                                              ignore_small_words=ignore_small_words)
-                if not fix and occurrence > 1:
-                    marked_verse_html = html_tools.mark_phrase_in_html(scripture, phrase,
-                                                                       occurrence=1,
-                                                                       ignore_small_words=ignore_small_words)
-                    if marked_verse_html:
-                        fix = f'(occurrence = {occurrence}, only occurrence 1 is found)'
                 if rc:
-                    self.add_bad_highlight(rc, orig_scripture, tw_rc, word['text'], fix)
+                    self.add_bad_highlight(rc, orig_scripture, tw_rc, words)
             else:
                 scripture = marked_verse_html
         scripture += footnote
@@ -571,11 +566,10 @@ class TnPdfConverter(PdfConverter):
     def get_words(self, bible_id, chapter, verse):
         words = []
         if chapter in self.tw_words_data and verse in self.tw_words_data[chapter]:
-            context_ids = self.tw_words_data[chapter][verse]
-            for context_id in context_ids:
-                aligned_text = self.get_aligned_text(bible_id, context_id)
-                if aligned_text:
-                    words.append({'text': aligned_text, 'contextId': context_id})
+            group_datas = self.tw_words_data[chapter][verse]
+            for group_data in group_datas:
+                group_data['text'] = self.get_aligned_text(bible_id, group_data['contextId'])
+                words.append(group_data)
         return words
 
     def get_scripture_with_tn_quotes(self, bible_id, chapter, verse, rc, scripture, ignore_small_words=False):
@@ -590,24 +584,30 @@ class TnPdfConverter(PdfConverter):
         tn_notes = self.get_tn_notes(chapter, verse)
         orig_scripture = scripture
         for tn_note_idx, tn_note in enumerate(tn_notes):
-            if tn_note[f'{bible_id}Quote']:
-                phrase = tn_note[f'{bible_id}Quote']
+            gl_quote_phrase = [[{
+                'text': tn_note['GLQuote'],
+                'occurrence': int(tn_note['Occurrence'])
+            }]]
+            if tn_note[f'{bible_id}Alignment']:
+                phrase = tn_note[f'{bible_id}Alignment']
             else:
-                phrase = tn_note['GLQuote']
+                phrase = gl_quote_phrase
+            if flatten_alignment(phrase).lower() in QUOTES_TO_IGNORE:
+                continue
             split = ''
-            if '…' in phrase or '...' in phrase:
+            if len(phrase) > 1:
                 split = ' split'
             tag = f'<span class="highlight tn-phrase tn-phrase-{tn_note_idx+1}{split}">'
-            marked_verse_html = html_tools.mark_phrase_in_html(scripture, phrase, tag=tag, ignore_small_words=ignore_small_words)
+            marked_verse_html = html_tools.mark_phrases_in_html(scripture, phrase, tag=tag,
+                                                                ignore_small_words=ignore_small_words)
             if not marked_verse_html:
                 fix = None
-                if phrase.lower() not in QUOTES_TO_IGNORE:
-                    fix = html_tools.find_quote_variation_in_text(orig_scripture, phrase)
-                if not fix and tn_note[f'{bible_id}Quote'] and tn_note['GLQuote']:
-                    marked_with_gl_quote = html_tools.mark_phrase_in_html(scripture, tn_note['GLQuote'])
-                    if marked_with_gl_quote:
-                        fix = tn_note['GLQuote']
-                self.add_bad_highlight(rc, orig_scripture, tn_note['rc'], tn_note['GLQuote'], fix)
+                if flatten_alignment(phrase).lower() not in QUOTES_TO_IGNORE:
+                    if tn_note['GLQuote']:
+                        marked_with_gl_quote = html_tools.mark_phrases_in_html(scripture, gl_quote_phrase)
+                        if marked_with_gl_quote:
+                            fix = tn_note['GLQuote']
+                    self.add_bad_highlight(rc, orig_scripture, tn_note['rc'], tn_note['GLQuote'], fix)
             else:
                 scripture = marked_verse_html
         scripture += footnote
@@ -620,86 +620,13 @@ class TnPdfConverter(PdfConverter):
                 notes.append(data)
         return notes
 
-    @staticmethod
-    def find_target_from_combination(verse_objects, quote, occurrence):
-        ol_words = []
-        word_list = []
-        for verse_object in verse_objects:
-            if 'content' in verse_object and 'type' in verse_object and verse_object['type'] == 'milestone':
-                ol_words.append(verse_object['content'])
-                target_words = []
-                for child in verse_object['children']:
-                    if child['type'] == 'word':
-                        target_words.append(child['text'])
-                target = ' '.join(target_words)
-                found = False
-                for idx, word in enumerate(word_list):
-                    if word['ol'] == verse_object['content'] and 'occurrence' in verse_object and \
-                            word['occurrence'] == verse_object['occurrence']:
-                        word_list[idx]['target'] += ' .' \
-                                                    '.. ' + target
-                        found = True
-                if not found:
-                    word_list.append({'ol': verse_object['content'], 'target': target, 'occurrence': verse_object['occurrence']})
-        combinations = []
-        occurrences = {}
-        for i in range(0, len(word_list)):
-            ol = word_list[i]['ol']
-            target = word_list[i]['target']
-            for j in range(i, len(word_list)):
-                if i != j:
-                    ol += ' '+word_list[j]['ol']
-                    target += ' '+word_list[j]['target']
-                if ol not in occurrences:
-                    occurrences[ol] = 0
-                occurrences[ol] += 1
-                combinations.append({'ol': ol, 'target': target, 'occurrence': occurrences[ol]})
-        for combination in combinations:
-            if combination['ol'] == quote and combination['occurrence'] == occurrence:
-                return combination['target']
-        return None
-
-    def find_target_from_split(self, verse_objects, quote, occurrence, is_match=False):
-        words_to_match = []
-        if isinstance(quote, list):
-            for q in quote:
-                words_to_match.append(q['word'])
-        else:
-            words_to_match = quote.split(' ')
-        separator = ' '
-        needs_ellipsis = False
+    def get_text_from_verse_objects(self, verse_objects):
         text = ''
-        for index, verse_object in enumerate(verse_objects):
-            last_match = False
-            if 'type' in verse_object and (verse_object['type'] == 'milestone' or verse_object['type'] == 'word'):
-                if ((('content' in verse_object and verse_object['content'] in words_to_match) or
-                     ('lemma' in verse_object and verse_object['lemma'] in words_to_match)) and verse_object['occurrence'] == occurrence) or is_match:
-                    last_match = True
-                    if needs_ellipsis:
-                        separator += '... '
-                        needs_ellipsis = False
-                    if text:
-                        text += separator
-                    separator = ' '
-                    if 'text' in verse_object and verse_object['text']:
-                        text += verse_object['text']
-                    if 'children' in verse_object and verse_object['children']:
-                        text += self.find_target_from_split(verse_object['children'], quote, occurrence, True)
-                elif 'children' in verse_object and verse_object['children']:
-                    child_text = self.find_target_from_split(verse_object['children'], quote, occurrence, is_match)
-                    if child_text:
-                        last_match = True
-                        if needs_ellipsis:
-                            separator += '... '
-                            needs_ellipsis = False
-                        text += (separator if text else '') + child_text
-                        separator = ' '
-                    elif text:
-                        needs_ellipsis = True
-            if last_match and (index+1) in verse_objects and verse_objects[index + 1]['type'] == "text" and text:
-                if separator == ' ':
-                    separator = ''
-                separator += verse_objects[index + 1]['text']
+        for verse_object in verse_objects:
+            if 'text' in verse_object:
+                text += verse_object['text']
+            if 'children' in verse_object:
+                text += self.get_text_from_verse_objects(verse_object['children'])
         return text
 
     def get_aligned_text(self, bible_id, context_id):
@@ -711,19 +638,22 @@ class TnPdfConverter(PdfConverter):
         verse_objects = self.get_verse_objects(bible_id, chapter, verse)
         if not verse_objects:
             return None
-        quote = context_id['quote']
-        occurrence = int(context_id['occurrence'])
-        text = self.find_target_from_combination(verse_objects, quote, occurrence)
-        if not text:
-            text = self.find_target_from_split(verse_objects, quote, occurrence)
-        if not text:
+        alignment = get_alignment(verse_objects, context_id['quote'], context_id['occurrence'])
+        if not alignment:
             title = f'{self.project_title} {chapter}:{verse}'
             aligned_text_rc_link = f'rc://{self.lang_code}/{bible_id}/bible/{self.project_id}/{self.pad(chapter)}/{str(verse).zfill(3)}'
             aligned_text_rc = self.create_rc(aligned_text_rc_link, title=title)
+            quote_string = context_id['quoteString'] if 'quoteString' in context_id else flatten_quote(context_id['quote'])
             if int(self.book_number) > 40 or self.project_id.lower() == 'rut' or self.project_id.lower() == 'jon':
-                self.add_bad_link(aligned_text_rc, context_id['rc'], 'Bad OL Text')
-                self.logger.error(f'{self.lang_code.upper()} {bible_id.upper()} QUOTE NOT FOUND FOR OL QUOTE `{quote}` (occurrence: {occurrence}) IN `{bible_id.upper()} {title}`')
-        return text
+                message = f'''OL ({self.ol_lang_code.upper()}) quote not found in {bible_id.upper()} alignment:
+VERSE: {self.project_title} {chapter}:{verse}
+RC: {context_id['rc']}
+QUOTE: {quote_string}
+{bible_id.upper()}: {self.verse_usfm[bible_id][chapter][verse]['usfm']}
+{self.ol_bible_id.upper()}: {self.verse_usfm[self.ol_bible_id][chapter][verse]['usfm']}
+'''
+                self.add_bad_link(aligned_text_rc, context_id['rc'], message)
+        return alignment
 
     def fix_tn_links(self, html, chapter):
         def replace_link(match):

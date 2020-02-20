@@ -62,15 +62,11 @@ const processOLBible = (resource) => {
   const manifest = yaml.safeLoad(fs.readFileSync(path.join(repoPath, 'manifest.yaml'), 'utf8'));
   const version = manifest['dublin_core']['version'];
   const biblePath = path.join(resourcesPath, resource.languageId, 'bibles', resource.resourceId, 'v' + version);
-  if (!fs.existsSync(biblePath)) {
-    console.log("BIBLE " + resource.resourceId + ": " + biblePath)
-    SourceContentUpdater.parseBiblePackage(resource, repoPath, biblePath);
-  }
+  console.log("BIBLE " + resource.resourceId + ": " + biblePath)
+  SourceContentUpdater.parseBiblePackage(resource, repoPath, biblePath);
   const twGroupDataPath = path.join(resourcesPath, resource.languageId, 'translationHelps', 'translationWords', 'v' + version);
-  if (!fs.pathExistsSync(twGroupDataPath)) {
-    console.log("TW " + resource.resourceId + ": " + twGroupDataPath);
-    SourceContentUpdater.generateTwGroupDataFromAlignedBible(resource, biblePath, twGroupDataPath);
-  }
+  console.log("TW " + resource.resourceId + ": " + twGroupDataPath);
+  SourceContentUpdater.generateTwGroupDataFromAlignedBible(resource, biblePath, twGroupDataPath);
 };
 
 const processUWBible = (resource) => {
@@ -79,10 +75,8 @@ const processUWBible = (resource) => {
   const manifest = yaml.safeLoad(fs.readFileSync(path.join(repoPath, 'manifest.yaml'), 'utf8'));
   const version = manifest['dublin_core']['version'];
   const biblePath = path.join(resourcesPath, resource.languageId, 'bibles', resource.resourceId, 'v' + version);
-  if (!fs.existsSync(biblePath)) {
-    console.log("BIBLE " + resource.resourceId + ": " + biblePath)
-    SourceContentUpdater.parseBiblePackage(resource, repoPath, biblePath);
-  }
+  console.log("BIBLE " + resource.resourceId + ": " + biblePath)
+  SourceContentUpdater.parseBiblePackage(resource, repoPath, biblePath);
 };
 
 const processTA = (resource) => {
@@ -91,10 +85,8 @@ const processTA = (resource) => {
   const taManifest = yaml.safeLoad(fs.readFileSync(path.join(taRepoPath, 'manifest.yaml'), 'utf8'));
   const taVersion = taManifest['dublin_core']['version'];
   const taGroupDataPath = path.join(resourcesPath, resource.languageId, 'translationHelps', 'translationAcademy', 'v' + taVersion);
-  if (!fs.pathExistsSync(taGroupDataPath)) {
-    console.log("TA " + resource.resourceId + ": " + taGroupDataPath);
-    SourceContentUpdater.processTranslationAcademy(resource, taRepoPath, taGroupDataPath);
-  }
+  console.log("TA " + resource.resourceId + ": " + taGroupDataPath);
+  SourceContentUpdater.processTranslationAcademy(resource, taRepoPath, taGroupDataPath);
 };
 
 const processTW = (resource) => {
@@ -103,10 +95,8 @@ const processTW = (resource) => {
   const twManifest = yaml.safeLoad(fs.readFileSync(path.join(twRepoPath, 'manifest.yaml'), 'utf8'));
   const twVersion = twManifest['dublin_core']['version'];
   const twGroupDataPath = path.join(resourcesPath, resource.languageId, 'translationHelps', 'translationWords', 'v' + twVersion);
-  if (!fs.pathExistsSync(twGroupDataPath)) {
-    console.log("TW " + resource.resourceId + ": " + twGroupDataPath);
-    SourceContentUpdater.processTranslationWords(resource, twRepoPath, twGroupDataPath);
-  }
+  console.log("TW " + resource.resourceId + ": " + twGroupDataPath);
+  SourceContentUpdater.processTranslationWords(resource, twRepoPath, twGroupDataPath);
 };
 
 const processTN = (resource) => {
@@ -115,10 +105,8 @@ const processTN = (resource) => {
   const tnManifest = yaml.safeLoad(fs.readFileSync(path.join(tnRepoPath, 'manifest.yaml'), 'utf8'));
   const tnVersion = tnManifest['dublin_core']['version'];
   const tnGroupDataPath = path.join(resourcesPath, resource.languageId, 'translationHelps', 'translationNotes', 'v' + tnVersion);
-  if (!fs.pathExistsSync(tnGroupDataPath)) {
-    console.log("TN: " + tnGroupDataPath);
-    SourceContentUpdater.processTranslationNotes(resource, tnRepoPath, tnGroupDataPath, resourcesPath);
-  }
+  console.log("TN: " + tnGroupDataPath);
+  SourceContentUpdater.processTranslationNotes(resource, tnRepoPath, tnGroupDataPath, resourcesPath);
 };
 
 const processBibles = (langId, workingDir, ultId, ustId) => {
