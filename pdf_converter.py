@@ -363,7 +363,6 @@ class PdfConverter:
             self.logger.info('Generating Contributors HTML...')
             body_html += self.get_contributors_html()
             body_html = self.download_all_images(body_html)
-            write_file(os.path.join(self.output_res_dir, 'test.html'), body_html)
             self.logger.info('Generating TOC HTML...')
             body_html, toc_html = self.get_toc_html(body_html)
             self.logger.info('Done generating TOC HTML.')

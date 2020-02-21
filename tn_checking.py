@@ -56,6 +56,16 @@ class TnCheckingPdfConverter(TnPdfConverter):
     def get_license_html(self):
         return ''
 
+    def download_all_images(self, html):
+        pass
+
+    @staticmethod
+    def _fix_links(html):
+        pass
+
+    def fix_links(self, html):
+        pass
+
     def get_body_html(self):
         self.add_style_sheet('css/tn_style.css')
         self.logger.info('Creating TN Checking for {0}...'.format(self.file_project_and_tag_id))
