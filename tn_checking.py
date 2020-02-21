@@ -164,7 +164,8 @@ class TnCheckingPdfConverter(TnPdfConverter):
                     tn_html += f'''
             <tr>
                 <td>
-                    {chapter}:{verse} ({group_data['ID']})
+                    {chapter}:{verse} 
+                    (<a href="https://git.door43.org/unfoldingWord/{self.lang_code}_tn/src/branch/master/{self.lang_code}_tn_{self.book_number}-{self.project_id.upper()}.tsv#L{group_data['row']}" target="tn-repo">{group_data['ID']}</a>)
                 </td>
                 <td>
                     {group_data['alignments'][self.ult_id]}
@@ -179,7 +180,7 @@ class TnCheckingPdfConverter(TnPdfConverter):
                     {group_data['scripture'][self.ust_id]}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
-                    {flatten_quote(ol_quote)}
+                    {group_data['OrigQuote']}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
                     {group_data['scripture'][self.ol_bible_id]}

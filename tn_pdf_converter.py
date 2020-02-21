@@ -213,9 +213,12 @@ class TnPdfConverter(PdfConverter):
         book_data = OrderedDict()
         reader = self.unicode_csv_reader(open(book_file))
         header = next(reader)
+        row_count = 1
         for row in reader:
+            row_count += 1
             verse_data = {
                 'contextId': None,
+                'row': row_count,
                 'alignments': {
                     self.ult_id: None,
                     self.ust_id: None
