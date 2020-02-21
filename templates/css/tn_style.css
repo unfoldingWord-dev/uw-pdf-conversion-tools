@@ -121,3 +121,7 @@ span.nested-link > span.nested-link > span.nested-link > span.nested-link {
 .no-notes {
     font-style: italic;
 }
+
+article table td {
+    vertical-align: top;
+}

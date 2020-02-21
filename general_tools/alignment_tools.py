@@ -38,16 +38,21 @@ def get_quote_combinations(quote):
     return quote_combinations
 
 
+def split_string_into_quote(string, occurrence=1):
+    quote = []
+    parts = re.split(r'\s*…\s*|\s*\.\.\.\s*|\s+', string)
+    for part in parts:
+        quote.append({
+            'word': part,
+            'occurrence': occurrence
+        })
+    return quote
+
+
 def get_alignment(verse_objects, quote, occurrence=1):
     orig_quote = quote
     if isinstance(quote, str):
-        quote = []
-        parts = re.split(r'\s*…\s*|\s*\.\.\.\s*|\s+', orig_quote)
-        for part in parts:
-            quote.append({
-                'word': part,
-                'occurrence': occurrence
-            })
+        quote = split_string_into_quote(quote, occurrence)
     else:
         quote = []
         for word in orig_quote:
@@ -114,6 +119,8 @@ def get_alignment_by_combinations(verse_objects, quote, quote_combinations, foun
 
 
 def flatten_quote(quote):
+    if not quote:
+        return quote
     if isinstance(quote, str):
         return quote
     words = []
@@ -123,6 +130,8 @@ def flatten_quote(quote):
 
 
 def flatten_alignment(alignment):
+    if not alignment:
+        return alignment
     if isinstance(alignment, str):
         return alignment
     part_strs = []

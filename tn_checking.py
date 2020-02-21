@@ -8,62 +8,172 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the TN Note checking PDF
+This script generates the TN checking PDF
 """
+import os
+from glob import glob
 from tn_pdf_converter import TnPdfConverter, main
+from general_tools.file_utils import load_json_object, get_latest_version_path, get_child_directories
+from general_tools.html_tools import mark_phrases_in_html
+from general_tools.alignment_tools import flatten_alignment, flatten_quote, split_string_into_quote
+
+ORDERED_GROUPS = {
+    'kt': 'Key Terms',
+    'names': 'Names',
+    'other': 'Other'
+}
 
 
-class TnNoteCheckingPdfConverter(TnPdfConverter):
+class TnCheckingPdfConverter(TnPdfConverter):
 
     @property
     def name(self):
-        return 'tn-note-checking'
+        return 'tn-checking'
 
     @property
     def title(self):
-        return self.main_resource.title + ' Checking - Notes'
+        return self.main_resource.title + ' - Checking'
 
-    def get_tn_chunk_article(self, chapter_chunk_data, chapter, first_verse):
-        last_verse = chapter_chunk_data[first_verse]['last_verse']
-        chunk_notes = chapter_chunk_data[first_verse]['chunk_notes']
-        tn_title = f'{self.project_title} {chapter}:{first_verse}'
-        if first_verse != last_verse:
-            tn_title += f'-{last_verse}'
-        tn_chunk_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{str(first_verse).zfill(3)}/{str(last_verse).zfill(3)}'
-        tn_chunk_rc = self.add_rc(tn_chunk_rc_link, title=tn_title)
-        # make an RC for all the verses in this chunk in case they are reference
-        for verse in range(first_verse, last_verse + 1):
-            verse_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{str(verse).zfill(3)}'
-            self.add_rc(verse_rc_link, title=tn_title, article_id=tn_chunk_rc.article_id)
-            self.verse_to_chunk[self.pad(chapter)][str(verse).zfill(3)] = tn_title
-        ult_with_tn_quotes = self.get_ult_with_tn_quotes(tn_chunk_rc, int(chapter), first_verse, last_verse)
+    @property
+    def project(self):
+        if self.project_id:
+            if not self._project:
+                self._project = self.resources['ult'].find_project(self.project_id)
+                if not self._project:
+                    self.logger.error(f'Project not found: {self.project_id}')
+                    exit(1)
+            return self._project
 
-        ust_scripture = self.get_plain_scripture(self.ust_id, int(chapter), first_verse, last_verse)
-        if not ust_scripture:
-            ust_scripture = '&nbsp;'
-        scripture = f'''
-                            <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
-                            <div class="bible-text">{ult_with_tn_quotes}</div>
-                            <h3 class="bible-resource-title">{self.ust_id.upper()}</h3>
-                            <div class="bible-text">{ust_scripture}</div>
-        '''
+    def get_appendix_rcs(self):
+        pass
 
-        chunk_article = f'''
-                        <article id="{tn_chunk_rc.article_id}">
-                            <h2 class="section-header">{tn_title}</h2>
-                            <div class="tn-notes">
-                                    <div class="col1">
-                                        {scripture}
-                                    </div>
-                                    <div class="col2">
-                                        {chunk_notes}
-                                    </div>
-                            </div>
-                        </article>
-        '''
-        tn_chunk_rc.set_article(chunk_article)
-        return chunk_article
+    def get_body_html(self):
+        self.add_style_sheet('css/tn_style.css')
+        self.logger.info('Creating TN Checking for {0}...'.format(self.file_project_and_tag_id))
+        self.populate_verse_usfm(self.ult_id)
+        self.populate_verse_usfm(self.ust_id)
+        self.populate_verse_usfm(self.ol_bible_id, self.ol_lang_code)
+        return self.get_tn_checking_html()
+
+    def get_tn_checking_html(self):
+        tn_html = f'''
+<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
+    <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
+        <img src="images/{self.main_resource.logo_file}" class="logo" alt="UTN">
+        <h1 class="section-header">{self.title}</h1>
+        <h2 class="section-header">{self.project_title}</h2>
+    </article>
+'''
+
+        tn_path = os.path.join(self.working_dir, 'resources', self.lang_code, 'translationHelps/translationNotes')
+        if not tn_path:
+            self.logger.error(f'{tn_path} not found!')
+            exit(1)
+        tn_version_path = get_latest_version_path(tn_path)
+        if not tn_version_path:
+            self.logger.error(f'No versions found in {tn_path}!')
+            exit(1)
+
+        groups = get_child_directories(tn_version_path)
+        for group in groups:
+            files_path = os.path.join(tn_version_path, f'{group}/groups/{self.project_id}', '*.json')
+            files = glob(files_path)
+            for file in files:
+                base = os.path.splitext(os.path.basename(file))[0]
+                tn_rc_link = f'rc://{self.lang_code}/tn/help/{group}/{base}'
+                tn_rc = self.add_rc(tn_rc_link, title=base)
+                tn_html += f'''
+    <article id="{tn_rc.article_id}">
+        <h3 class="section-header">[[{tn_rc.rc_link}]]</h3>
+        <table width="100%">
+            <tr>
+               <th>Verse</th>
+               <th>{self.ult_id.upper()} Alignment</th>
+               <th>{self.ult_id.upper()} Text</th>
+               <th>{self.ust_id.upper()} Alignment</th>
+               <th>{self.ust_id.upper()} Text</th>
+               <th>{self.ol_bible_id.upper()} Quote</th>
+               <th>{self.ol_bible_id.upper()} Text</th>
+            </tr>
+'''
+
+                tn_group_data = load_json_object(file)
+                for group_data in tn_group_data:
+                    context_id = group_data['contextId']
+                    context_id['rc'] = tn_rc.rc_link
+                    chapter = str(context_id['reference']['chapter'])
+                    verse = str(context_id['reference']['verse'])
+                    context_id['scripture'] = {}
+                    context_id['alignments'] = {}
+                    for bible_id in [self.ult_id, self.ust_id]:
+                        alignment = self.get_aligned_text(bible_id, group_data['contextId'])
+                        if alignment:
+                            context_id['alignments'][bible_id] = flatten_alignment(alignment)
+                        else:
+                            context_id['alignments'][bible_id] = '<div style="color: red">NONE</div>'
+                        scripture = self.get_plain_scripture(bible_id, chapter, verse)
+                        marked_html = None
+                        if alignment:
+                            marked_html = mark_phrases_in_html(scripture, alignment)
+                        if marked_html:
+                            context_id['scripture'][bible_id] = marked_html
+                        else:
+                            context_id['scripture'][bible_id] = f'<div style="color: red">{scripture}</div>'
+                    scripture = self.get_plain_scripture(self.ol_bible_id, chapter, verse)
+                    ol_quote = context_id['quote']
+                    if isinstance(ol_quote, str):
+                        ol_quote = split_string_into_quote(ol_quote)
+                    phrases = []
+                    for word in ol_quote:
+                        if 'word' in word and 'occurrence' in word and word['word'] != '…':
+                            phrases.append([{
+                                'text': word['word'],
+                                'occurrence': word['occurrence']
+                            }])
+                    break_on_word = True
+                    if self.ol_lang_code == 'hbo':
+                        break_on_word = False
+                    marked_html = mark_phrases_in_html(scripture, phrases, break_on_word=break_on_word)
+                    if marked_html:
+                        context_id['scripture'][self.ol_bible_id] = marked_html
+                    else:
+                        context_id['scripture'][self.ol_bible_id] = f'<div style="color: red">{scripture}</div>'
+                    tn_html += f'''
+            <tr>
+                <td>
+                    {chapter}:{verse}
+                </td>
+                <td>
+                    {context_id['alignments'][self.ult_id]}
+                </td>
+                <td>
+                    {context_id['scripture'][self.ult_id]}
+                </td>
+                <td>
+                    {context_id['alignments'][self.ust_id]}
+                </td>
+                <td>
+                    {context_id['scripture'][self.ust_id]}
+                </td>
+                <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
+                    {flatten_quote(ol_quote)}
+                </td>
+                <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
+                    {context_id['scripture'][self.ol_bible_id]}
+                </td>
+            </tr>
+'''
+                tn_html += '''
+        </table>
+    </article>
+'''
+
+        tn_html += '''
+</section>
+'''
+        self.logger.info('Done generating TN Checking HTML.')
+        return tn_html
 
 
 if __name__ == '__main__':
-    main(TnNoteCheckingPdfConverter)
+    main(TnCheckingPdfConverter, ['tn', 'ult', 'ust', 'ugnt', 'uhb'])

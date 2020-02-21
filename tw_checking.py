@@ -8,13 +8,14 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the TN Word checking PDF
+This script generates the TW Word checking PDF
 """
 import os
 from glob import glob
 from tn_pdf_converter import TnPdfConverter, main
 from general_tools.file_utils import load_json_object, get_latest_version_path, get_child_directories
 from general_tools.html_tools import mark_phrases_in_html
+from general_tools.alignment_tools import flatten_alignment, flatten_quote, split_string_into_quote
 
 ORDERED_GROUPS = {
     'kt': 'Key Terms',
@@ -88,8 +89,17 @@ class TwCheckingPdfConverter(TnPdfConverter):
                 self.get_tw_article_html(tw_rc)
                 tw_html += f'''
     <article id="{tw_rc.article_id}">
-        <h3 class="section-header">{tw_rc.title} ({tw_rc.rc_link})</h3>
+        <h3 class="section-header">[[{tw_rc.rc_link}]]</h3>
         <table width="100%">
+            <tr>
+               <th>Verse</th>
+               <th>{self.ult_id.upper()} Alignment</th>
+               <th>{self.ult_id.upper()} Text</th>
+               <th>{self.ust_id.upper()} Alignment</th>
+               <th>{self.ust_id.upper()} Text</th>
+               <th>{self.ol_bible_id.upper()} Quote</th>
+               <th>{self.ol_bible_id.upper()} Text</th>
+            </tr>
 '''
 
                 tw_group_data = load_json_object(file)
@@ -98,55 +108,63 @@ class TwCheckingPdfConverter(TnPdfConverter):
                     context_id['rc'] = tw_rc.rc_link
                     chapter = str(context_id['reference']['chapter'])
                     verse = str(context_id['reference']['verse'])
+                    context_id['scripture'] = {}
+                    context_id['alignments'] = {}
                     for bible_id in [self.ult_id, self.ust_id]:
-                        aligned_text = self.get_aligned_text(bible_id, context_id)
+                        alignment = self.get_aligned_text(bible_id, group_data['contextId'])
+                        if alignment:
+                            context_id['alignments'][bible_id] = flatten_alignment(alignment)
+                        else:
+                            context_id['alignments'][bible_id] = '<div style="color: red">NONE</div>'
                         scripture = self.get_plain_scripture(bible_id, chapter, verse)
                         marked_html = None
-                        if aligned_text:
-                            marked_html = mark_phrases_in_html(scripture, aligned_text, ignore_small_words=False)
+                        if alignment:
+                            marked_html = mark_phrases_in_html(scripture, alignment)
                         if marked_html:
-                            context_id[f'{bible_id}Text'] = marked_html
+                            context_id['scripture'][bible_id] = marked_html
                         else:
-                            context_id[f'{bible_id}Text'] = scripture
-                        context_id[f'{bible_id}Quote'] = aligned_text
+                            context_id['scripture'][bible_id] = f'<div style="color: red">{scripture}</div>'
                     scripture = self.get_plain_scripture(self.ol_bible_id, chapter, verse)
-                    quotes = context_id['quote']
-                    if isinstance(quotes, str):
-                        quotes = [{'word': quotes, 'occurrence': context_id['occurrence']}]
+                    quote = context_id['quote']
+                    if isinstance(quote, str):
+                        quote = split_string_into_quote(quote)
                     phrases = []
-                    for quote in quotes:
-                        phrases.append([quote])
-                    marked_html = mark_phrases_in_html(scripture, phrases, ignore_small_words=False)
+                    for word in quote:
+                        phrases.append([{
+                            'text': word['word'],
+                            'occurrence': word['occurrence']
+                        }])
+                    marked_html = mark_phrases_in_html(scripture, phrases)
                     if marked_html:
-                        context_id['olText'] = marked_html
+                        context_id['scripture'][self.ol_bible_id] = marked_html
                     else:
-                        context_id['olText'] = scripture
+                        context_id['scripture'][self.ol_bible_id] = f'<div style="color: red">{scripture}</div>'
                     tw_html += f'''
             <tr>
                 <td>
                     {chapter}:{verse}
                 </td>
                 <td>
-                    {context_id[f'{self.ult_id}Quote']}
+                    {context_id['alignments'][self.ult_id]}
                 </td>
                 <td>
-                    {context_id[f'{self.ult_id}Text']}
+                    {context_id['scripture'][self.ult_id]}
                 </td>
                 <td>
-                    {context_id[f'{self.ust_id}Quote']}
+                    {context_id['alignments'][self.ust_id]}
                 </td>
                 <td>
-                    {context_id[f'{self.ust_id}Text']}
+                    {context_id['scripture'][self.ust_id]}
                 </td>
-                <td dir="{'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
-                    {context_id['quote']}
+                <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
+                    {flatten_quote(context_id['quote'])}
                 </td>
-                <td dir="{'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
-                    {context_id['olText']}
+                <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
+                    {context_id['scripture'][self.ol_bible_id]}
                 </td>
             </tr>
 '''
-            tw_html += '''
+                tw_html += '''
         </table>
     </article>
 '''
@@ -154,9 +172,9 @@ class TwCheckingPdfConverter(TnPdfConverter):
         tw_html += '''
 </section>
 '''
-        self.logger.info('Done generating tW Checking HTML.')
+        self.logger.info('Done generating TW Checking HTML.')
         return tw_html
 
 
 if __name__ == '__main__':
-    main(TwCheckingPdfConverter, ['ult', 'ust', 'ta', 'tw', 'ugnt', 'uhb'])
+    main(TwCheckingPdfConverter, ['tw', 'ult', 'ust', 'ugnt', 'uhb'])
