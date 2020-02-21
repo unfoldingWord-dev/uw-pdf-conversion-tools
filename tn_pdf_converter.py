@@ -255,12 +255,13 @@ class TnPdfConverter(PdfConverter):
                             'chapter': int(chapter),
                             'verse': int(verse)
                         },
+                        'rc': f'rc://{self.lang_code}/tn/help///{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}',
                         'quote': verse_data['OrigQuote'],
                         'occurrence': int(verse_data['Occurrence']),
                         'quoteString': verse_data['OrigQuote']
                     }
                 if context_id:
-                    context_id['rc'] = tn_rc_link
+                    context_id['rc'] += f'/{verse_data["ID"]}'
                     verse_data['contextId'] = context_id
                     verse_data['alignments'] = {
                         self.ult_id: self.get_aligned_text(self.ult_id, context_id),
@@ -492,7 +493,7 @@ class TnPdfConverter(PdfConverter):
                     context_id = occurrence['contextId']
                     chapter = str(context_id['reference']['chapter'])
                     verse = str(context_id['reference']['verse'])
-                    tn_rc_link = f'rc://{self.lang_code}/{self.name}/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}/{group}/{base}'
+                    tn_rc_link = f'rc://{self.lang_code}/{self.name}/help/{group}/{base}/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
                     context_id['rc'] = tn_rc_link
                     if chapter not in groups_data:
                         groups_data[chapter] = OrderedDict()

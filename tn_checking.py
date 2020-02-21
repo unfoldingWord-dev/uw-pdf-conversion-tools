@@ -75,6 +75,24 @@ class TnCheckingPdfConverter(TnPdfConverter):
         return self.get_tn_checking_html()
 
     def get_tn_checking_html(self):
+        self.populate_tn_groups_data()
+        self.populate_tn_book_data()
+
+        by_rc_cat_group = {}
+        for chapter in self.tn_book_data:
+            for verse in self.tn_book_data[chapter]:
+                for data in self.tn_book_data[chapter][verse]:
+                    if data['contextId']:
+                        rc_link = data['contextId']['rc']
+                        parts = rc_link[5:].split('/')
+                        category = parts[3]
+                        group = parts[4]
+                        if category not in by_rc_cat_group:
+                            by_rc_cat_group[category] = {}
+                        if group not in by_rc_cat_group[category]:
+                            by_rc_cat_group[category][group] = []
+                        by_rc_cat_group[category][group].append(data)
+
         tn_html = f'''
 <section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
     <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
@@ -84,26 +102,15 @@ class TnCheckingPdfConverter(TnPdfConverter):
     </article>
 '''
 
-        tn_path = os.path.join(self.working_dir, 'resources', self.lang_code, 'translationHelps/translationNotes')
-        if not tn_path:
-            self.logger.error(f'{tn_path} not found!')
-            exit(1)
-        tn_version_path = get_latest_version_path(tn_path)
-        if not tn_version_path:
-            self.logger.error(f'No versions found in {tn_path}!')
-            exit(1)
-
-        groups = get_child_directories(tn_version_path)
-        for group in groups:
-            files_path = os.path.join(tn_version_path, f'{group}/groups/{self.project_id}', '*.json')
-            files = glob(files_path)
-            for file in files:
-                base = os.path.splitext(os.path.basename(file))[0]
-                tn_rc_link = f'rc://{self.lang_code}/tn/help/{group}/{base}'
-                tn_rc = self.add_rc(tn_rc_link, title=base)
+        categories = sorted(by_rc_cat_group.keys())
+        for category in categories:
+            groups = sorted(by_rc_cat_group[category].keys())
+            for group in groups:
+                tn_rc_link = f'rc://{self.lang_code}/tn/help/{category}/{group}'
+                tn_rc = self.add_rc(tn_rc_link, title=f'{group} ({category})')
                 tn_html += f'''
     <article id="{tn_rc.article_id}">
-        <h3 class="section-header">[[{tn_rc.rc_link}]]</h3>
+        <h3 class="section-header">Support Reference: [[{tn_rc.rc_link}]]</h3>
         <table width="100%">
             <tr>
                <th>Verse</th>
@@ -115,29 +122,26 @@ class TnCheckingPdfConverter(TnPdfConverter):
                <th>{self.ol_bible_id.upper()} Text</th>
             </tr>
 '''
-
-                tn_group_data = load_json_object(file)
-                for group_data in tn_group_data:
+                for group_data in by_rc_cat_group[category][group]:
                     context_id = group_data['contextId']
                     context_id['rc'] = tn_rc.rc_link
                     chapter = str(context_id['reference']['chapter'])
                     verse = str(context_id['reference']['verse'])
-                    context_id['scripture'] = {}
-                    context_id['alignments'] = {}
+                    group_data['scripture'] = {}
                     for bible_id in [self.ult_id, self.ust_id]:
-                        alignment = self.get_aligned_text(bible_id, group_data['contextId'])
-                        if alignment:
-                            context_id['alignments'][bible_id] = flatten_alignment(alignment)
+                        alignment = group_data['alignments'][bible_id]
+                        if not alignment:
+                            group_data['alignments'][bible_id] = '<div style="color: red">NONE</div>'
                         else:
-                            context_id['alignments'][bible_id] = '<div style="color: red">NONE</div>'
+                            group_data['alignments'][bible_id] = flatten_alignment(alignment)
                         scripture = self.get_plain_scripture(bible_id, chapter, verse)
                         marked_html = None
                         if alignment:
                             marked_html = mark_phrases_in_html(scripture, alignment)
                         if marked_html:
-                            context_id['scripture'][bible_id] = marked_html
+                            group_data['scripture'][bible_id] = marked_html
                         else:
-                            context_id['scripture'][bible_id] = f'<div style="color: red">{scripture}</div>'
+                            group_data['scripture'][bible_id] = f'<div style="color: red">{scripture}</div>'
                     scripture = self.get_plain_scripture(self.ol_bible_id, chapter, verse)
                     ol_quote = context_id['quote']
                     if isinstance(ol_quote, str):
@@ -154,31 +158,31 @@ class TnCheckingPdfConverter(TnPdfConverter):
                         break_on_word = False
                     marked_html = mark_phrases_in_html(scripture, phrases, break_on_word=break_on_word)
                     if marked_html:
-                        context_id['scripture'][self.ol_bible_id] = marked_html
+                        group_data['scripture'][self.ol_bible_id] = marked_html
                     else:
-                        context_id['scripture'][self.ol_bible_id] = f'<div style="color: red">{scripture}</div>'
+                        group_data['scripture'][self.ol_bible_id] = f'<div style="color: red">{scripture}</div>'
                     tn_html += f'''
             <tr>
                 <td>
-                    {chapter}:{verse}
+                    {chapter}:{verse} ({group_data['ID']})
                 </td>
                 <td>
-                    {context_id['alignments'][self.ult_id]}
+                    {group_data['alignments'][self.ult_id]}
                 </td>
                 <td>
-                    {context_id['scripture'][self.ult_id]}
+                    {group_data['scripture'][self.ult_id]}
                 </td>
                 <td>
-                    {context_id['alignments'][self.ust_id]}
+                    {group_data['alignments'][self.ust_id]}
                 </td>
                 <td>
-                    {context_id['scripture'][self.ust_id]}
+                    {group_data['scripture'][self.ust_id]}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
                     {flatten_quote(ol_quote)}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
-                    {context_id['scripture'][self.ol_bible_id]}
+                    {group_data['scripture'][self.ol_bible_id]}
                 </td>
             </tr>
 '''

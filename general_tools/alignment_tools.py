@@ -143,6 +143,9 @@ def flatten_alignment(alignment):
 
 
 def tests():
+
+
+
     # TIT	1	2	r2gj		πρὸ χρόνων αἰωνίων	1	before all the ages of time
     chapter_verse_objects = load_json_object('/Users/richmahn/working/resources/en/bibles/ult/v8/tit/1.json')
     quote = 'πρὸ χρόνων αἰωνίων'
