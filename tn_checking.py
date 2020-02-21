@@ -57,14 +57,14 @@ class TnCheckingPdfConverter(TnPdfConverter):
         return ''
 
     def download_all_images(self, html):
-        pass
+        return html
 
     @staticmethod
     def _fix_links(html):
-        pass
+        return html
 
     def fix_links(self, html):
-        pass
+        return html
 
     def get_body_html(self):
         self.add_style_sheet('css/tn_style.css')
