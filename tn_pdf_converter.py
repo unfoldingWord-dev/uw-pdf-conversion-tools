@@ -256,7 +256,7 @@ class TnPdfConverter(PdfConverter):
                             'verse': int(verse)
                         },
                         'quote': verse_data['OrigQuote'],
-                        'occurrence': verse_data['Occurrence'],
+                        'occurrence': int(verse_data['Occurrence']),
                         'quoteString': verse_data['OrigQuote']
                     }
                 if context_id:

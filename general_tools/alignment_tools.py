@@ -15,22 +15,18 @@ def get_quote_combinations(quote):
     quote_combinations = []
     for i in range(0, len(quote)):
         indexes = [i]
-        text = quote[i]['word']
-        text_with_joiner = quote[i]['word']
+        text = [quote[i]['word']]
         quote_combinations.append({
-            'text': text,
-            'text_with_joiner': text_with_joiner,
+            'text': text[:],
             'occurrence': quote[i]['occurrence'],
             'indexes': indexes[:],
             'found': False
         })
         for j in range(i + 1, len(quote)):
             indexes.append(j)
-            text += quote[j]["word"]
-            text_with_joiner += f'\u2060{quote[j]["word"]}'
+            text.append(quote[j]["word"])
             quote_combinations.append({
-                'text': text,
-                'text_with_joiner': text_with_joiner,
+                'text': text[:],
                 'occurrence': 1,
                 'indexes': indexes[:],
                 'found': False
@@ -78,9 +74,12 @@ def get_alignment_by_combinations(verse_objects, quote, quote_combinations, foun
         if 'type' in verse_object and verse_object['type'] == 'milestone':
             if 'content' in verse_object:
                 for combo in quote_combinations:
-                    if not combo['found'] and (combo['text'] == verse_object['content'] or
-                                               combo['text_with_joiner'] == verse_object['content']) \
-                            and combo['occurrence'] == verse_object['occurrence']:
+                    joined_with_spaces = ' '.join(combo['text'])
+                    joined_with_joiner = '\u2060'.join(combo['text'])
+                    if not combo['found'] and \
+                        combo['occurrence'] == verse_object['occurrence'] and \
+                            (joined_with_spaces == verse_object['content'] or
+                             joined_with_joiner == verse_object['content']):
                         all_done = True
                         for index in combo['indexes']:
                             if 'found' in quote[index] and quote[index]['found']:
@@ -144,6 +143,15 @@ def flatten_alignment(alignment):
 
 
 def tests():
+    # TIT	1	2	r2gj		πρὸ χρόνων αἰωνίων	1	before all the ages of time
+    chapter_verse_objects = load_json_object('/Users/richmahn/working/resources/en/bibles/ult/v8/tit/1.json')
+    quote = 'πρὸ χρόνων αἰωνίων'
+    occurrence = 1
+    verse_objects = chapter_verse_objects["2"]["verseObjects"]
+    alignments = get_alignment(verse_objects, quote, occurrence)
+    print(alignments)
+    return
+
     string = 'בִּ⁠ימֵי֙ שְׁפֹ֣ט הַ⁠שֹּׁפְטִ֔ים'
     group_data = load_json_object(
         '/Users/richmahn/working/resources/en/translationHelps/translationNotes/v23/other/groups/rut/grammar-connect-time-simultaneous.json')
@@ -153,6 +161,7 @@ def tests():
     verse_objects = chapter_verse_objects["1"]["verseObjects"]
     alignments = get_alignment(verse_objects, quote)
     print(alignments)
+
 
     # RUT	4	22	abcd	figs-explicit	אֶת־דָּוִֽד	1	David
     group_data = load_json_object(
