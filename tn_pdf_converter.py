@@ -370,20 +370,19 @@ class TnPdfConverter(PdfConverter):
         return tn_article
 
     def get_tw_html_list(self, resource_id, chapter, verse):
-        words = self.get_words(resource_id, chapter, verse)
-        if not words:
+        phrases = self.get_tw_phrases(resource_id, chapter, verse)
+        if not phrases:
             return ''
         links = OrderedDict()
-        for word_idx, word in enumerate(words):
-            word_count = word_idx + 1
-            phrase = word['text']
-            tw_rc = word['contextId']['rc']
-            occurrence = word['contextId']['occurrence']
+        for group_data_idx, group_data in enumerate(phrases):
+            alignment = group_data['alignment']
+            tw_rc = group_data['contextId']['rc']
+            occurrence = group_data['contextId']['occurrence']
             occurrence_text = ''
             if occurrence > 1:
                 occurrence_text = f' ({occurrence})'
-            flat_phrase = flatten_alignment(phrase)
-            links[flat_phrase] = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}">{flat_phrase}</a>{occurrence_text}'
+            flat_phrase = flatten_alignment(alignment)
+            links[flat_phrase] = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{group_data_idx + 1}">{flat_phrase}</a>{occurrence_text}'
         tw_html = f'''
                 <h3>{self.resources['tw'].simple_title} - {resource_id.upper()}</h3>
                 <ul class="tw-list">
@@ -527,19 +526,18 @@ class TnPdfConverter(PdfConverter):
         if len(verses_and_footnotes) == 2:
             footnote = f'<div class="footnotes">{verses_and_footnotes[1]}'
         orig_scripture = scripture
-        words = self.get_words(bible_id, chapter, verse)
-        for word_idx, word in enumerate(words):
-            word_count = word_idx + 1
-            phrase = word['text']
-            tw_rc = word['contextId']['rc']
+        phrases = self.get_tw_phrases(bible_id, chapter, verse)
+        for group_data_idx, group_data in enumerate(phrases):
+            tw_rc = group_data['contextId']['rc']
+            alignment = group_data['alignment']
             split = ''
-            if '…' in phrase or '...' in phrase:
+            if len(group_data):
                 split = ' split'
-            tag = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{word_count}{split}">'
-            marked_verse_html = html_tools.mark_phrases_in_html(scripture, phrase, tag=tag)
+            tag = f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{group_data_idx + 1}{split}">'
+            marked_verse_html = html_tools.mark_phrases_in_html(scripture, alignment, tag=tag)
             if not marked_verse_html:
                 if rc:
-                    self.add_bad_highlight(rc, orig_scripture, tw_rc, words)
+                    self.add_bad_highlight(rc, orig_scripture, tw_rc, flatten_alignment(group_data))
             else:
                 scripture = marked_verse_html
         scripture += footnote
@@ -562,15 +560,16 @@ class TnPdfConverter(PdfConverter):
         else:
             return []
 
-    def get_words(self, bible_id, chapter, verse):
-        words = []
+    def get_tw_phrases(self, bible_id, chapter, verse):
+        phrases = []
         if chapter in self.tw_words_data and verse in self.tw_words_data[chapter]:
             group_datas = self.tw_words_data[chapter][verse]
             for group_data in group_datas:
                 alignment = self.get_aligned_text(bible_id, group_data['contextId'])
                 if alignment:
-                    words.append(alignment)
-        return words
+                    group_data['alignment'] = alignment
+                    phrases.append(group_data)
+        return phrases
 
     def get_scripture_with_tn_quotes(self, bible_id, chapter, verse, rc, scripture):
         if not scripture:
