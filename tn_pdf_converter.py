@@ -502,6 +502,8 @@ class TnPdfConverter(PdfConverter):
         self.tn_groups_data = groups_data
 
     def get_plain_scripture(self, bible_id, chapter, verse):
+        if verse not in self.verse_usfm[bible_id][chapter]:
+            return ''
         data = self.verse_usfm[bible_id][chapter][verse]
         footnotes_split = re.compile('<div class="footnotes">', flags=re.IGNORECASE | re.MULTILINE)
         verses_and_footnotes = re.split(footnotes_split, data['html'], maxsplit=1)
