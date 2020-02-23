@@ -76,7 +76,7 @@ class TnPdfConverter(PdfConverter):
             return ''
 
     def process_bibles(self):
-        if not self.offline and (self.resources[self.ult_id].new_commits or self.resources[self.ust_id].new_commits or
+        if not self.offline and (self.resources['ult'].new_commits or self.resources['ust'].new_commits or
                                  self.resources['tn'].new_commits or self.resources['tw'].new_commits or
                                  self.resources[self.ol_bible_id].new_commits):
             cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{self.working_dir}" {self.ult_id} {self.ust_id}'
@@ -87,7 +87,7 @@ class TnPdfConverter(PdfConverter):
                 exit(1)
 
     def get_body_html(self):
-        self.logger.info('Creating tN for {0}...'.format(self.file_project_and_tag_id))
+        self.logger.info('Creating TN for {0}...'.format(self.file_project_and_tag_id))
         self.process_bibles()
         self.populate_verse_usfm(self.ult_id)
         self.populate_verse_usfm(self.ust_id)
@@ -352,7 +352,7 @@ class TnPdfConverter(PdfConverter):
         tn_html += '''
 </section>
 '''
-        self.logger.info('Done generating tN HTML.')
+        self.logger.info('Done generating TN HTML.')
         return tn_html
 
     def get_tn_article(self, chapter, verse):
@@ -754,7 +754,8 @@ def main(tn_class, resource_names=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--ust-id', dest='ust_id', default=DEFAULT_UST_ID, required=False, help="UST ID")
     parser.add_argument('--ult-id', dest='ult_id', default=DEFAULT_ULT_ID, required=False, help="ULT ID")
-    run_converter(resource_names, tn_class, all_project_ids=BOOK_NUMBERS.keys(), parser=parser)
+    run_converter(resource_names, tn_class, project_ids_map={'': BOOK_NUMBERS.keys(), 'all': BOOK_NUMBERS.keys()},
+                  parser=parser)
 
 
 if __name__ == '__main__':

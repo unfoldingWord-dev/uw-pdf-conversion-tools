@@ -1036,7 +1036,7 @@ class PdfConverter:
 
 
 def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None,
-                  all_project_ids=None, parser=None):
+                  project_ids_map=None, parser=None):
     if not parser:
         parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
@@ -1065,8 +1065,9 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
         lang_codes = [DEFAULT_LANG_CODE]
     project_ids = args.project_ids
     if not project_ids or 'all' in project_ids[0]:
-        if all_project_ids:
-            project_ids = all_project_ids
+        project_id = '' if not project_ids else project_ids[0]
+        if project_ids_map and project_id in project_ids_map:
+            project_ids = project_ids_map[project_id]
         elif not project_ids:
             project_ids = [None]
     args_dict = vars(args)

@@ -11,131 +11,98 @@
 This script generates the HTML and PDF TQ documents
 """
 import os
-import yaml
+import markdown2
+from glob import glob
 from pdf_converter import PdfConverter, run_converter
-from general_tools.file_utils import read_file
+from general_tools.bible_books import BOOK_NUMBERS
+from general_tools.html_tools import increment_headers
 
 
 class TqPdfConverter(PdfConverter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.section_count = 0
-        self.config = None
-        self.toc_html = ''
+        self.book_number = None
+        if self.project_id:
+            self.book_number = BOOK_NUMBERS[self.project_id]
 
-#     def get_toc_from_yaml(self):
-#         toc_html = ''
-#         projects = self.main_resource.projects
-#         self.section_count = 0
-#         for idx, project in enumerate(projects):
-#             project_path = os.path.join(self.main_resource.repo_dir, project['identifier'])
-#             toc = yaml.full_load(read_file(os.path.join(project_path, 'toc.yaml')))
-#             if not toc_html:
-#                 toc_html = f'''
-#                 <article id="contents">
-#                   <h1>{toc['title']}</h1>
-#                   <ul id="contents-top-ul">
-# '''
-#             toc_html += f'<li><a href="#{self.lang_code}-ta-man-{project["identifier"]}-cover"><span>{project["title"]}</span></a>'
-#             toc_html += self.get_toc_for_section(toc)
-#             toc_html += '</li>'
-#         toc_html += '</ul></article>'
-#         return toc_html
-#
-#     def get_toc_for_section(self, section):
-#         toc_html = ''
-#         if 'sections' not in section:
-#             return toc_html
-#         toc_html = '<ul>'
-#         for section in section['sections']:
-#             title = section['title']
-#             self.section_count += 1
-#             link = f'section-container-{self.section_count}'
-#             toc_html += f'<li><a href="#{link}"><span>{title}</span></a>{self.get_toc_for_section(section)}</li>'
-#         toc_html += '</ul>'
-#         return toc_html
+    @property
+    def file_id_project_str(self):
+        if self.project_id:
+            return f'_{self.book_number.zfill(2)}-{self.project_id.upper()}'
+        else:
+            return ''
+
+    def get_appendix_rcs(self):
+        pass
 
     def get_body_html(self):
-        self.logger.info('Generating TA html...')
-        # self.toc_html = self.get_toc_from_yaml()
-        ta_html = self.get_ta_html()
-        return ta_html
+        self.logger.info('Creating TQ for {0}...'.format(self.file_project_and_tag_id))
+        return self.get_tq_html()
 
-    def get_ta_html(self):
-        ta_html = f'''
-<section id="{self.lang_code}-ta-man">
-    {self.get_articles()}
-</section>
-'''
-        return ta_html
+    def pad(self, num, project_id=None):
+        if not project_id:
+            project_id = self.project_id
+        if project_id == 'psa':
+            return str(num).zfill(3)
+        else:
+            return str(num).zfill(2)
 
-    def get_articles(self):
-        articles_html = ''
-        projects = self.main_resource.projects
-        self.section_count = 0
-        for idx, project in enumerate(projects):
+    def get_book_title(self, project):
+        if self.main_resource.title in project['title']:
+            return project['title'].replace(f' {self.main_resource.title}', '')
+        else:
+            return project['title'].replace(f' {self.main_resource.simple_title}')
+
+    def get_tq_html(self):
+        tq_html = ''
+        if self.project_id:
+            projects = [self.main_resource.find_project(self.project_id)]
+        else:
+            projects = self.main_resource.projects
+        for project in projects:
             project_id = project['identifier']
-            project_path = os.path.join(self.main_resource.repo_dir, project_id)
-            toc = yaml.full_load(read_file(os.path.join(project_path, 'toc.yaml')))
-            self.config = yaml.full_load(read_file(os.path.join(project_path, 'config.yaml')))
-            articles_html += f'''
-<article id="{self.lang_code}-{project_id}-cover" class="manual-cover cover">
-    <img src="images/{self.main_resource.logo_file}" alt="{project_id}" />
-    <h1>{self.title}</h1>
-    <h2 class="section-header" toc-level="1">{project['title']}</h2>
-</article>
+            book_title = self.get_book_title(project)
+            project_dir = os.path.join(self.main_resource.repo_dir, project_id)
+            chapter_dirs = sorted(glob(os.path.join(project_dir, '*')))
+            tq_html += f'''
+<section id="{self.lang_code}-{self.name}-{project_id}" class="tq-book">
 '''
-            articles_html += self.get_articles_from_toc(project_id, toc)
-        return articles_html
-
-    def get_articles_from_toc(self, project_id, section, toc_level=2):
-        if 'sections' not in section:
-            return ''
-        source_rc = self.create_rc(f'rc://{self.lang_code}/ta/man/{project_id}/toc.yaml')
-        articles_html = ''
-        for section in section['sections']:
-            self.section_count += 1
-            if 'link' in section:
-                link = section['link']
-                title = self.get_title(project_id, link, section['title'])
-            else:
-                link = f'section-container-{self.section_count}'
-                title = section['title']
-            rc_link = f'rc://{self.lang_code}/ta/man/{project_id}/{link}'
-            rc = self.add_rc(rc_link, title=title)
-            if 'link' in section:
-                self.get_ta_article_html(rc, source_rc, self.config, toc_level)
-            if 'sections' in section:
-                sub_articles = self.get_articles_from_toc(project_id, section, toc_level + 1)
-                section_header = ''
-                if not rc.article:
-                    section_header = f'''
-    <h2 class="section-header" toc-level="{toc_level}">{title}</h2>
+            tq_html += f'''
+    <article id="{self.lang_code}-{self.name}-{project_id}-cover" class="resource-title-page no-header-footer"">
+        <img src="images/{self.main_resource.logo_file}" class="logo" alt="UTN">
+        <h1 class="section-header">{book_title}</h1>
+    </article>
 '''
-                articles_html += f'''
-<section id="{rc.article_id}-section">
-    {section_header}
-    {rc.article}
-    {sub_articles}
+            for chapter_dir in chapter_dirs:
+                chapter = os.path.basename(chapter_dir).lstrip('0')
+                tq_html += f'''
+    <section id="{self.lang_code}-{self.name}-{project_id}-{self.pad(chapter)}" class="tq-chapter">
+        <h2 class="section-header{' no-toc' if len(projects) > 1 else ''}">{book_title} {chapter}</h2>
+'''
+                verse_files = sorted(glob(os.path.join(chapter_dir, '*.md')))
+                for verse_file in verse_files:
+                    verse = os.path.splitext(os.path.basename(verse_file))[0].lstrip('0')
+                    tq_article = markdown2.markdown_path(verse_file)
+                    tq_article = increment_headers(tq_article, 3)
+                    tq_title = f'{book_title} {chapter}:{verse}'
+                    tq_rc_link = f'rc://{self.lang_code}/{self.name}/help/{project_id}/{self.pad(chapter, project_id)}/{verse.zfill(3)}'
+                    tq_rc = self.add_rc(tq_rc_link, tq_article, tq_title)
+                    tq_html += f'''
+        <article id="{tq_rc.article_id}" class="tq-verse">
+            <h3>{tq_rc.title}</h3>
+            {tq_article}
+        </article>
+'''
+                tq_html += '''
+    </section>
+'''
+            tq_html += '''
 </section>
 '''
-            else:
-                articles_html += rc.article
-        return articles_html
-
-    def get_title(self, project, link, alt_title):
-        title_file = os.path.join(self.main_resource.repo_dir, project, link, 'title.md')
-        title = None
-        if os.path.isfile(title_file):
-            title = read_file(title_file).strip()
-        if not title:
-            title = alt_title.strip()
-        return title
-
-    # def get_toc_html(self, body_html):
-    #     return self.toc_html
+        self.logger.info('Done generating TQ HTML.')
+        return tq_html
 
 
 if __name__ == '__main__':
-    run_converter(['tq'], TqPdfConverter)
+    run_converter(['tq'], TqPdfConverter, project_ids_map={'': BOOK_NUMBERS.keys(), 'all': [None]})

@@ -23,6 +23,7 @@ LOGO_MAP = {
     'ta': 'uta',
     'tn': 'utn',
     'tw': 'utw',
+    'tq': 'utq',
     'obs-tn': 'obs',
     'obs-sn': 'obs',
     'obs-sq': 'obs'

@@ -21,10 +21,10 @@ cd /opt/uw-pdf-conversion-tools
   - obs_tn_pdf_converter
   - ta_pdf_converter
   - tn_pdf_converter
-  - tn_note_checking_pdf_converter
-  - tn_word_checking_pdf_converter
+  - tn_checking
   - tq_pdf_converter
   - tw_pdf_converter
+  - tw_checking
 
 optional arguments:
 ```

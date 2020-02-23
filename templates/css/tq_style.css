@@ -1,0 +1,6 @@
+article.tq-verse {
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
