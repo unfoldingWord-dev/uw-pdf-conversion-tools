@@ -46,8 +46,7 @@ class Resource(object):
         self.background_resource = background_resource
 
         self.repo_dir = None
-        self.git = None
-        self.commit = None
+        self.repo = None
         self.new_commits = False
 
     @property
@@ -74,13 +73,13 @@ class Resource(object):
         self.repo_dir = os.path.join(working_dir, self.repo_name)
         if not self.offline and not os.path.exists(self.repo_dir):
             try:
-                git.Repo.clone_from(self.url, self.repo_dir)
+                self.repo = git.Repo.clone_from(self.url, self.repo_dir)
             except git.GitCommandError as orig_err:
                 owners = OWNERS
                 for owner_idx, owner in enumerate(owners):
                     self.url = self.get_resource_git_url(self.repo_name, owner)
                     try:
-                        git.Repo.clone(self.url, self.repo_dir, depth=1)
+                        self.repo = git.Repo.clone_from(self.url, self.repo_dir, depth=1)
                     except git.GitCommandError:
                         if owner_idx + 1 == len(owners):
                             raise orig_err
@@ -88,13 +87,26 @@ class Resource(object):
                             continue
                     if os.path.exists(self.repo_dir):
                         break
-        self.git = git.Git(self.repo_dir)
+        if not self.repo:
+            self.repo = git.Repo(self.repo_dir)
         if self.update:
-            self.git.fetch()
-        self.git.checkout(self.tag)
+            for remote in self.repo.remotes:
+                remote.fetch()
+        if not self.tag:
+            self.tag = self.latest_tag
+        self.repo.git.checkout(self.tag)
         if self.tag == DEFAULT_TAG and self.update:
-            self.git.pull()
-        self.commit = self.git.rev_parse('HEAD', short=10)
+            self.repo.git.pull()
+
+    @property
+    def latest_tag(self):
+        tag = sorted(self.repo.tags, key=lambda t: t.commit.committed_datetime)[-1]
+        if tag:
+            return tag.name
+
+    @property
+    def commit(self):
+        return self.repo.git.rev_parse('HEAD', short=10)
 
     @property
     def manifest(self):
