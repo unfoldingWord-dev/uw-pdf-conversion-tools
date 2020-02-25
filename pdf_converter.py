@@ -386,9 +386,8 @@ class PdfConverter:
             html = html_template.safe_substitute(lang=self.lang_code, title=title, link=link, body=body)
             write_file(self.html_file, html)
 
-            if self.show_commit:
-                link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}.html')
-                symlink(self.html_file, link_file_path, True)
+            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_latest.html')
+            symlink(self.html_file, link_file_path, True)
 
             self.save_resource_data()
             self.save_bad_links_html()
@@ -407,9 +406,8 @@ class PdfConverter:
             self.logger.info('Generated PDF file.')
             self.logger.info(f'PDF file located at {self.pdf_file}')
 
-            if self.show_commit:
-                link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}.pdf')
-                symlink(self.pdf_file, link_file_path, True)
+            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_latest.pdf')
+            symlink(self.pdf_file, link_file_path, True)
         else:
             self.logger.info(
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
