@@ -733,7 +733,7 @@ class PdfConverter:
 '''
         for idx, resource_name in enumerate(self.resources.keys()):
             resource = self.resources[resource_name]
-            if resource.background_resource or not resource.manifest or not resource.contributors or
+            if resource.background_resource or not resource.manifest or not resource.contributors or \
                 HIDE_CONTRIBUTORS[resource_name]:
                 continue
             contributors = resource.contributors
