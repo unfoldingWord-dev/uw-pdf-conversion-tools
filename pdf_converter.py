@@ -465,7 +465,7 @@ class PdfConverter:
         self.logger.info(f'BAD LINKS HTML file can be found at {save_file}')
 
     def save_bad_highlights_html(self):
-        if self.show_commits:
+        if self.show_commit:
             save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_highlights.html')
         else:
             save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_bad_highlights.html')

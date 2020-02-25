@@ -79,7 +79,7 @@ class TnPdfConverter(PdfConverter):
         if self.update and (self.resources['ult'].new_commits or self.resources['ust'].new_commits or
                                 self.resources['tn'].new_commits or self.resources['tw'].new_commits or
                                 self.resources[self.ol_bible_id].new_commits):
-            cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{self.working_dir}" {self.ult_id} {self.ust_id}'
+            cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{os.path.join(self.working_dir, f"{self.lang_code}_{self.name}_{self.tag}_resources")} {self.ult_id} {self.ust_id}'
             self.logger.info(f'Running: {cmd}')
             ret = subprocess.call(cmd, shell=True)
             if ret:
