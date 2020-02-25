@@ -520,6 +520,7 @@ class PdfConverter:
     def setup_resource(self, resource):
         self.logger.info(f'Setting up resource {resource.resource_name}...')
         resource.clone(self.working_dir)
+        self.logger.info(f'  ...set up to use `{resource.repo_name}`: `{resource.tag}` ({resource.commit})')
         self.generation_info[resource.repo_name] = {'tag': resource.tag, 'commit': resource.commit}
         logo_path = os.path.join(self.images_dir, resource.logo_file)
         if not os.path.exists(logo_path) and not self.offline:
