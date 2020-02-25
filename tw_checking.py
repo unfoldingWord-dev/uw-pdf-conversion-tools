@@ -15,7 +15,7 @@ from glob import glob
 from tn_pdf_converter import TnPdfConverter, main
 from general_tools.file_utils import load_json_object, get_latest_version_path, get_child_directories
 from general_tools.html_tools import mark_phrases_in_html
-from general_tools.alignment_tools import flatten_alignment, flatten_quote, split_string_into_quote
+from general_tools.alignment_tools import flatten_alignment, split_string_into_quote
 
 ORDERED_GROUPS = {
     'kt': 'Key Terms',
@@ -176,7 +176,7 @@ class TwCheckingPdfConverter(TnPdfConverter):
                     {context_id['scripture'][self.ust_id]}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
-                    {flatten_quote(context_id['quote'])}
+                    {flatten_alignment(context_id['quote'])}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
                     {context_id['scripture'][self.ol_bible_id]}

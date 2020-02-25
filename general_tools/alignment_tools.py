@@ -8,7 +8,11 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 import re
+import string
 from general_tools.file_utils import load_json_object
+
+hebrew_punctuation = '׃׀־׳״׆'
+punctuation = string.punctuation + hebrew_punctuation
 
 
 def get_quote_combinations(quote):
@@ -17,7 +21,7 @@ def get_quote_combinations(quote):
         indexes = [i]
         text = [quote[i]['word']]
         quote_combinations.append({
-            'text': text[:],
+            'word': text[:],
             'occurrence': quote[i]['occurrence'],
             'indexes': indexes[:],
             'found': False
@@ -26,7 +30,7 @@ def get_quote_combinations(quote):
             indexes.append(j)
             text.append(quote[j]["word"])
             quote_combinations.append({
-                'text': text[:],
+                'word': text[:],
                 'occurrence': 1,
                 'indexes': indexes[:],
                 'found': False
@@ -34,34 +38,70 @@ def get_quote_combinations(quote):
     return quote_combinations
 
 
-def split_string_into_quote(string, occurrence=1):
+def split_string_into_quote(text, occurrence=1):
+    if occurrence < 1:
+        occurrence = 1
     quote = []
-    parts = re.split(r'\s*…\s*|\s*\.\.\.\s*|\s+', string)
-    for part in parts:
-        quote.append({
-            'word': part,
-            'occurrence': occurrence
-        })
+    parts = re.split('…', text)
+    for part_idx, part in enumerate(parts):
+        words = list(filter(None, re.split(rf'([{punctuation}]+)|\s+', part)))
+        quote.append([])
+        for word_idx, word in enumerate(words):
+            if word.strip():
+                quote[part_idx].append({
+                    'word': word.strip(),
+                    'occurrence': occurrence
+                })
     return quote
+
+
+def split_string_into_alignment(text, occurrence=1):
+    alignments = []
+    parts = re.split('…', text)
+    for part_idx, part in enumerate(parts):
+        words = re.split(rf'([{punctuation}]+|\s+)', part)
+        alignments.append([])
+        for word_idx, word in enumerate(words):
+            alignments[part_idx].append({
+                'word': word,
+                'occurrence': occurrence
+            })
+    return alignments
+
+
+def convert_single_dimensional_quote_to_multidimensional(quote):
+    multi_quote = []
+    words = []
+    for word in quote:
+        if 'word' in word:
+            if word['word'] == '…':
+                multi_quote.append(words)
+                words = []
+            else:
+                words.append({
+                    'word': word['word'],
+                    'occurrence': word['occurrence']
+                })
+    multi_quote.append(words)
+    return multi_quote
 
 
 def get_alignment(verse_objects, quote, occurrence=1):
     orig_quote = quote
     if isinstance(quote, str):
         quote = split_string_into_quote(quote, occurrence)
-    else:
-        quote = []
-        for word in orig_quote:
-            if 'word' in word and word['word'] != '…' and 'occurrence' in word:
-                quote.append({
-                    'word': word['word'],
-                    'occurrence': word['occurrence']
-                })
-    quote_combinations = get_quote_combinations(quote)
-    alignment = get_alignment_by_combinations(verse_objects, quote, quote_combinations)
-    for word in quote:
-        if 'found' not in word:
-            return None
+    elif not isinstance(quote[0], list):
+        quote = convert_single_dimensional_quote_to_multidimensional(quote)
+
+    alignment = []
+    for group in quote:
+        quote_combinations = get_quote_combinations(group)
+        alignment += get_alignment_by_combinations(verse_objects, group, quote_combinations)
+
+    for phrase in quote:
+        for word in phrase:
+            if 'found' not in word and re.sub(rf'[{punctuation}]', '', word['word']):
+                return None
     return alignment
 
 
@@ -74,11 +114,13 @@ def get_alignment_by_combinations(verse_objects, quote, quote_combinations, foun
         if 'type' in verse_object and verse_object['type'] == 'milestone':
             if 'content' in verse_object:
                 for combo in quote_combinations:
-                    joined_with_spaces = ' '.join(combo['text'])
-                    joined_with_joiner = '\u2060'.join(combo['text'])
+                    joined = ''.join(combo['word'])
+                    joined_with_spaces = ' '.join(combo['word'])
+                    joined_with_joiner = '\u2060'.join(combo['word'])
                     if not combo['found'] and \
                         combo['occurrence'] == verse_object['occurrence'] and \
-                            (joined_with_spaces == verse_object['content'] or
+                            (joined == verse_object['content'] or
+                             joined_with_spaces == verse_object['content'] or
                              joined_with_joiner == verse_object['content']):
                         all_done = True
                         for index in combo['indexes']:
@@ -107,7 +149,7 @@ def get_alignment_by_combinations(verse_objects, quote, quote_combinations, foun
                     alignments += my_alignments
         elif 'text' in verse_object and (found or last_found):
             alignment = {
-                'text': verse_object['text'],
+                'word': verse_object['text'],
                 'occurrence': verse_object['occurrence'] if 'occurrence' in verse_object else 0
             }
             if found:
@@ -115,17 +157,6 @@ def get_alignment_by_combinations(verse_objects, quote, quote_combinations, foun
             elif last_found:
                 in_between_alignments.append(alignment)
     return alignments
-
-
-def flatten_quote(quote):
-    if not quote:
-        return quote
-    if isinstance(quote, str):
-        return quote
-    words = []
-    for word in quote:
-        words.append(word['word'])
-    return '…'.join(words)
 
 
 def flatten_alignment(alignment):
@@ -137,12 +168,21 @@ def flatten_alignment(alignment):
     for part in alignment:
         words = ''
         for word in part:
-            words += word['text']
+            words += word['word']
         part_strs.append(words)
-    return ' … '.join(part_strs)
+    return '…'.join(part_strs)
 
 
 def tests():
+    # TIT	1	8	xy12	figs-doublet	δίκαιον, ὅσιον	1	righteous, holy
+    group_data = load_json_object('/Users/richmahn/working/resources/en/translationHelps/translationNotes/v23/figures/groups/tit/figs-doublet.json')
+    chapter_verse_objects = load_json_object('/Users/richmahn/working/resources/en/bibles/ult/v8/tit/1.json')
+    quote = group_data[1]["contextId"]["quote"]
+    verse_objects = chapter_verse_objects["8"]["verseObjects"]
+    alignments = get_alignment(verse_objects, quote)
+    print(alignments)
+    return
+
     # TIT	1	2	r2gj		πρὸ χρόνων αἰωνίων	1	before all the ages of time
     chapter_verse_objects = load_json_object('/Users/richmahn/working/resources/en/bibles/ult/v8/tit/1.json')
     quote = 'πρὸ χρόνων αἰωνίων'
@@ -161,7 +201,6 @@ def tests():
     verse_objects = chapter_verse_objects["1"]["verseObjects"]
     alignments = get_alignment(verse_objects, quote)
     print(alignments)
-
 
     # RUT	4	22	abcd	figs-explicit	אֶת־דָּוִֽד	1	David
     group_data = load_json_object(
@@ -197,3 +236,7 @@ def tests():
     verse_objects = chapter_verse_objects["4"]["verseObjects"]
     alignments = get_alignment(verse_objects, quote, occurrence)
     print(alignments)
+
+
+if __name__ == '__main__':
+    tests()

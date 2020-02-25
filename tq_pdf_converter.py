@@ -60,7 +60,8 @@ class TqPdfConverter(PdfConverter):
             projects = [self.main_resource.find_project(self.project_id)]
         else:
             projects = self.main_resource.projects
-        for project in projects:
+        # projects = [self.main_resource.find_project('rut'), self.main_resource.find_project('tit')]
+        for project_idx, project in enumerate(projects):
             project_id = project['identifier']
             book_title = self.get_book_title(project)
             project_dir = os.path.join(self.main_resource.repo_dir, project_id)
@@ -71,14 +72,15 @@ class TqPdfConverter(PdfConverter):
             tq_html += f'''
     <article id="{self.lang_code}-{self.name}-{project_id}-cover" class="resource-title-page no-header-footer"">
         <img src="images/{self.main_resource.logo_file}" class="logo" alt="UTN">
-        <h1 class="section-header">{book_title}</h1>
+        <h1{' class="section-header"' if project_idx == 0 else ''}>{self.title}</h1>
+        <h2 class="section-header no-heading">{self.get_book_title(project)}</h2>
     </article>
 '''
             for chapter_dir in chapter_dirs:
                 chapter = os.path.basename(chapter_dir).lstrip('0')
                 tq_html += f'''
     <section id="{self.lang_code}-{self.name}-{project_id}-{self.pad(chapter)}" class="tq-chapter">
-        <h2 class="section-header{' no-toc' if len(projects) > 1 else ''}">{book_title} {chapter}</h2>
+        <h3 class="section-header{' no-toc' if len(projects) > 1 else ''}">{book_title} {chapter}</h3>
 '''
                 verse_files = sorted(glob(os.path.join(chapter_dir, '*.md')))
                 for verse_file in verse_files:
@@ -86,7 +88,7 @@ class TqPdfConverter(PdfConverter):
                     tq_article = markdown2.markdown_path(verse_file)
                     tq_article = increment_headers(tq_article, 3)
                     tq_title = f'{book_title} {chapter}:{verse}'
-                    tq_rc_link = f'rc://{self.lang_code}/{self.name}/help/{project_id}/{self.pad(chapter, project_id)}/{verse.zfill(3)}'
+                    tq_rc_link = f'rc://{self.lang_code}/tq/help/{project_id}/{self.pad(chapter, project_id)}/{verse.zfill(3)}'
                     tq_rc = self.add_rc(tq_rc_link, tq_article, tq_title)
                     tq_html += f'''
         <article id="{tq_rc.article_id}" class="tq-verse">

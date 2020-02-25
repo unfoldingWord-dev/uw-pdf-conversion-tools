@@ -1,5 +1,6 @@
 import re
 from bs4 import BeautifulSoup, Tag
+from .alignment_tools import flatten_alignment
 
 PHRASE_PARTS_TO_IGNORE = ['a', 'am', 'an', 'and', 'as', 'are', 'at', 'be', 'by', 'did', 'do', 'does', 'done', 'for', 'from', 'had', 'has', 'have', 'i', 'in', 'into', 'less', 'let', 'may', 'might', 'more', 'my', 'not', 'is', 'of', 'on', 'one', 'onto', 'than', 'the', 'their', 'then', 'this', 'that', 'those', 'these', 'to', 'was', 'we', 'who', 'whom', 'with', 'will', 'were', 'your', 'you', 'would', 'could', 'should', 'shall', 'can']
 
@@ -50,15 +51,12 @@ def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on
     soup = BeautifulSoup(html, 'html.parser')
     text = soup.text
     for phrase_idx, words in enumerate(phrases):
-        phrase = ''
-        for word in words:
-            phrase += word['text']
-        phrase = phrase.strip()
+        phrase = flatten_alignment([words])
 
         if not phrase or (phrase_idx < len(phrases) - 1 and phrase.lower() in PHRASE_PARTS_TO_IGNORE):
             continue
 
-        first_word = words[0]['text']
+        first_word = words[0]['word']
         first_word_occurrence = words[0]['occurrence']
 
         word_break = r'\b'

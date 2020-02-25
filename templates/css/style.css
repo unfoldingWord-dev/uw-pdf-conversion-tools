@@ -168,8 +168,6 @@ h1.section-header {
 }
 
 h1, h2, h3, h4, h5, h6 {
-    page-break-before: avoid !important;
-    break-before: avoid-page !important;
     page-break-after: avoid !important;
     break-after: avoid-page !important;
 }
@@ -181,11 +179,11 @@ section, article {
     overflow: auto;
 }
 
-h1 {
+h1.section-header {
     font-size: 2em !important;
 }
 
-h2 {
+h2.section-header {
     font-size: 1.5em !important;
 }
 
@@ -202,10 +200,7 @@ h6.section-header {
     font-size: 1.2em;
 }
 
-section > section:nth-of-type(1),
-section > article:nth-of-type(1),
-.section-header + section,
-.section-header + article
+.section-header + *
 {
     page-break-before: avoid !important;
     break-before: avoid-page !important;

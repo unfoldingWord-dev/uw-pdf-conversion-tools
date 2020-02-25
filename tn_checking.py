@@ -10,12 +10,9 @@
 """
 This script generates the TN checking PDF
 """
-import os
-from glob import glob
 from tn_pdf_converter import TnPdfConverter, main
-from general_tools.file_utils import load_json_object, get_latest_version_path, get_child_directories
 from general_tools.html_tools import mark_phrases_in_html
-from general_tools.alignment_tools import flatten_alignment, flatten_quote, split_string_into_quote
+from general_tools.alignment_tools import flatten_alignment, split_string_into_alignment
 
 ORDERED_GROUPS = {
     'kt': 'Key Terms',
@@ -143,23 +140,14 @@ class TnCheckingPdfConverter(TnPdfConverter):
                         else:
                             group_data['scripture'][bible_id] = f'<div style="color: red">{scripture}</div>'
                     scripture = self.get_plain_scripture(self.ol_bible_id, chapter, verse)
-                    ol_quote = context_id['quote']
-                    if isinstance(ol_quote, str):
-                        ol_quote = split_string_into_quote(ol_quote)
-                    phrases = []
-                    for word in ol_quote:
-                        if 'word' in word and 'occurrence' in word and word['word'] != '…':
-                            phrases.append([{
-                                'text': word['word'],
-                                'occurrence': word['occurrence']
-                            }])
-                    break_on_word = True
-                    if self.ol_lang_code == 'hbo':
-                        break_on_word = False
-                    marked_html = mark_phrases_in_html(scripture, phrases, break_on_word=break_on_word)
+                    ol_alignment = split_string_into_alignment(context_id['quoteString'])
+                    marked_html = mark_phrases_in_html(scripture, ol_alignment)
                     if marked_html:
                         group_data['scripture'][self.ol_bible_id] = marked_html
                     else:
+                        marked_html = mark_phrases_in_html(scripture, ol_alignment, break_on_word=False)
+                        if marked_html:
+                            scripture = marked_html
                         group_data['scripture'][self.ol_bible_id] = f'<div style="color: red">{scripture}</div>'
                     tn_html += f'''
             <tr>

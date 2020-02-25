@@ -50,3 +50,18 @@ class Test(TestCase):
         expected = '<span class="nested-link nested-link-outer"><a href="outer-outer">If you  <span class="nested-link nested-link-outer"></a><span class="nested-link nested-link-inner"><a href="outer">have</a>  <span class="nested-link nested-link-inner"><a href="inner">two links</a></span><a href="outer">, only one</a></span><a href="outer-outer"></span>  will be shown</a></span>'
         unnested_html = unnest_a_links(html)
         self.assertEqual(expected, unnested_html)
+
+    def test_mark_phrase_in_html_with_punctuation_in_quote(self):
+        html = '<div class="verse"><span class="v-num" id="en-ugnt-bible-tit-01-008"><sup><b>8</b></sup></span> ἀλλὰ φιλόξενον, φιλάγαθον, σώφρονα, δίκαιον, ὅσιον, ἐγκρατῆ;</div>'
+        phrases = [[{'word': 'δίκαιον', 'occurrence': 1}, {'word': ',', 'occurrence': 4}, {'word': 'ὅσιον', 'occurrence': 1}]]
+        phrases_string = 'δίκαιον, ὅσιον'
+        highlighted_html = mark_phrases_in_html(html, phrases, phrases_string)
+        expected = '<div class="verse"><span class="v-num" id="en-ugnt-bible-tit-01-008"><sup><b>8</b></sup></span> ἀλλὰ φιλόξενον, φιλάγαθον, σώφρονα, <span class="highlight">δίκαιον, ὅσιον</span>, ἐγκρατῆ;</div>'
+        self.assertEqual(expected, highlighted_html)
+
+        html = '<div class="verse"><span class="v-num" id="en-ugnt-bible-tit-01-004"><sup><b>4</b></sup></span> Τίτῳ, γνησίῳ τέκνῳ, κατὰ κοινὴν πίστιν: χάρις καὶ εἰρήνη ἀπὸ Θεοῦ Πατρὸς  καὶ Χριστοῦ Ἰησοῦ  τοῦ Σωτῆρος ἡμῶν.</div>'
+        phrases = [[{'word': 'χάρις', 'occurrence': 1}, {'word': 'καὶ', 'occurrence': 1}, {'word': 'εἰρήνη', 'occurrence': 1}]]
+        phrases_string = 'χάρις καὶ εἰρήνη'
+        highlighted_html = mark_phrases_in_html(html, phrases, phrases_string)
+        expected = '<div class="verse"><span class="v-num" id="en-ugnt-bible-tit-01-004"><sup><b>4</b></sup></span> Τίτῳ, γνησίῳ τέκνῳ, κατὰ κοινὴν πίστιν: <span class="highlight">χάρις καὶ εἰρήνη</span> ἀπὸ Θεοῦ Πατρὸς  καὶ Χριστοῦ Ἰησοῦ  τοῦ Σωτῆρος ἡμῶν.</div>'
+        self.assertEqual(expected, highlighted_html)

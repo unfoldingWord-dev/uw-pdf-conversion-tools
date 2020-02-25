@@ -1,14 +1,12 @@
-.tn-chapter article {
-    page-break-before: avoid !important;
-    break-before: avoid !important;
-    page-break-inside: avoid;
-    break-inside: avoid;
-}
+/*.tn-chapter article {*/
+/*    page-break-before: avoid !important;*/
+/*    break-before: avoid !important;*/
+/*}*/
 
-section.tn-chapter article:not(:last-child) {
-    padding-bottom: 10px;
-    border-bottom: solid #999 1px;
-}
+/*section.tn-chapter article:not(:last-child) {*/
+/*    padding-bottom: 10px;*/
+/*    border-bottom: solid #999 1px;*/
+/*}*/
 
 div.tn-notes .col1 {
     width: 35%;
@@ -124,4 +122,8 @@ span.nested-link > span.nested-link > span.nested-link > span.nested-link {
 
 article table td {
     vertical-align: top;
+}
+
+.tn-checking .highlight {
+    background-color: yellow;
 }

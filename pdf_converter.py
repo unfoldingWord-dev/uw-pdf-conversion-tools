@@ -626,25 +626,44 @@ class PdfConverter:
             else:
                 parent = header.find_parent(['article', 'section'])
                 article_id = parent.get('id')
-            heading_titles[toc_level-1] = header.text
-            if article_id:
-                rc = self.get_rc_by_article_id(article_id)
-                if rc:
-                    toc_title = rc.toc_title
+
+            heading_title = None
+            if not header.has_attr('class') or 'no-heading' not in header['class']:
+                if header.has_attr('heading_title'):
+                    heading_title = header['heading_title']
                 else:
-                    toc_title = header.text
-                if 'no-toc' not in header['class']:
+                    rc = self.get_rc_by_article_id(article_id)
+                    if rc:
+                        heading_title = rc.toc_title
+                    else:
+                        heading_title = header.text
+            if heading_title:
+                heading_titles[toc_level-1] = heading_title
+            else:
+                heading_titles[toc_level - 1] = None
+
+            if article_id:
+                toc_title = None
+                if not header.has_attr('class') or 'no-toc' not in header['class']:
+                    if header.has_attr('toc_title'):
+                        toc_title = header['toc_title']
+                    else:
+                        rc = self.get_rc_by_article_id(article_id)
+                        if rc:
+                            toc_title = rc.toc_title
+                        else:
+                            toc_title = header.text
+                if toc_title:
                     toc_html += f'<li><a href="#{article_id}"><span>{toc_title}</span></a>\n'
+
+                right_heading_string = ' :: '.join(filter(None, heading_titles[1:toc_level]))
+                if len(right_heading_string):
+                    right_heading_tag = soup.new_tag('span', **{'class': 'hidden heading-right'})
+                    right_heading_tag.string = right_heading_string
+                    header.insert_before(right_heading_tag)
+
                 prev_toc_level = toc_level
-                header_tag = soup.new_tag('span', **{'class': 'hidden heading-right'})
-                header_tag.string = ' :: '.join(filter(None, heading_titles[1:toc_level]))
-                # if len(header_tag.string) > 80:
-                #     if toc_level >= 5:
-                #         header_tag.string = ' :: '.join(filter(None, [heading_titles[1], '…'] +
-                #                                                heading_titles[toc_level-2:toc_level]))
-                #     elif toc_level == 4:
-                #         header_tag.string = ' :: '.join([heading_titles[1], '…', heading_titles[toc_level - 1]])
-                header.insert_before(header_tag)
+
         for level in range(prev_toc_level, 0, -1):
             toc_html += '</li>\n</ul>\n'
         toc_html += '</article>'
@@ -990,7 +1009,7 @@ class PdfConverter:
                       flags=re.IGNORECASE | re.MULTILINE)
         return text
 
-    def get_tw_article_html(self, rc, source_rc=None):
+    def get_tw_article_html(self, rc, source_rc=None, increment_header_depth=1):
         file_path = os.path.join(self.resources[rc.resource].repo_dir, rc.project, f'{rc.path}.md')
         fix = None
         if not os.path.exists(file_path):
@@ -1011,7 +1030,7 @@ class PdfConverter:
                 self.logger.error(f'FIX FOUND FOR FOR TW ARTICLE IN {source_rc.rc_link}: {rc.rc_link} => {fix}')
             tw_article_html = markdown2.markdown_path(file_path)
             tw_article_html = html_tools.make_first_header_section_header(tw_article_html)
-            tw_article_html = html_tools.increment_headers(tw_article_html)
+            tw_article_html = html_tools.increment_headers(tw_article_html, increment_header_depth)
             tw_article_html = self.fix_tw_links(tw_article_html, rc.extra_info[0])
             tw_article_html = f'''                
 <article id="{rc.article_id}">
