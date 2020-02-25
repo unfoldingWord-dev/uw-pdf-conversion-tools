@@ -413,12 +413,18 @@ class PdfConverter:
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
 
     def save_bad_links_html(self):
-        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_bad_links.html')
+        if self.show_commit:
+            save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_links.html')
+        else:
+            save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_bad_links.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_bad_links_latest.html')
 
         if not self.bad_links:
             self.logger.info('No bad links for this version!')
+            if os.path.exists(save_file):
+                os.unlink(save_file)
             if os.path.exists(link_file_path):
-                os.remove(link_file_path)
+                os.unlink(link_file_path)
             return
 
         bad_links_html = '''
@@ -453,19 +459,24 @@ class PdfConverter:
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
         html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_commit_id}', link='', body=bad_links_html)
-        save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_links.html')
         write_file(save_file, html)
         symlink(save_file, link_file_path, True)
 
         self.logger.info(f'BAD LINKS HTML file can be found at {save_file}')
 
     def save_bad_highlights_html(self):
-        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_bad_highlights.html')
+        if self.show_commits:
+            save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_highlights.html')
+        else:
+            save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_bad_highlights.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_tag_id}_bad_highlights_latest.html')
 
         if not self.bad_highlights:
             self.logger.info('No bad highlights for this version!')
+            if os.path.exists(save_file):
+                os.unlink(save_file)
             if os.path.exists(link_file_path):
-                os.remove(link_file_path)
+                os.unlink(link_file_path)
             return
 
         bad_highlights_html = f'''
@@ -509,8 +520,6 @@ class PdfConverter:
             html_template = string.Template(template_file.read())
         html = html_template.safe_substitute(title=f'BAD HIGHLIGHTS FOR {self.file_commit_id}', link='',
                                              body=bad_highlights_html)
-
-        save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_highlights.html')
         write_file(save_file, html)
         symlink(save_file, link_file_path, True)
 
