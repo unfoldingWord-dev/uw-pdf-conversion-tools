@@ -56,13 +56,21 @@ class TqPdfConverter(PdfConverter):
 
     def get_tq_html(self):
         tq_html = ''
-        if self.project_id:
-            projects = [self.main_resource.find_project(self.project_id)]
-        else:
-            projects = self.main_resource.projects
+        # if self.project_id:
+        #     projects = [self.main_resource.find_project(self.project_id)]
+        # else:
+        #     projects = self.main_resource.projects
         # projects = [self.main_resource.find_project('rut'), self.main_resource.find_project('tit')]
-        for project_idx, project in enumerate(projects):
-            project_id = project['identifier']
+        # for project_idx, project in enumerate(projects):
+        #   project_id = project['identifier']
+# REMOVE FROM HERE TO "REMOVE TO HERE" and uncomment above to use the manifest projects once they are sorted
+        if self.project_id:
+            project_ids = [self.project_id]
+        else:
+            project_ids = BOOK_NUMBERS.keys()
+        for project_idx, project_id in enumerate(project_ids):
+            project = self.main_resource.find_project(project_id)
+# REMOVE TO HERE
             book_title = self.get_book_title(project)
             project_dir = os.path.join(self.main_resource.repo_dir, project_id)
             chapter_dirs = sorted(glob(os.path.join(project_dir, '*')))

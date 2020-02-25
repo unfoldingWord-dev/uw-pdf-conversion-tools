@@ -76,9 +76,9 @@ class TnPdfConverter(PdfConverter):
             return ''
 
     def process_bibles(self):
-        if not self.offline and (self.resources['ult'].new_commits or self.resources['ust'].new_commits or
-                                 self.resources['tn'].new_commits or self.resources['tw'].new_commits or
-                                 self.resources[self.ol_bible_id].new_commits):
+        if not self.update and (self.resources['ult'].new_commits or self.resources['ust'].new_commits or
+                                self.resources['tn'].new_commits or self.resources['tw'].new_commits or
+                                self.resources[self.ol_bible_id].new_commits):
             cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{self.working_dir}" {self.ult_id} {self.ust_id}'
             self.logger.info(f'Running: {cmd}')
             ret = subprocess.call(cmd, shell=True)
