@@ -23,7 +23,7 @@ from collections import OrderedDict
 from pdf_converter import PdfConverter, run_converter
 from tx_usfm_tools.singleVerseHtmlRenderer import SingleVerseHtmlRender
 from general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
-from general_tools.alignment_tools import get_alignment, flatten_alignment
+from general_tools.alignment_tools import get_alignment, flatten_alignment, flatten_quote
 from general_tools.file_utils import read_file, load_json_object, get_latest_version_path, get_child_directories
 from general_tools.usfm_utils import unalign_usfm
 
@@ -265,6 +265,7 @@ class TnPdfConverter(PdfConverter):
                     }
                 if context_id:
                     context_id['rc'] += f'/{verse_data["ID"]}'
+                    context_id['quoteString'] = verse_data['OrigQuote']
                     verse_data['contextId'] = context_id
                     verse_data['alignments'] = {
                         self.ult_id: self.get_aligned_text(self.ult_id, context_id),
@@ -645,7 +646,12 @@ class TnPdfConverter(PdfConverter):
             title = f'{self.project_title} {chapter}:{verse}'
             aligned_text_rc_link = f'rc://{self.lang_code}/{bible_id}/bible/{self.project_id}/{self.pad(chapter)}/{str(verse).zfill(3)}'
             aligned_text_rc = self.create_rc(aligned_text_rc_link, title=title)
-            quote_string = context_id['quoteString'] if 'quoteString' in context_id else flatten_alignment(context_id['quote'])
+            if 'quoteString' in context_id:
+                quote_string = context_id['quoteString']
+            else:
+                quote_string = context_id['quote']
+                if isinstance(quote_string, list):
+                    flatten_quote(context_id['quote'])
             if int(self.book_number) > 40 or self.project_id.lower() == 'rut' or self.project_id.lower() == 'jon':
                 message = f'''OL ({self.ol_lang_code.upper()}) quote not found in {bible_id.upper()} alignment:
 VERSE: {self.project_title} {chapter}:{verse}

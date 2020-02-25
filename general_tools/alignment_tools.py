@@ -173,6 +173,15 @@ def flatten_alignment(alignment):
     return '…'.join(part_strs)
 
 
+def flatten_quote(quote):
+    if not quote or isinstance(quote, str):
+        return quote
+    words = []
+    for word in quote:
+        words.append(word['word'])
+    return ' '.join(words)
+
+
 def tests():
     # TIT	1	8	xy12	figs-doublet	δίκαιον, ὅσιον	1	righteous, holy
     group_data = load_json_object('/Users/richmahn/working/resources/en/translationHelps/translationNotes/v23/figures/groups/tit/figs-doublet.json')
