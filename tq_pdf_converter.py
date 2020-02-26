@@ -37,7 +37,7 @@ class TqPdfConverter(PdfConverter):
         pass
 
     def get_body_html(self):
-        self.logger.info('Creating TQ for {0}...'.format(self.file_project_and_tag_id))
+        self.logger.info('Creating TQ for {0}...'.format(self.file_project_and_ref_id))
         return self.get_tq_html()
 
     def get_book_title(self, project):

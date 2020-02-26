@@ -27,7 +27,7 @@ category_titles = OrderedDict({
 class TwPdfConverter(PdfConverter):
 
     def get_body_html(self):
-        self.logger.info('Creating TW for {0}...'.format(self.file_project_and_tag_id))
+        self.logger.info('Creating TW for {0}...'.format(self.file_project_and_ref_id))
         return self.get_tw_html()
 
     def get_tw_html(self):

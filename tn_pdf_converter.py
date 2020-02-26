@@ -76,7 +76,7 @@ class TnPdfConverter(PdfConverter):
             return ''
 
     def process_bibles(self):
-        resources_commits = '_'.join(list(map(lambda x: self.resources[x].commit, self.resources)))
+        resources_commits = '_'.join(list(map(lambda x: self.resources[x].tag if self.resources[x].ref_is_tag else self.resources[x].commit, self.resources)))
         resources_dir = os.path.join(self.working_dir, f'resources_{resources_commits}')
         if not os.path.exists(resources_dir):
             cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{resources_dir}" {self.ult_id} {self.ust_id}'
@@ -87,7 +87,7 @@ class TnPdfConverter(PdfConverter):
                 exit(1)
 
     def get_body_html(self):
-        self.logger.info('Creating TN for {0}...'.format(self.file_project_and_tag_id))
+        self.logger.info('Creating TN for {0}...'.format(self.file_project_and_ref_id))
         self.process_bibles()
         self.populate_verse_usfm(self.ult_id)
         self.populate_verse_usfm(self.ust_id)

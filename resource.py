@@ -17,7 +17,7 @@ from collections import OrderedDict
 from general_tools.file_utils import load_yaml_object
 
 DEFAULT_OWNER = 'unfoldingWord'
-DEFAULT_TAG = 'master'
+DEFAULT_REF = 'master'
 OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog']
 LOGO_MAP = {
     'ta': 'uta',
@@ -32,11 +32,11 @@ LOGO_MAP = {
 
 class Resource(object):
 
-    def __init__(self, resource_name, repo_name, tag=DEFAULT_TAG, owner=DEFAULT_OWNER, manifest=None, url=None,
+    def __init__(self, resource_name, repo_name, ref=DEFAULT_REF, owner=DEFAULT_OWNER, manifest=None, url=None,
                  logo_url=None, offline=False, update=True, background_resource=False):
         self.resource_name = resource_name
         self.repo_name = repo_name
-        self.tag = tag
+        self.ref = ref
         self.owner = owner
         self._manifest = manifest
         self.url = url
@@ -92,17 +92,28 @@ class Resource(object):
         if self.update:
             for remote in self.repo.remotes:
                 remote.fetch()
-        if not self.tag:
-            self.tag = self.latest_tag
-        self.repo.git.checkout(self.tag)
-        if self.tag == DEFAULT_TAG and self.update:
+        if not self.ref:
+            self.ref = self.latest_tag
+        self.repo.git.checkout(self.ref)
+        if self.ref == DEFAULT_REF and self.update:
             self.repo.git.pull()
 
     @property
+    def tags(self):
+        return sorted(self.repo.tags, key=lambda t: t.commit.committed_datetime)
+
+    @property
     def latest_tag(self):
-        tag = sorted(self.repo.tags, key=lambda t: t.commit.committed_datetime)[-1]
+        tag = self.tags[-1]
         if tag:
             return tag.name
+
+    @property
+    def ref_is_tag(self):
+        for tag in self.tags:
+            if self.ref == tag.name:
+                return True
+        return False
 
     @property
     def commit(self):
