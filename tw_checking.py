@@ -172,7 +172,7 @@ class TwCheckingPdfConverter(TnPdfConverter):
                     {context_id['scripture'][self.ust_id]}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
-                    {group_data['OrigQuote']}
+                    {flatten_alignment(ol_alignment)}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
                     {context_id['scripture'][self.ol_bible_id]}
