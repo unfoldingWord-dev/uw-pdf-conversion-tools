@@ -41,7 +41,7 @@ foreach($dirs as $dir) {
         echo "<p>\n";
         foreach($files as $file) {
             $filepath = './'.$dir.'/'.$file;
-            $realfile = basename(readlink($filepath));
+            $realfile = './'.$dir.'/'.basename(readlink($filepath));
 
             echo '<a href="'.$realfile.'">'.$realfile.'</a> <em>('.date ("Y-m-d H:i:s", filemtime($filepath)).')</em><br/>'."\n";
         }
