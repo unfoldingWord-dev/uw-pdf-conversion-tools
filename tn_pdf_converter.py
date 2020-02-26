@@ -35,7 +35,11 @@ QUOTES_TO_IGNORE = ['general information:', 'connecting statement:']
 class TnPdfConverter(PdfConverter):
 
     def __init__(self, *args, ult_id=DEFAULT_ULT_ID, ust_id=DEFAULT_UST_ID, **kwargs):
+        self.project_id = kwargs['project_id']
+        self.book_number = BOOK_NUMBERS[self.project_id]
+
         super().__init__(*args, **kwargs)
+
         self.ult_id = ult_id
         self.ust_id = ust_id
 
@@ -46,7 +50,6 @@ class TnPdfConverter(PdfConverter):
         self.resources['ugnt'].repo_name = 'el-x-koine_ugnt'
         self.resources['uhb'].repo_name = 'hbo_uhb'
 
-        self.book_number = BOOK_NUMBERS[self.project_id]
         self.verse_usfm = OrderedDict()
         self.tw_words_data = OrderedDict()
         self.tn_groups_data = OrderedDict()
