@@ -136,11 +136,11 @@ class PdfConverter:
 
     @property
     def file_project_and_ref(self):
-        return f'{self.file_project_id}_{self.main_ref}'
+        return f'{self.file_project_id}_{self.ref_version_identifier}'
 
     @property
     def file_ref_id(self):
-        return f'{self.file_base_id}_{self.main_ref}'
+        return f'{self.file_base_id}_{self.ref_version_identifier}'
 
     @property
     def file_project_id(self):
@@ -158,14 +158,10 @@ class PdfConverter:
             return ''
 
     @property
-    def main_ref(self):
-        main_ref = self.main_resource.ref
+    def ref_version_identifier(self):
         if not self.main_resource.ref_is_tag:
-            return main_ref
-        starts_with_num_regex = re.compile(r'^[0-9]')
-        if starts_with_num_regex.match(main_ref):
-            return f'v{main_ref}'
-        return main_ref
+            return self.main_resource.ref
+        return self.main_resource.version
 
     @property
     def project(self):
