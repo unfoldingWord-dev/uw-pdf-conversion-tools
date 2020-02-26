@@ -107,8 +107,8 @@ def main(bible_class, resource_names=None):
     if not resource_names:
         resource_names = []
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('-b', '--bible-id', dest='bible_id', default=DEFAULT_ULT_ID, required=False, help=f'Bible ID. Default: {DEFAULT_ULT_ID}')
-    parser.add_argument(f'--bible-id-tag', dest='bible_id_tag', default=None, required=False,
+    parser.add_argument('-b', '--bible-id', dest='bible_id', default=DEFAULT_ULT_ID, required=False, help=f'Bible resource ID. Default: {DEFAULT_ULT_ID}')
+    parser.add_argument(f'--bible-ref', dest='bible_id_ref', default=None, required=False,
                         help=f'Branch or tag for the `bible_id`. If not set, uses latest tag unless --master flag is used')
     run_converter(resource_names, bible_class, project_ids_map={'': BOOK_NUMBERS.keys(), 'all': BOOK_NUMBERS.keys()},
                   parser=parser, extra_resource_id='bible_id')
