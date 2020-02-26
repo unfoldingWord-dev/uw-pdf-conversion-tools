@@ -24,10 +24,12 @@ DEFAULT_ULT_ID = 'ult'
 
 
 class BiblePdfConverter(PdfConverter):
-    def __init__(self, bible_id, *args, **kwargs):
+    def __init__(self, bible_id, chapter, *args, **kwargs):
         self.project_id = kwargs['project_id']
+        self.chapter = chapter
         self.bible_id = bible_id
         self.book_number = None
+        self.chapter = chapter
         if self.project_id:
             self.book_number = BOOK_NUMBERS[kwargs['project_id']]
         super().__init__(*args, **kwargs)
@@ -35,7 +37,8 @@ class BiblePdfConverter(PdfConverter):
     @property
     def file_id_project_str(self):
         if self.project_id:
-            return f'_{self.book_number.zfill(2)}-{self.project_id.upper()}'
+            chapter_str = f'-{self.pad(self.chapter)}' if self.chapter else ''
+            return f'_{self.book_number.zfill(2)}-{self.project_id.upper()}{chapter_str}'
         else:
             return ''
 
@@ -67,6 +70,9 @@ class BiblePdfConverter(PdfConverter):
             project_file = os.path.join(self.main_resource.repo_dir, f'{project_num}-{project_id.upper()}.usfm')
             usfm = read_file(project_file)
             usfm = unalign_usfm(usfm)
+            if self.chapter:
+                usfm_split = re.split(r'\\c', usfm)
+                usfm = usfm_split[0] + '\\c' + usfm_split[int(self.chapter)]
             html, warnings = SingleFilelessHtmlRenderer({project_id.upper(): usfm}).render()
             soup = BeautifulSoup(html, 'html.parser')
             book_header = soup.find('h1')
@@ -109,6 +115,7 @@ def main(bible_class, resource_names=None):
         resource_names = []
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-b', '--bible-id', dest='bible_id', default=DEFAULT_ULT_ID, required=False, help=f'Bible resource ID. Default: {DEFAULT_ULT_ID}')
+    parser.add_argument('-c', '--chapter', dest='chapter', default=None, required=False, help=f'Chapter to generate')
     parser.add_argument(f'--bible-ref', dest='bible_id_ref', default=None, required=False,
                         help=f'Branch or tag for the `bible_id`. If not set, uses latest tag unless --master flag is used')
     run_converter(resource_names, bible_class, project_ids_map={'': BOOK_NUMBERS.keys(), 'all': [None]},
