@@ -15,7 +15,7 @@ from glob import glob
 from tn_pdf_converter import TnPdfConverter, main
 from general_tools.file_utils import load_json_object, get_latest_version_path, get_child_directories
 from general_tools.html_tools import mark_phrases_in_html
-from general_tools.alignment_tools import flatten_alignment, split_string_into_quote
+from general_tools.alignment_tools import flatten_alignment, split_string_into_alignment
 
 ORDERED_GROUPS = {
     'kt': 'Key Terms',
@@ -144,16 +144,8 @@ class TwCheckingPdfConverter(TnPdfConverter):
                         else:
                             context_id['scripture'][bible_id] = f'<div style="color: red">{scripture}</div>'
                     scripture = self.get_plain_scripture(self.ol_bible_id, chapter, verse)
-                    quote = context_id['quote']
-                    if isinstance(quote, str):
-                        quote = split_string_into_quote(quote)
-                    phrases = []
-                    for word in quote:
-                        phrases.append([{
-                            'text': word['word'],
-                            'occurrence': word['occurrence']
-                        }])
-                    marked_html = mark_phrases_in_html(scripture, phrases)
+                    ol_alignment = split_string_into_alignment(group_data['OrigQuote'])
+                    marked_html = mark_phrases_in_html(scripture, ol_alignment)
                     if marked_html:
                         context_id['scripture'][self.ol_bible_id] = marked_html
                     else:
@@ -176,7 +168,7 @@ class TwCheckingPdfConverter(TnPdfConverter):
                     {context_id['scripture'][self.ust_id]}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
-                    {flatten_alignment(context_id['quote'])}
+                    {group_data['OrigQuote']}
                 </td>
                 <td style="direction: {'rtl' if self.ol_lang_code == 'hbo' else 'ltr'}">
                     {context_id['scripture'][self.ol_bible_id]}

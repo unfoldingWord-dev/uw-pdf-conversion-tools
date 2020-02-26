@@ -141,7 +141,7 @@ class TnCheckingPdfConverter(TnPdfConverter):
                         else:
                             group_data['scripture'][bible_id] = f'<div style="color: red">{scripture}</div>'
                     scripture = self.get_plain_scripture(self.ol_bible_id, chapter, verse)
-                    ol_alignment = split_string_into_alignment(context_id['quoteString'])
+                    ol_alignment = split_string_into_alignment(group_data['OrigQuote'])
                     marked_html = mark_phrases_in_html(scripture, ol_alignment)
                     if marked_html:
                         group_data['scripture'][self.ol_bible_id] = marked_html
