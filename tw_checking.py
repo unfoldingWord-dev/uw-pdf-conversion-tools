@@ -15,7 +15,7 @@ from glob import glob
 from tn_pdf_converter import TnPdfConverter, main
 from general_tools.file_utils import load_json_object, get_latest_version_path, get_child_directories
 from general_tools.html_tools import mark_phrases_in_html
-from general_tools.alignment_tools import flatten_alignment, split_string_into_alignment
+from general_tools.alignment_tools import flatten_alignment, split_string_into_alignment, convert_single_dimensional_quote_to_multidimensional
 
 ORDERED_GROUPS = {
     'kt': 'Key Terms',
@@ -144,7 +144,11 @@ class TwCheckingPdfConverter(TnPdfConverter):
                         else:
                             context_id['scripture'][bible_id] = f'<div style="color: red">{scripture}</div>'
                     scripture = self.get_plain_scripture(self.ol_bible_id, chapter, verse)
-                    ol_alignment = split_string_into_alignment(group_data['OrigQuote'])
+                    ol_alignment = context_id['quote']
+                    if isinstance(ol_alignment, str):
+                        ol_alignment = split_string_into_alignment(ol_alignment)
+                    if not isinstance(ol_alignment[0], list):
+                        ol_alignment = convert_single_dimensional_quote_to_multidimensional(ol_alignment)
                     marked_html = mark_phrases_in_html(scripture, ol_alignment)
                     if marked_html:
                         context_id['scripture'][self.ol_bible_id] = marked_html
