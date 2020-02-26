@@ -105,8 +105,7 @@ class ObsSnSqPdfConverter(PdfConverter):
                             alignment = alignment_tools.split_string_into_alignment(phrase)
                             marked_obs_text = html_tools.mark_phrases_in_html(obs_text, alignment)
                             if not marked_obs_text:
-                                fix = html_tools.mark_phrases_in_html(orig_obs_text, alignment)
-                                self.add_bad_highlight(obs_sn_rc, orig_obs_text, obs_sn_rc.rc_link, phrase, fix)
+                                self.add_bad_highlight(obs_sn_rc, orig_obs_text, obs_sn_rc.rc_link, phrase)
                             else:
                                 obs_text = marked_obs_text
 
