@@ -25,11 +25,11 @@ DEFAULT_ULT_ID = 'ult'
 
 class BiblePdfConverter(PdfConverter):
     def __init__(self, bible_id, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.bible_id = bible_id
         self.book_number = None
-        if self.project_id:
-            self.book_number = BOOK_NUMBERS[self.project_id]
+        if kwargs['project_id']:
+            self.book_number = BOOK_NUMBERS[kwargs['project_id']]
+        super().__init__(*args, **kwargs)
 
     @property
     def file_id_project_str(self):

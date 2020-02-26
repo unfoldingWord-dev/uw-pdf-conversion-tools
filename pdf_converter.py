@@ -85,7 +85,7 @@ class PdfConverter:
         self._project = None
 
         if not self.logger:
-            self.logger = logging.getLogger(self.file_ref_id)
+            self.logger = logging.getLogger(self.file_project_id)
             self.logger.setLevel(logging.DEBUG)
             self.logger_stream_handler = logging.StreamHandler()
             self.logger_stream_handler.setLevel(logging.DEBUG)
