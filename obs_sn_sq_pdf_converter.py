@@ -16,7 +16,7 @@ import markdown2
 import general_tools.html_tools as html_tools
 from bs4 import BeautifulSoup
 from pdf_converter import PdfConverter, run_converter
-from general_tools import obs_tools
+from general_tools import obs_tools, alignment_tools
 
 
 class ObsSnSqPdfConverter(PdfConverter):
@@ -102,9 +102,10 @@ class ObsSnSqPdfConverter(PdfConverter):
                     phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')
                     if phrases:
                         for phrase in phrases:
-                            marked_obs_text = html_tools.mark_phrase_in_text(obs_text, phrase)
+                            alignment = alignment_tools.split_string_into_alignment(phrase)
+                            marked_obs_text = html_tools.mark_phrases_in_html(obs_text, alignment)
                             if not marked_obs_text:
-                                fix = html_tools.find_quote_variation_in_text(orig_obs_text, phrase)
+                                fix = html_tools.mark_phrases_in_html(orig_obs_text, alignment)
                                 self.add_bad_highlight(obs_sn_rc, orig_obs_text, obs_sn_rc.rc_link, phrase, fix)
                             else:
                                 obs_text = marked_obs_text

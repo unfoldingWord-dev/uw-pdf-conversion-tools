@@ -59,7 +59,7 @@ def split_string_into_alignment(text, occurrence=1):
     alignments = []
     parts = re.split('…', text)
     for part_idx, part in enumerate(parts):
-        words = re.split(rf'([{punctuation}]+|\s+)', part)
+        words = list(filter(None, re.split(rf'([{punctuation}]+|\s+)', part)))
         alignments.append([])
         for word_idx, word in enumerate(words):
             alignments[part_idx].append({

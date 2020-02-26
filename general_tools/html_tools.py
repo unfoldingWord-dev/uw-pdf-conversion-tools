@@ -66,10 +66,19 @@ def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on
         start_indices = [i.start() for i in re.finditer(f'{word_break}{re.escape(first_word)}{word_break}', text)]
         if len(start_indices) < first_word_occurrence:
             return
-        phrase_start = start_indices[first_word_occurrence - 1]
-        phrase_end = start_indices[first_word_occurrence - 1] + len(phrase)
 
-        if phrase_end > len(text) or phrase != text[phrase_start:phrase_end]:
+        phrase_start = None
+        phrase_end = None
+        for start_index in start_indices[first_word_occurrence-1:]:
+            end_index = start_index + len(phrase)
+            if end_index > len(text):
+                return
+            if phrase == text[start_index:end_index]:
+                phrase_start = start_index
+                phrase_end = end_index
+                break
+
+        if not phrase_start:
             return
 
         strings = get_strings(soup)
