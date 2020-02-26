@@ -398,13 +398,14 @@ class PdfConverter:
             link = '\n'.join([f'<link href="{style}" rel="stylesheet">' for style in self.style_sheets])
             html = html_template.safe_substitute(lang=self.lang_code, title=title, link=link, body=body)
             write_file(self.html_file, html)
+            html = None
 
             link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_latest.html')
             symlink(self.html_file, link_file_path, True)
 
-            self.save_resource_data()
             self.save_bad_links_html()
             self.save_bad_highlights_html()
+            self.save_resource_data()
             self.logger.info('Generated HTML file.')
         else:
             self.logger.info(f'HTML file {self.html_file} is already there. Not generating. Use -r to force regeneration.')
@@ -578,24 +579,30 @@ class PdfConverter:
         write_file(save_file, jsonpickle.dumps(self.rcs))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_rcs_latest.json')
         symlink(save_file, link_file_path, True)
+        self.rcs = None
+        self.all_rcs = None
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_appendix_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.appendix_rcs))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_appendix_rcs_latest.json')
         symlink(save_file, link_file_path, True)
+        self.appendix_rcs = None
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_bad_links.json')
         write_file(save_file, jsonpickle.dumps(self.bad_links))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_links_latest.json')
         symlink(save_file, link_file_path, True)
+        self.bad_links = None
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_bad_highlights.json')
         write_file(save_file, jsonpickle.dumps(self.bad_highlights))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_highlights_latest.json')
         symlink(save_file, link_file_path, True)
+        self.bad_highlights = None
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_ref}_generation_info.json')
         write_file(save_file, jsonpickle.dumps(self.generation_info))
+        self.generation_info = None
 
     def get_previous_generation_info(self):
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_ref}_generation_info.json')

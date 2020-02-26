@@ -54,7 +54,6 @@ class TnPdfConverter(PdfConverter):
         self.tw_words_data = OrderedDict()
         self.tn_groups_data = OrderedDict()
         self.tn_book_data = OrderedDict()
-        self.tw_rcs = {}
         self.last_ended_with_quote_tag = False
         self.last_ended_with_paragraph_tag = False
         self.open_quote = False
@@ -98,7 +97,12 @@ class TnPdfConverter(PdfConverter):
         self.populate_tw_words_data()
         self.populate_tn_groups_data()
         self.populate_tn_book_data()
-        return self.get_tn_html()
+        html = self.get_tn_html()
+        self.tn_book_data = None
+        self.tn_groups_data = None
+        self.tw_words_data = None
+        return html
+
 
     def get_usfm_from_verse_objects(self, verse_objects):
         usfm = ''
