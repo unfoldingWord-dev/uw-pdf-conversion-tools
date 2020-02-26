@@ -6,14 +6,14 @@ from tx_usfm_tools.books import bookKeys, bookNames, silNames, readerNames, book
 from tx_usfm_tools.parseUsfm import UsfmToken
 
 #
-#   Simplest renderer. Ignores everything except ascii text.
+#   Simplest renderer that doesn't use files (just gets USFM string and returns HTML string). Ignores everything except ascii text.
 #
 
 
-class SingleVerseHtmlRender(AbstractRenderer):
-    def __init__(self, book, usfm):
+class SingleFilelessHtmlRenderer(AbstractRenderer):
+    def __init__(self, books_usfm):
         # logging.debug(f"SingleHTMLRenderer.__init__( {inputDir}, {outputFilename} ) …")
-        self.booksUsfm = {book: usfm}
+        self.booksUsfm = books_usfm
         self.html = ''
         # Position
         self.cb = ''    # Current Book

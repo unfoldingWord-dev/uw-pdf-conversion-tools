@@ -4,7 +4,6 @@ import fs from 'fs-extra';
 import sourceContentUpdater from 'tc-source-content-updater';
 import yaml from 'js-yaml';
 
-let resourcesPath = null;
 let SourceContentUpdater = null;
 
 /**
@@ -109,9 +108,8 @@ const processTN = (resource) => {
   SourceContentUpdater.processTranslationNotes(resource, tnRepoPath, tnGroupDataPath, resourcesPath);
 };
 
-const processBibles = (langId, workingDir, ultId, ustId) => {
+const processBibles = (langId, workingDir, resourcesPath, ultId, ustId) => {
   SourceContentUpdater = new sourceContentUpdater();
-  resourcesPath = path.join(workingDir, 'resources');
   fs.mkdirSync(resourcesPath, {recursive: true});
   processOLBible({
     languageId: 'hbo',
@@ -154,7 +152,8 @@ if (process.argv.length < 4) {
   throw Error('Syntax: node processBibles.js <lang> <working_dir> [ult_id] [ust_id]');
 }
 const lang = process.argv[2];
-const workingDir = process.argv[3];
+const resourcesPath = process.argv[3];
+const workingDir = path.dirname(resourcesPath)
 let ultId = 'ult';
 let ustId = 'ust';
 if (process.argv.length > 4) {
@@ -164,8 +163,8 @@ if (process.argv.length > 5) {
   ustId = process.argv[5];
 }
 if (!fs.existsSync(workingDir)) {
-  throw Error('Working Directory does not exist: ' + workingDir);
+  throw Error('Parent of resources path does not exist: ' + workingDir);
 }
-processBibles(lang, workingDir, ultId, ustId);
+processBibles(lang, workingDir, resourcesPath, ultId, ustId);
 // processTnData(lang, workingDir, ultId,ustId);
 

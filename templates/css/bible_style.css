@@ -1,0 +1,135 @@
+.bible-book {
+    columns: 2 auto;
+    margin: 0 !important;
+    text-align: justify;
+    justify-content: space-between;
+    text-rendering: geometricPrecision;
+}
+
+.bible-book-wrapper {
+    width: 320px;
+    height: 100%;
+    min-height: 100px;
+}
+
+.bible-book h1 {
+    text-align: center;
+    margin-bottom: 0;
+}
+
+p.indent-0 {
+    margin-left: 0 !important;
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+}
+
+p.indent-1 {
+    margin-left: 1em !important;
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+}
+
+p.indent-2 {
+    margin-left: 2em !important;
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+}
+
+p.indent-3 {
+    margin-left: 3em !important;
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+}
+
+.c-num {
+    color: gray;
+}
+
+.v-num {
+    color: gray;
+    margin-right: 2px;
+}
+
+.tetragrammaton {
+    font-variant: small-caps;
+}
+.footnotes {
+    font-size: 0.8em;
+}
+.footnotes-hr {
+    width: 90%;
+}
+
+.page {
+    height: 1165px;
+    padding-bottom: 10px;
+    width: 900px;
+    overflow: hidden;
+    margin: 0;
+    page-break-inside: avoid !important;
+    page-break-after: always !important;
+    position: relative;
+}
+
+.col {
+    width: 420px;
+    padding: 10px;
+    min-height: 600px;
+    page-break-inside: avoid !important;
+    position: absolute;
+    top: 0;
+}
+
+.footnotesSection {
+    width: 420px;
+    padding: 0 10px;
+    page-break-inside: avoid !important;
+    position: absolute;
+    bottom: 0;
+}
+
+.footnotesSection > div.footnote:first-child {
+    border-top: solid #9a9a9a 1px;
+}
+
+.left {
+    left: 0;
+}
+
+.right {
+    right: 0;
+}
+
+.col > p {
+    text-align: justify;
+    padding: 0;
+    margin-top: 22px;
+    margin-bottom: 22px;
+    page-break-inside: avoid !important;
+}
+
+.col > :first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.col > :last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+sup {
+    vertical-align: baseline;
+    position: relative;
+    top: -0.4em;
+}
+
+.split-paragraph {
+    text-align-last: justify;
+	text-align: justify;
+}
+.split-paragraph:after {
+    content: "";
+    display: inline-block;
+    width: 100%;
+}

@@ -21,7 +21,7 @@ from glob import glob
 from bs4 import BeautifulSoup
 from collections import OrderedDict
 from pdf_converter import PdfConverter, run_converter
-from tx_usfm_tools.singleVerseHtmlRenderer import SingleVerseHtmlRender
+from tx_usfm_tools.singleFilelessHtmlRenderer import SingleFilelessHtmlRenderer
 from general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
 from general_tools.alignment_tools import get_alignment, flatten_alignment, flatten_quote
 from general_tools.file_utils import read_file, load_json_object, get_latest_version_path, get_child_directories
@@ -76,10 +76,10 @@ class TnPdfConverter(PdfConverter):
             return ''
 
     def process_bibles(self):
-        if self.update and (self.resources['ult'].new_commits or self.resources['ust'].new_commits or
-                                self.resources['tn'].new_commits or self.resources['tw'].new_commits or
-                                self.resources[self.ol_bible_id].new_commits):
-            cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{os.path.join(self.working_dir, f"{self.lang_code}_{self.name}_{self.tag}_resources")} {self.ult_id} {self.ust_id}'
+        resources_commits = '_'.join(list(map(lambda x: self.resources[x].commit, self.resources)))
+        resources_dir = os.path.join(self.working_dir, f'resources_{resources_commits}')
+        if not os.path.exists(resources_dir):
+            cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{resources_dir}" {self.ult_id} {self.ust_id}'
             self.logger.info(f'Running: {cmd}')
             ret = subprocess.call(cmd, shell=True)
             if ret:
@@ -96,12 +96,6 @@ class TnPdfConverter(PdfConverter):
         self.populate_tn_groups_data()
         self.populate_tn_book_data()
         return self.get_tn_html()
-
-    def pad(self, num):
-        if self.project_id == 'psa':
-            return str(num).zfill(3)
-        else:
-            return str(num).zfill(2)
 
     def get_usfm_from_verse_objects(self, verse_objects):
         usfm = ''
@@ -705,7 +699,7 @@ QUOTE: {quote_string}
 
 \c {chapter}
 {usfm}'''
-        html, warnings = SingleVerseHtmlRender(self.project_id.upper(), usfm).render()
+        html, warnings = SingleFilelessHtmlRenderer({self.project_id.upper(): usfm}).render()
         soup = BeautifulSoup(html, 'html.parser')
         header = soup.find('h1')
         if header:

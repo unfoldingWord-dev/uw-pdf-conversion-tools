@@ -175,6 +175,14 @@ class PdfConverter:
         if project:
             return project['title']
 
+    def pad(self, num, project_id=None):
+        if not project_id:
+            project_id = self.project_id
+        if project_id == 'psa':
+            return str(num).zfill(3)
+        else:
+            return str(num).zfill(2)
+
     def add_style_sheet(self, style_sheet):
         self.logger.info(f'Adding CSS style sheet: {style_sheet}')
         self.style_sheets.append(style_sheet)
@@ -1078,11 +1086,11 @@ class PdfConverter:
 
 
 def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None,
-                  project_ids_map=None, parser=None):
+                  project_ids_map=None, parser=None, extra_resource_id=None):
     if not parser:
         parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
-                        help='Regenerate PDF even if exists: Default: false')
+                        help='Regenerate PDF even if exists. Default: false')
     parser.add_argument('-l', '--lang_code', dest='lang_codes', required=False, action='append',
                         help='Language Code. Can specify multiple -l\'s. Default: en')
     parser.add_argument('-p', '--project_id', dest='project_ids', required=False, action='append',
@@ -1099,7 +1107,8 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                         help=f'If set, the commit hash will be in the html and pdf filename')
     parser.add_argument('--offline', dest='offline', action='store_true', help="Do not download repos and images")
     for resource_name in resource_names:
-        parser.add_argument(f'--{resource_name}-tag', dest=resource_name, default=None, required=False,
+        param_name = resource_name.replace('_', '-')
+        parser.add_argument(f'--{param_name}-tag', dest=f'{resource_name}_tag', default=None, required=False,
                             help=f'Branch or tag for `{resource_name}`. If not set, uses latest tag unless --master flag is used')
 
     args = parser.parse_args(sys.argv[1:])
@@ -1109,6 +1118,10 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     master = args.master
     show_commit = args.show_commit
     update = not offline
+    extra_resource_name = None
+    if extra_resource_id and hasattr(args, extra_resource_id):
+        extra_resource_name = getattr(args, extra_resource_id)
+        resource_names += [extra_resource_name]
     if not lang_codes:
         lang_codes = [DEFAULT_LANG_CODE]
     project_ids = args.project_ids
@@ -1124,7 +1137,10 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
             resources = Resources()
             for resource_name in resource_names:
                 repo_name = f'{lang_code}_{resource_name}'
-                tag = getattr(args, resource_name)
+                if resource_name == extra_resource_name:
+                    tag = getattr(args, f'{extra_resource_id}_tag')
+                else:
+                    tag = getattr(args, f'{resource_name}_tag')
                 if not tag and master:
                     tag = DEFAULT_TAG
                 logo = None
@@ -1137,6 +1153,7 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
             args_dict['resources'] = resources
             args_dict['offline'] = offline
             args_dict['update'] = update
+            args_dict['owner'] = owner
             args_dict['show_commit'] = show_commit
             converter = pdf_converter_class(**args_dict)
             project_id_str = f'_{project_id}' if project_id else ''

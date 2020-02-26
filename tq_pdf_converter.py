@@ -40,14 +40,6 @@ class TqPdfConverter(PdfConverter):
         self.logger.info('Creating TQ for {0}...'.format(self.file_project_and_tag_id))
         return self.get_tq_html()
 
-    def pad(self, num, project_id=None):
-        if not project_id:
-            project_id = self.project_id
-        if project_id == 'psa':
-            return str(num).zfill(3)
-        else:
-            return str(num).zfill(2)
-
     def get_book_title(self, project):
         if self.main_resource.title in project['title']:
             return project['title'].replace(f' {self.main_resource.title}', '')
@@ -56,11 +48,10 @@ class TqPdfConverter(PdfConverter):
 
     def get_tq_html(self):
         tq_html = ''
-        # if self.project_id:
-        #     projects = [self.main_resource.find_project(self.project_id)]
-        # else:
-        #     projects = self.main_resource.projects
-        # projects = [self.main_resource.find_project('rut'), self.main_resource.find_project('tit')]
+        if self.project_id:
+            projects = [self.main_resource.find_project(self.project_id)]
+        else:
+            projects = self.main_resource.projects
         # for project_idx, project in enumerate(projects):
         #   project_id = project['identifier']
 # REMOVE FROM HERE TO "REMOVE TO HERE" and uncomment above to use the manifest projects once they are sorted
@@ -76,8 +67,6 @@ class TqPdfConverter(PdfConverter):
             chapter_dirs = sorted(glob(os.path.join(project_dir, '*')))
             tq_html += f'''
 <section id="{self.lang_code}-{self.name}-{project_id}" class="tq-book">
-'''
-            tq_html += f'''
     <article id="{self.lang_code}-{self.name}-{project_id}-cover" class="resource-title-page no-header-footer"">
         <img src="images/{self.main_resource.logo_file}" class="logo" alt="UTN">
         <h1{' class="section-header"' if project_idx == 0 else ''}>{self.title}</h1>

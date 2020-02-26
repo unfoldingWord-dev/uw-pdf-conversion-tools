@@ -98,12 +98,6 @@ class TnPdfConverter(PdfConverter):
         self.populate_tn_book_data()
         return self.get_tn_html()
 
-    def pad(self, num):
-        if self.project_id == 'psa':
-            return str(num).zfill(3)
-        else:
-            return str(num).zfill(2)
-
     def get_usfm_from_verse_objects(self, verse_objects):
         usfm = ''
         for idx, obj in enumerate(verse_objects):
