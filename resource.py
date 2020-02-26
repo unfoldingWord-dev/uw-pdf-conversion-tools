@@ -94,6 +94,8 @@ class Resource(object):
                 remote.fetch()
         if not self.ref:
             self.ref = self.latest_tag
+            if not self.ref:
+                self.ref = DEFAULT_REF
         self.repo.git.checkout(self.ref)
         if self.ref == DEFAULT_REF and self.update:
             self.repo.git.pull()
@@ -104,9 +106,9 @@ class Resource(object):
 
     @property
     def latest_tag(self):
-        tag = self.tags[-1]
-        if tag:
-            return tag.name
+        tags = self.tags
+        if tags and len(tags):
+            return self.tags[-1].name
 
     @property
     def ref_is_tag(self):
