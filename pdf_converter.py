@@ -554,7 +554,7 @@ class PdfConverter:
         logged_message = False
         for repo_name in self.generation_info:
             new_commits = False
-            if old_info and repo_name in old_info and repo_name in self.generation_info:
+            if not self.regenerate and old_info and repo_name in old_info and repo_name in self.generation_info:
                 old_ref = old_info[repo_name]['ref']
                 new_ref = self.generation_info[repo_name]['ref']
                 old_commit = old_info[repo_name]['commit']
@@ -562,15 +562,15 @@ class PdfConverter:
                 if old_ref != new_ref or old_commit != new_commit:
                     self.logger.info(f'Resource {repo_name} has changed: {old_ref} => {new_ref}, {old_commit} => {new_commit}. REGENERATING PDF.')
                     new_commits = True
+                    self.regenerate = True
             else:
-                if not logged_message:
+                if not self.regenerate:
                     self.logger.info(f'Looks like this the first run for {self.file_commit_id}.')
-                    logged_message = True
                 new_commits = True
+                self.regenerate = True
             if new_commits:
                 resource_id = repo_name.split('_', maxsplit=1)[1]
                 self.resources[resource_id].new_commits = True
-                self.regenerate = True
 
     def save_resource_data(self):
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_rcs.json')

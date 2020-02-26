@@ -76,8 +76,8 @@ class TnPdfConverter(PdfConverter):
             return ''
 
     def process_bibles(self):
-        resources_commits = '_'.join(list(map(lambda x: self.resources[x].tag if self.resources[x].ref_is_tag else self.resources[x].commit, self.resources)))
-        resources_dir = os.path.join(self.working_dir, f'resources_{resources_commits}')
+        resource_refs = '-'.join(list(map(lambda x: f'{self.resources[x].repo_name}_{self.resources[x].ref}' + (f'_{self.resources[x].commit}' if not self.resources[x].ref_is_tag else ''), self.resources)))
+        resources_dir = os.path.join(self.working_dir, f'resources_{resource_refs}')
         if not os.path.exists(resources_dir):
             cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{resources_dir}" {self.ult_id} {self.ust_id}'
             self.logger.info(f'Running: {cmd}')

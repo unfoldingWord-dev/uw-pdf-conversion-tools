@@ -64,8 +64,9 @@ class TnCheckingPdfConverter(TnPdfConverter):
         return html
 
     def get_body_html(self):
-        self.add_style_sheet('css/tn_style.css')
         self.logger.info('Creating TN Checking for {0}...'.format(self.file_project_and_ref_id))
+        self.add_style_sheet('css/tn_style.css')
+        self.process_bibles()
         self.populate_verse_usfm(self.ult_id)
         self.populate_verse_usfm(self.ust_id)
         self.populate_verse_usfm(self.ol_bible_id, self.ol_lang_code)
@@ -188,4 +189,4 @@ class TnCheckingPdfConverter(TnPdfConverter):
 
 
 if __name__ == '__main__':
-    main(TnCheckingPdfConverter, ['tn', 'ult', 'ust', 'ugnt', 'uhb'])
+    main(TnCheckingPdfConverter)
