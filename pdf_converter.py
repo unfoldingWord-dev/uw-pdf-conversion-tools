@@ -46,7 +46,7 @@ class PdfConverter:
 
     def __init__(self, resources: Resources, project_id=None, working_dir=None, output_dir=None,
                  lang_code=DEFAULT_LANG_CODE, regenerate=False, logger=None, offline=False, update=True,
-                 show_commit=False, **kwargs):
+                 **kwargs):
         self.resources = resources
         self.project_id = project_id
         self.working_dir = working_dir
@@ -56,7 +56,6 @@ class PdfConverter:
         self.logger = logger
         self.offline = offline
         self.update = not offline and update
-        self.show_commit = show_commit
 
         self.logger_handler = None
         self.wp_logger = logging.getLogger('weasyprint')
@@ -131,16 +130,16 @@ class PdfConverter:
         return self.main_resource.version
 
     @property
-    def file_commit_id(self):
-        return f'{self.file_project_and_ref}_{self.main_resource.commit}'
+    def file_project_and_ref(self):
+        return f'{self.file_project_id}_{self.ref}'
 
     @property
-    def file_project_and_ref(self):
-        return f'{self.file_project_id}_{self.ref_version_identifier}'
+    def file_project_and_unique_ref(self):
+        return f'{self.file_project_id}_{self.unique_ref}'
 
     @property
     def file_ref_id(self):
-        return f'{self.file_base_id}_{self.ref_version_identifier}'
+        return f'{self.file_base_id}_{self.ref}'
 
     @property
     def file_project_id(self):
@@ -158,10 +157,16 @@ class PdfConverter:
             return ''
 
     @property
-    def ref_version_identifier(self):
+    def ref(self):
         if not self.main_resource.ref_is_tag:
             return self.main_resource.ref
-        return self.main_resource.version
+        return f'v{self.main_resource.version}'
+
+    @property
+    def unique_ref(self):
+        if not self.main_resource.ref_is_tag:
+            return f'{self.main_resource.ref}_{self.main_resource.commit}'
+        return f'v{self.main_resource.version}'
 
     @property
     def project(self):
@@ -256,12 +261,8 @@ class PdfConverter:
         self.setup_resources()
         self.setup_logging_to_file()
 
-        if self.show_commit:
-            self.html_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}.html')
-            self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}.pdf')
-        else:
-            self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}.html')
-            self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}.pdf')
+        self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.html')
+        self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.pdf')
 
         self.determine_if_regeneration_needed()
         self.save_resource_data()
@@ -335,22 +336,22 @@ class PdfConverter:
         self.logger.info('Setting up log files')
         if self.logger_handler:
             self.logger.removeHandler(self.logger_handler)
-        log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_logger.log')
+        log_file = os.path.join(self.log_dir, f'{self.file_project_and_unique_ref}_logger.log')
         self.logger_handler = logging.FileHandler(log_file)
         self.logger.addHandler(self.logger_handler)
         self.logger.info(f'Logging script output to {log_file}')
 
-        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_ref}_logger.log')
+        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_ref}_logger_latest.log')
         symlink(log_file, link_file_path, True)
 
         self.wp_logger.setLevel(logging.DEBUG)
-        log_file = os.path.join(self.log_dir, f'{self.file_commit_id}_weasyprint.log')
+        log_file = os.path.join(self.log_dir, f'{self.file_project_and_unique_ref}_weasyprint.log')
         self.wp_logger_handler = logging.FileHandler(log_file)
         self.wp_logger_handler.setLevel(logging.DEBUG)
         self.wp_logger.addHandler(self.wp_logger_handler)
         self.logger.info(f'Logging WeasyPrint output to {log_file}')
 
-        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_ref}_weasyprint.log')
+        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_ref}_weasyprint_latest.log')
         symlink(log_file, link_file_path, True)
 
     def generate_html(self):
@@ -358,7 +359,7 @@ class PdfConverter:
             if os.path.islink(self.html_file):
                 os.unlink(self.html_file)
 
-            self.logger.info(f'Creating HTML file for {self.file_commit_id}...')
+            self.logger.info(f'Creating HTML file for {self.file_project_and_unique_ref}...')
 
             self.logger.info('Generating cover page HTML...')
             cover_html = self.get_cover_html()
@@ -425,10 +426,7 @@ class PdfConverter:
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
 
     def save_bad_links_html(self):
-        if self.show_commit:
-            save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_links.html')
-        else:
-            save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_bad_links.html')
+        save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}_bad_links.html')
         link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_bad_links_latest.html')
 
         if not self.bad_links:
@@ -470,17 +468,14 @@ class PdfConverter:
 '''
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
-        html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_commit_id}', link='', body=bad_links_html)
+        html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_project_and_unique_ref}', link='', body=bad_links_html)
         write_file(save_file, html)
         symlink(save_file, link_file_path, True)
 
         self.logger.info(f'BAD LINKS HTML file can be found at {save_file}')
 
     def save_bad_highlights_html(self):
-        if self.show_commit:
-            save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_highlights.html')
-        else:
-            save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_bad_highlights.html')
+        save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}_bad_highlights.html')
         link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_bad_highlights_latest.html')
 
         if not self.bad_highlights:
@@ -530,7 +525,7 @@ class PdfConverter:
 '''
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
-        html = html_template.safe_substitute(title=f'BAD HIGHLIGHTS FOR {self.file_commit_id}', link='',
+        html = html_template.safe_substitute(title=f'BAD HIGHLIGHTS FOR {self.file_project_and_unique_ref}', link='',
                                              body=bad_highlights_html)
         write_file(save_file, html)
         symlink(save_file, link_file_path, True)
@@ -571,7 +566,7 @@ class PdfConverter:
                     self.regenerate = True
             else:
                 if not self.regenerate:
-                    self.logger.info(f'Looks like this the first run for {self.file_commit_id}.')
+                    self.logger.info(f'Looks like this the first run for {self.file_project_and_unique_ref}.')
                 new_commits = True
                 self.regenerate = True
             if new_commits:
@@ -579,24 +574,24 @@ class PdfConverter:
                 self.resources[resource_id].new_commits = True
 
     def save_resource_data(self):
-        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_rcs.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.rcs))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_rcs.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_rcs_latest.json')
         symlink(save_file, link_file_path, True)
 
-        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_appendix_rcs.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_appendix_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.appendix_rcs))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_appendix_rcs.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_appendix_rcs_latest.json')
         symlink(save_file, link_file_path, True)
 
-        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_links.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_bad_links.json')
         write_file(save_file, jsonpickle.dumps(self.bad_links))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_links.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_links_latest.json')
         symlink(save_file, link_file_path, True)
 
-        save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_highlights.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_bad_highlights.json')
         write_file(save_file, jsonpickle.dumps(self.bad_highlights))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_highlights.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_highlights_latest.json')
         symlink(save_file, link_file_path, True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_ref}_generation_info.json')
@@ -1107,8 +1102,6 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                         help=f'Owner of the resource repo on GitHub. Default: {DEFAULT_OWNER}')
     parser.add_argument('-m', '--master', dest='master', action='store_true',
                         help=f'If resource ref not specified, will use master branch instead of latest tag')
-    parser.add_argument('-c', '--show-commit', dest='show_commit', action='store_true',
-                        help=f'If set, the commit hash will be in the html and pdf filename')
     parser.add_argument('--offline', dest='offline', action='store_true', help="Do not download repos and images")
     for resource_name in resource_names:
         param_name = resource_name.replace('_', '-')
@@ -1120,7 +1113,6 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     owner = args.owner
     offline = args.offline
     master = args.master
-    show_commit = args.show_commit
     update = not offline
     extra_resource_name = None
     if extra_resource_id and hasattr(args, extra_resource_id):
@@ -1158,7 +1150,6 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
             args_dict['offline'] = offline
             args_dict['update'] = update
             args_dict['owner'] = owner
-            args_dict['show_commit'] = show_commit
             converter = pdf_converter_class(**args_dict)
             project_id_str = f'_{project_id}' if project_id else ''
             converter.logger.info(f'Starting PDF Converter for {converter.name}_{converter.main_resource.ref}{project_id_str}...')

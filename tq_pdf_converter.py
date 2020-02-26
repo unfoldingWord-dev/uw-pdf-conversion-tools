@@ -21,10 +21,11 @@ from general_tools.html_tools import increment_headers
 class TqPdfConverter(PdfConverter):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        self.project_id = kwargs['project_id']
         self.book_number = None
         if self.project_id:
             self.book_number = BOOK_NUMBERS[self.project_id]
+        super().__init__(*args, **kwargs)
 
     @property
     def file_id_project_str(self):
