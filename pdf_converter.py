@@ -132,15 +132,15 @@ class PdfConverter:
 
     @property
     def file_commit_id(self):
-        return f'{self.file_project_and_ref_id}_{self.main_resource.commit}'
+        return f'{self.file_project_and_ref}_{self.main_resource.commit}'
 
     @property
-    def file_project_and_ref_id(self):
-        return f'{self.file_project_id}_{self.main_resource.ref}'
+    def file_project_and_ref(self):
+        return f'{self.file_project_id}_{self.main_ref}'
 
     @property
     def file_ref_id(self):
-        return f'{self.file_base_id}_{self.main_resource.ref}'
+        return f'{self.file_base_id}_{self.main_ref}'
 
     @property
     def file_project_id(self):
@@ -156,6 +156,16 @@ class PdfConverter:
             return f'_{self.project_id}'
         else:
             return ''
+
+    @property
+    def main_ref(self):
+        main_ref = self.main_resource.ref
+        if not self.main_resource.ref_is_tag:
+            return main_ref
+        starts_with_num_regex = re.compile(r'^[0-9]')
+        if starts_with_num_regex.match(main_ref):
+            return f'v{main_ref}'
+        return main_ref
 
     @property
     def project(self):
@@ -254,8 +264,8 @@ class PdfConverter:
             self.html_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}.html')
             self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}.pdf')
         else:
-            self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref_id}.html')
-            self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref_id}.pdf')
+            self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}.html')
+            self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}.pdf')
 
         self.determine_if_regeneration_needed()
         self.save_resource_data()
@@ -334,7 +344,7 @@ class PdfConverter:
         self.logger.addHandler(self.logger_handler)
         self.logger.info(f'Logging script output to {log_file}')
 
-        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_ref_id}_logger.log')
+        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_ref}_logger.log')
         symlink(log_file, link_file_path, True)
 
         self.wp_logger.setLevel(logging.DEBUG)
@@ -344,7 +354,7 @@ class PdfConverter:
         self.wp_logger.addHandler(self.wp_logger_handler)
         self.logger.info(f'Logging WeasyPrint output to {log_file}')
 
-        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_ref_id}_weasyprint.log')
+        link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_ref}_weasyprint.log')
         symlink(log_file, link_file_path, True)
 
     def generate_html(self):
@@ -392,7 +402,7 @@ class PdfConverter:
             html = html_template.safe_substitute(lang=self.lang_code, title=title, link=link, body=body)
             write_file(self.html_file, html)
 
-            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref_id}_latest.html')
+            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_latest.html')
             symlink(self.html_file, link_file_path, True)
 
             self.save_resource_data()
@@ -412,7 +422,7 @@ class PdfConverter:
             self.logger.info('Generated PDF file.')
             self.logger.info(f'PDF file located at {self.pdf_file}')
 
-            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref_id}_latest.pdf')
+            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_latest.pdf')
             symlink(self.pdf_file, link_file_path, True)
         else:
             self.logger.info(
@@ -422,8 +432,8 @@ class PdfConverter:
         if self.show_commit:
             save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_links.html')
         else:
-            save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref_id}_bad_links.html')
-        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref_id}_bad_links_latest.html')
+            save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_bad_links.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_bad_links_latest.html')
 
         if not self.bad_links:
             self.logger.info('No bad links for this version!')
@@ -474,8 +484,8 @@ class PdfConverter:
         if self.show_commit:
             save_file = os.path.join(self.output_res_dir, f'{self.file_commit_id}_bad_highlights.html')
         else:
-            save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref_id}_bad_highlights.html')
-        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref_id}_bad_highlights_latest.html')
+            save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_bad_highlights.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_bad_highlights_latest.html')
 
         if not self.bad_highlights:
             self.logger.info('No bad highlights for this version!')
@@ -575,29 +585,29 @@ class PdfConverter:
     def save_resource_data(self):
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.rcs))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref_id}_rcs.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_rcs.json')
         symlink(save_file, link_file_path, True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_appendix_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.appendix_rcs))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref_id}_appendix_rcs.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_appendix_rcs.json')
         symlink(save_file, link_file_path, True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_links.json')
         write_file(save_file, jsonpickle.dumps(self.bad_links))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref_id}_bad_links.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_links.json')
         symlink(save_file, link_file_path, True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_commit_id}_bad_highlights.json')
         write_file(save_file, jsonpickle.dumps(self.bad_highlights))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref_id}_bad_highlights.json')
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_highlights.json')
         symlink(save_file, link_file_path, True)
 
-        save_file = os.path.join(self.save_dir, f'{self.file_project_and_ref_id}_generation_info.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_project_and_ref}_generation_info.json')
         write_file(save_file, jsonpickle.dumps(self.generation_info))
 
     def get_previous_generation_info(self):
-        save_file = os.path.join(self.save_dir, f'{self.file_project_and_ref_id}_generation_info.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_project_and_ref}_generation_info.json')
         if os.path.isfile(save_file):
             return load_json_object(save_file)
         else:

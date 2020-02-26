@@ -72,7 +72,7 @@ class TwCheckingPdfConverter(TnPdfConverter):
 
     def get_body_html(self):
         self.add_style_sheet('css/tn_style.css')
-        self.logger.info('Creating TW Checking for {0}...'.format(self.file_project_and_ref_id))
+        self.logger.info('Creating TW Checking for {0}...'.format(self.file_project_and_ref))
         self.populate_verse_usfm(self.ult_id)
         self.populate_verse_usfm(self.ust_id)
         self.populate_verse_usfm(self.ol_bible_id, self.ol_lang_code)
