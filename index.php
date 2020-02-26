@@ -43,7 +43,7 @@ foreach($dirs as $dir) {
             $filepath = './'.$dir.'/'.$file;
             $realfile = basename(readlink($filepath));
 
-            echo '<a href="'.$filepath.'">'.$realfile.'</a> <em>('.date ("Y-m-d H:i:s", filemtime($filepath)).')</em><br/>'."\n";
+            echo '<a href="'.$realfile.'">'.$realfile.'</a> <em>('.date ("Y-m-d H:i:s", filemtime($filepath)).')</em><br/>'."\n";
         }
         echo "</p>\n";
     }
