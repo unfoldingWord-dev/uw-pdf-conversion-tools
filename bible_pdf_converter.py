@@ -29,10 +29,26 @@ class BiblePdfConverter(PdfConverter):
         self.chapter = chapter
         self.bible_id = bible_id
         self.book_number = None
-        self.chapter = chapter
+        self.chapters = self.parse_chapters(chapter)
         if self.project_id:
             self.book_number = BOOK_NUMBERS[kwargs['project_id']]
         super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def parse_chapters(chapter):
+        chapters = []
+        if chapter:
+            comma_nums = chapter.split(',')
+            for nums in comma_nums:
+                dash_nums = nums.split('-')
+                start_num = int(dash_nums[0])
+                if len(dash_nums) > 1:
+                    end_num = int(dash_nums[-1]) + 1
+                else:
+                    end_num = start_num + 1
+                for num in range(start_num, end_num):
+                    chapters.append(num)
+        return chapters
 
     @property
     def file_id_project_str(self):
@@ -70,9 +86,11 @@ class BiblePdfConverter(PdfConverter):
             project_file = os.path.join(self.main_resource.repo_dir, f'{project_num}-{project_id.upper()}.usfm')
             usfm = read_file(project_file)
             usfm = unalign_usfm(usfm)
-            if self.chapter:
-                usfm_split = re.split(r'\\c', usfm)
-                usfm = usfm_split[0] + '\\c' + usfm_split[int(self.chapter)]
+            if self.chapters:
+                usfm_split = re.split(r'\\c ', usfm)
+                usfm = usfm_split[0]
+                for chapter in self.chapters:
+                    usfm += '\\c ' + usfm_split[chapter]
             html, warnings = SingleFilelessHtmlRenderer({project_id.upper(): usfm}).render()
             soup = BeautifulSoup(html, 'html.parser')
             book_header = soup.find('h1')
@@ -115,7 +133,7 @@ def main(bible_class, resource_names=None):
         resource_names = []
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-b', '--bible-id', dest='bible_id', default=DEFAULT_ULT_ID, required=False, help=f'Bible resource ID. Default: {DEFAULT_ULT_ID}')
-    parser.add_argument('-c', '--chapter', dest='chapter', default=None, required=False, help=f'Chapter to generate')
+    parser.add_argument('-c', '--chapter', dest='chapter', default=None, required=False, help=f'Chapter(s) to generate, can be a range, e.g. -c 1-3,5')
     parser.add_argument(f'--bible-ref', dest='bible_id_ref', default=None, required=False,
                         help=f'Branch or tag for the `bible_id`. If not set, uses latest tag unless --master flag is used')
     run_converter(resource_names, bible_class, project_ids_map={'': BOOK_NUMBERS.keys(), 'all': [None]},
