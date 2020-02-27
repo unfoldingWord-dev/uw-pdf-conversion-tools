@@ -1113,8 +1113,8 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                         help='Do not download repos and images or attempt to update them. Will fail if they do not already exist.')
     for resource_name in resource_names:
         param_name = resource_name.replace('_', '-')
-        parser.add_argument(f'--{param_name}-ref', dest=f'{resource_name}_ref', default=None, required=False,
-                            help=f'Branch or tag for `{resource_name}`. If not set, uses latest tag unless --master flag is used')
+        parser.add_argument(f'--{param_name}-ref', metavar='TAG|BRANCH', dest=f'{resource_name}_ref', default=None, required=False,
+                            help=f'Tag or branch for `{resource_name}`. If not set, uses latest tag, unless --master flag is used')
 
     args = parser.parse_args(sys.argv[1:])
     lang_codes = args.lang_codes
