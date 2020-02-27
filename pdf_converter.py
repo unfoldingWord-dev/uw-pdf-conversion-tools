@@ -1096,21 +1096,21 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     if not parser:
         parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
-                        help='Regenerate PDF even if exists. Default: false')
+                        help='Regenerate PDF even if exists.')
     parser.add_argument('-l', '--lang_code', metavar='LANG', dest='lang_codes', required=False, action='append',
                         help='Language Code. Can specify multiple -l\'s, e.g. -l en -l fr. Default: en')
     parser.add_argument('-p', '--project_id', metavar='PROJECT ID', dest='project_ids', required=False, action='append',
-                        help='Project ID for resources with projects, such as a Bible book (-p gen). Can specify multiple -p\'s. Default: all')
+                        help='Project ID for resources with projects, such as a Bible book (-p gen). Can specify multiple -p\'s. Default: None (different converters will handle no or multiple projects differently, such as compiling all into one PDF, or running for each project.)')
     parser.add_argument('-w', '--working', dest='working_dir',  required=False,
-                        help='Working directory where multiple repos can be cloned. Default: a temp directory that gets deleted')
+                        help='Working directory where multiple repos can be cloned into. Default: a temp directory that gets removed on exit')
     parser.add_argument('-o', '--output', dest='output_dir', required=False,
-                        help='Output directory. Will make a subdirectory with the resource name, e.g. `<output_dir>/obs`. Default: <current directory>')
+                        help='Output directory. Will make a subdirectory with the resource name, e.g. `<output_dir>/obs` or `<output_dir>/tn`. Default: <current directory>')
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False,
                         help=f'Owner of the resource repo on GitHub. Default: {DEFAULT_OWNER}')
     parser.add_argument('-m', '--master', dest='master', action='store_true',
                         help='If resource ref not specified, will use master branch instead of latest tag')
     parser.add_argument('--offline', dest='offline', action='store_true',
-                        help='Do not download repos and images or attempt to update them. Will fail if they do not already exist.')
+                        help='Do not download repos and images or attempt to update them. Will fail if they do not already exist in the working dir.')
     for resource_name in resource_names:
         param_name = resource_name.replace('_', '-')
         parser.add_argument(f'--{param_name}-ref', metavar='TAG|BRANCH', dest=f'{resource_name}_ref', default=None, required=False,
