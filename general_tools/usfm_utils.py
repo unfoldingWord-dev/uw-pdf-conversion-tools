@@ -1,6 +1,5 @@
 # coding=utf-8
 
-from __future__ import unicode_literals
 import re
 
 
@@ -28,11 +27,11 @@ def unalign_usfm(aligned_usfm):
     usfm = re.sub(r'\\fqa([^*]+)\\fqa(?![*])', r'\\fqa\1\\fqa*', usfm, flags=re.UNICODE | re.MULTILINE)
     
     # Pair up quotes by chapter
-    chapters = re.compile(r'\\c').split(usfm)
+    chapters = re.compile(r'\\c ').split(usfm)
     usfm = chapters[0]
     for chapter in chapters[1:]:
         chapter = re.sub(r'\s*"\s*([^"]+)\s*"\s*', r' "\1" ', chapter, flags=re.UNICODE | re.MULTILINE | re.DOTALL)
-        usfm += f'\\c{chapter}'
+        usfm += f'\\c {chapter}'
     usfm = re.sub(r'\\(\w+\**)([^\w* \n])', r'\\\1 \2', usfm, flags=re.UNICODE | re.MULTILINE)  # \\q1" => \q1 "
     usfm = re.sub(r" ' ", r" '", usfm, flags=re.UNICODE | re.MULTILINE)
     usfm = re.sub(r' +([:;.?,!\]})-])', r'\1', usfm, flags=re.UNICODE | re.MULTILINE)

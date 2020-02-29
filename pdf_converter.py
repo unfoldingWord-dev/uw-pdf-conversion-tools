@@ -22,6 +22,8 @@ import argparse
 import jsonpickle
 import yaml
 import general_tools.html_tools as html_tools
+from queue import Queue
+from threading import Thread
 from typing import List, Type
 from bs4 import BeautifulSoup
 from abc import abstractmethod
@@ -46,7 +48,7 @@ class PdfConverter:
 
     def __init__(self, resources: Resources, project_id=None, working_dir=None, output_dir=None,
                  lang_code=DEFAULT_LANG_CODE, regenerate=False, logger=None, offline=False, update=True,
-                 **kwargs):
+                 *args, **kwargs):
         self.resources = resources
         self.project_id = project_id
         self.working_dir = working_dir
@@ -58,7 +60,7 @@ class PdfConverter:
         self.update = not offline and update
 
         self.logger_handler = None
-        self.wp_logger = logging.getLogger('weasyprint')
+        self.wp_logger = None
         self.wp_logger_handler = None
 
         self.save_dir = None
@@ -83,14 +85,10 @@ class PdfConverter:
         self._name = self.main_resource.resource_name
         self._project = None
 
-        if not self.logger:
-            self.logger = logging.getLogger(self.file_project_id)
-            self.logger.setLevel(logging.DEBUG)
-            self.logger_stream_handler = logging.StreamHandler()
-            self.logger_stream_handler.setLevel(logging.DEBUG)
-            formatter = logging.Formatter("%(levelname)s - %(message)s")
-            self.logger_stream_handler.setFormatter(formatter)
-            self.logger.addHandler(self.logger_stream_handler)
+        self.logger = logger
+        self.logger_stream_handler = None
+
+        self.setup_dirs()
 
     def __del__(self):
         if self.remove_working_dir:
@@ -257,10 +255,7 @@ class PdfConverter:
             }
 
     def run(self):
-        self.setup_dirs()
-        self.setup_resources()
-        self.setup_logging_to_file()
-
+        self.setup_logger()
         self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.html')
         self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.pdf')
 
@@ -332,10 +327,9 @@ class PdfConverter:
         symlink(index_path, index_link)
         self.logger.info(f'index.php file linked to {index_link}')
 
-    def setup_logging_to_file(self):
-        self.logger.info('Setting up log files')
-        if self.logger_handler:
-            self.logger.removeHandler(self.logger_handler)
+    def setup_logger(self):
+        self.logger.info(f'Setting up logger for {self.file_project_and_unique_ref}')
+        self.logger.setLevel(logging.DEBUG)
         log_file = os.path.join(self.log_dir, f'{self.file_project_and_unique_ref}_logger.log')
         self.logger_handler = logging.FileHandler(log_file)
         self.logger.addHandler(self.logger_handler)
@@ -344,6 +338,7 @@ class PdfConverter:
         link_file_path = os.path.join(self.log_dir, f'{self.file_project_and_ref}_logger_latest.log')
         symlink(log_file, link_file_path, True)
 
+        self.wp_logger = logging.getLogger('weasyprint')
         self.wp_logger.setLevel(logging.DEBUG)
         log_file = os.path.join(self.log_dir, f'{self.file_project_and_unique_ref}_weasyprint.log')
         self.wp_logger_handler = logging.FileHandler(log_file)
@@ -1091,6 +1086,22 @@ class PdfConverter:
         return text
 
 
+q = Queue()
+
+
+def worker():
+    while True:
+        converter = q.get()
+        converter.run()
+        q.task_done()
+
+
+for i in range(3):
+    t = Thread(target=worker)
+    t.daemon = True
+    t.start()
+
+
 def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None,
                   project_ids_map=None, parser=None, extra_resource_id=None):
     if not parser:
@@ -1117,10 +1128,12 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                             help=f'Tag or branch for `{resource_name}`. If not set, uses latest tag, unless --master flag is used')
 
     args = parser.parse_args(sys.argv[1:])
+
     lang_codes = args.lang_codes
     owner = args.owner
     offline = args.offline
     master = args.master
+
     update = not offline
     extra_resource_name = None
     if extra_resource_id and hasattr(args, extra_resource_id):
@@ -1135,32 +1148,51 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
             project_ids = project_ids_map[project_id]
         elif not project_ids:
             project_ids = [None]
-    args_dict = vars(args)
+
+    logger = logging.getLogger(resource_names[0])
+    logger.setLevel(logging.DEBUG)
+    logger_stream_handler = logging.StreamHandler()
+    logger_stream_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("%(levelname)s - %(message)s")
+    logger_stream_handler.setFormatter(formatter)
+    logger.addHandler(logger_stream_handler)
+
     for lang_code in lang_codes:
+        setup_done = False
+        resources = Resources()
+        for resource_name in resource_names:
+            repo_name = f'{lang_code}_{resource_name}'
+            if resource_name == extra_resource_name:
+                ref = getattr(args, f'{extra_resource_id}_ref')
+            else:
+                ref = getattr(args, f'{resource_name}_ref')
+            if not ref and master:
+                ref = DEFAULT_REF
+            logo = None
+            if logo_url and resource_name == resource_names[0]:
+                logo = logo_url
+            resource = Resource(resource_name=resource_name, repo_name=repo_name, ref=ref, owner=owner, logo_url=logo, offline=offline, update=update)
+            resources[resource_name] = resource
         for project_id in project_ids:
-            resources = Resources()
-            for resource_name in resource_names:
-                repo_name = f'{lang_code}_{resource_name}'
-                if resource_name == extra_resource_name:
-                    ref = getattr(args, f'{extra_resource_id}_ref')
-                else:
-                    ref = getattr(args, f'{resource_name}_ref')
-                if not ref and master:
-                    ref = DEFAULT_REF
-                logo = None
-                if logo_url and resource_name == resource_names[0]:
-                    logo = logo_url
-                resource = Resource(resource_name=resource_name, repo_name=repo_name, ref=ref, owner=owner, logo_url=logo, offline=offline, update=update)
-                resources[resource_name] = resource
-            args_dict['lang_code'] = lang_code
-            args_dict['project_id'] = project_id
-            args_dict['resources'] = resources
-            args_dict['offline'] = offline
-            args_dict['update'] = update
-            args_dict['owner'] = owner
-            converter = pdf_converter_class(**args_dict)
+            converter = pdf_converter_class(**{
+                'resources': resources,
+                'project_id': project_id,
+                'working_dir': args.working_dir,
+                'output_dir': args.output_dir,
+                'lang_code': lang_code,
+                'regenerate': args.regenerate,
+                'logger': logger,
+                'offline': offline,
+                'update': update
+            })
+            if not setup_done:
+                logger.info(f'Setting up resources and dirs for {lang_code}_{resource_names[0]}')
+                converter.setup_resources()
+                setup_done = True
             project_id_str = f'_{project_id}' if project_id else ''
-            converter.logger.info(f'Starting PDF Converter for {converter.name}_{converter.main_resource.ref}{project_id_str}...')
-            converter.run()
-            del converter
-            update = False
+            logger.info(f'Starting PDF Converter for {converter.name}_{converter.main_resource.ref}{project_id_str}...')
+            q.put(converter)
+    q.join()
+    logger.removeHandler(logger_stream_handler)
+    logger_stream_handler.close()
+
