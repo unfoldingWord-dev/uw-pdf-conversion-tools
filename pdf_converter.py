@@ -22,8 +22,6 @@ import argparse
 import jsonpickle
 import yaml
 import general_tools.html_tools as html_tools
-from queue import Queue
-from threading import Thread
 from typing import List, Type
 from bs4 import BeautifulSoup
 from abc import abstractmethod
@@ -87,8 +85,6 @@ class PdfConverter:
 
         self.logger = logger
         self.logger_stream_handler = None
-
-        self.setup_dirs()
 
     def __del__(self):
         if self.remove_working_dir:
@@ -255,7 +251,9 @@ class PdfConverter:
             }
 
     def run(self):
+        self.setup_dirs()
         self.setup_logger()
+        self.setup_resources()
         self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.html')
         self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.pdf')
 
@@ -1086,22 +1084,6 @@ class PdfConverter:
         return text
 
 
-q = Queue()
-
-
-def worker():
-    while True:
-        converter = q.get()
-        converter.run()
-        q.task_done()
-
-
-for i in range(3):
-    t = Thread(target=worker)
-    t.daemon = True
-    t.start()
-
-
 def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None,
                   project_ids_map=None, parser=None, extra_resource_id=None):
     if not parser:
@@ -1185,14 +1167,9 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                 'offline': offline,
                 'update': update
             })
-            if not setup_done:
-                logger.info(f'Setting up resources and dirs for {lang_code}_{resource_names[0]}')
-                converter.setup_resources()
-                setup_done = True
             project_id_str = f'_{project_id}' if project_id else ''
             logger.info(f'Starting PDF Converter for {converter.name}_{converter.main_resource.ref}{project_id_str}...')
-            q.put(converter)
-    q.join()
+            converter.run()
     logger.removeHandler(logger_stream_handler)
     logger_stream_handler.close()
 
