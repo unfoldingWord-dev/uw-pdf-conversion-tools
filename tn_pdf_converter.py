@@ -565,7 +565,7 @@ class TnPdfConverter(PdfConverter):
         return scripture
 
     def get_verse_objects(self, bible_id, chapter, verse):
-        bible_path = os.path.join(self.resources.dir, self.lang_code, 'bibles', bible_id)
+        bible_path = os.path.join(self.resources_dir, self.lang_code, 'bibles', bible_id)
         if not bible_path:
             self.logger.error(f'{bible_path} not found!')
             exit(1)
