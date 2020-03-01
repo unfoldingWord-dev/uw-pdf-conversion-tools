@@ -89,7 +89,7 @@ class TwCheckingPdfConverter(TnPdfConverter):
     </article>
 '''
 
-        tw_path = os.path.join(self.working_dir, 'resources', self.ol_lang_code, 'translationHelps/translationWords')
+        tw_path = os.path.join(self.resources_dir, self.ol_lang_code, 'translationHelps/translationWords')
         if not tw_path:
             self.logger.error(f'{tw_path} not found!')
             exit(1)
