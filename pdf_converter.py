@@ -252,8 +252,8 @@ class PdfConverter:
 
     def run(self):
         self.setup_dirs()
-        self.setup_logger()
         self.setup_resources()
+        self.setup_logger()
         self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.html')
         self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.pdf')
 
