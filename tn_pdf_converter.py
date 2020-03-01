@@ -50,6 +50,7 @@ class TnPdfConverter(PdfConverter):
         self.resources['ugnt'].repo_name = 'el-x-koine_ugnt'
         self.resources['uhb'].repo_name = 'hbo_uhb'
 
+        self.resources_dir = None
         self.verse_usfm = OrderedDict()
         self.tw_words_data = OrderedDict()
         self.tn_groups_data = OrderedDict()
@@ -79,9 +80,9 @@ class TnPdfConverter(PdfConverter):
 
     def process_bibles(self):
         resource_refs = '-'.join(list(map(lambda x: f'{self.resources[x].repo_name}_{self.resources[x].ref}' + (f'_{self.resources[x].commit}' if not self.resources[x].ref_is_tag else ''), self.resources)))
-        resources_dir = os.path.join(self.working_dir, f'resources_{resource_refs}')
-        if not os.path.exists(resources_dir):
-            cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{resources_dir}" {self.ult_id} {self.ust_id}'
+        self.resources_dir = os.path.join(self.working_dir, f'resources_{resource_refs}')
+        if not os.path.exists(self.resources_dir):
+            cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{self.resources_dir}" {self.ult_id} {self.ust_id}'
             self.logger.info(f'Running: {cmd}')
             ret = subprocess.call(cmd, shell=True)
             if ret:
@@ -157,7 +158,7 @@ class TnPdfConverter(PdfConverter):
     def populate_verse_usfm(self, bible_id, lang_code=None):
         if not lang_code:
             lang_code = self.lang_code
-        bible_path = os.path.join(self.working_dir, 'resources', lang_code, 'bibles', bible_id)
+        bible_path = os.path.join(self.resources_dir, lang_code, 'bibles', bible_id)
         if not bible_path:
             self.logger.error(f'{bible_path} not found!')
             exit(1)
@@ -440,7 +441,7 @@ class TnPdfConverter(PdfConverter):
         return verse_notes
 
     def populate_tw_words_data(self):
-        tw_path = os.path.join(self.working_dir, 'resources', self.ol_lang_code, 'translationHelps/translationWords')
+        tw_path = os.path.join(self.resources_dir, self.ol_lang_code, 'translationHelps/translationWords')
         if not tw_path:
             self.logger.error(f'{tw_path} not found!')
             exit(1)
@@ -474,7 +475,7 @@ class TnPdfConverter(PdfConverter):
         self.tw_words_data = words_data
 
     def populate_tn_groups_data(self):
-        tn_resource_path = os.path.join(self.working_dir, 'resources', self.lang_code, 'translationHelps', 'translationNotes')
+        tn_resource_path = os.path.join(self.resources_dir, self.lang_code, 'translationHelps', 'translationNotes')
         if not tn_resource_path:
             self.logger.error(f'{tn_resource_path} not found!')
             exit(1)
@@ -564,7 +565,7 @@ class TnPdfConverter(PdfConverter):
         return scripture
 
     def get_verse_objects(self, bible_id, chapter, verse):
-        bible_path = os.path.join(self.working_dir, 'resources', self.lang_code, 'bibles', bible_id)
+        bible_path = os.path.join(self.resources.dir, self.lang_code, 'bibles', bible_id)
         if not bible_path:
             self.logger.error(f'{bible_path} not found!')
             exit(1)
