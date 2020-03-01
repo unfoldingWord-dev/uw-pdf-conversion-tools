@@ -117,21 +117,14 @@ def get_alignment_by_combinations(verse_objects, quote, quote_combinations, foun
                     joined = ''.join(combo['word'])
                     joined_with_spaces = ' '.join(combo['word'])
                     joined_with_joiner = '\u2060'.join(combo['word'])
-                    if not combo['found'] and \
-                        combo['occurrence'] == verse_object['occurrence'] and \
+                    if combo['occurrence'] == verse_object['occurrence'] and \
                             (joined == verse_object['content'] or
                              joined_with_spaces == verse_object['content'] or
                              joined_with_joiner == verse_object['content']):
-                        all_done = True
+                        my_found = True
                         for index in combo['indexes']:
-                            if 'found' in quote[index] and quote[index]['found']:
-                                all_done = False
-                        if all_done:
-                            my_found = True
-                            combo['found'] = True
-                            for index in combo['indexes']:
-                                quote[index]['found'] = True
-                            break
+                            quote[index]['found'] = True
+                        break
                 if not my_found:
                     last_found = False
                     in_between_alignments = []
