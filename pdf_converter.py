@@ -374,6 +374,7 @@ class PdfConverter:
             self.logger.info('Fixing links in body HTML...')
             body_html = self.fix_links(body_html)
             body_html = self._fix_links(body_html)
+            write_file('/tmp/text.html', body_html)
             self.logger.info('Replacing RC links in body HTML...')
             body_html = self.replace_rc_links(body_html)
             self.logger.info('Generating Contributors HTML...')
@@ -391,7 +392,6 @@ class PdfConverter:
             link = '\n'.join([f'<link href="{style}" rel="stylesheet">' for style in self.style_sheets])
             html = html_template.safe_substitute(lang=self.lang_code, title=title, link=link, body=body)
             write_file(self.html_file, html)
-            html = None
 
             link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_latest.html')
             symlink(self.html_file, link_file_path, True)
@@ -546,7 +546,6 @@ class PdfConverter:
     def determine_if_regeneration_needed(self):
         # check if any commit hashes have changed
         old_info = self.get_previous_generation_info()
-        logged_message = False
         for repo_name in self.generation_info:
             new_commits = False
             if not self.regenerate and old_info and repo_name in old_info and repo_name in self.generation_info:
@@ -784,46 +783,40 @@ class PdfConverter:
         self.logger.error(f'FOUND SOME MALFORMED RC LINKS: {m.group()}')
         return m.group()
 
-    def replace_rc(self, match):
-        # Replace rc://... rc links according to self.resource_data:
-        # Case 1: RC links in double square brackets that need to be converted to <a> elements with articles title:
-        #   e.g. [[rc://en/tw/help/bible/kt/word]] => <a href="#tw-kt-word">God's Word</a>
-        # Case 2: RC link already in an <a> tag's href, thus preserve its text
-        #   e.g. <a href="rc://en/tw/help/bible/kt/word">text</a> => <a href="#tw-kt-word>Text</a>
-        # Case 3: RC link without square brackets not in <a> tag's href:
-        #   e.g. rc://en/tw/help/bible/kt/word => <a href="#tw-kt-word">God's Word</a>
-        # Case 4: RC link for was not referenced by the main content (exists due to a secondary resource referencing it)
-        #   e.g. <a href="rc://en/tw/help/bible/names/horeb">Horeb Mountain</a> => Horeb Mountain
-        #   e.g. [[rc://en/tw/help/bible/names/horeb]] => Horeb
-        # Case 5: Remove other links to resources without text (they weren't directly reference by main content)
-        left = match.group(1)
-        rc_link = match.group(2)
-        right = match.group(3)
-        title = match.group(4)
-        if rc_link in self.all_rcs:
-            rc = self.all_rcs[rc_link]
-            if (left == '[[' and right == ']]') or (not left and not right):
-                # Only if it is a main article or is in the appendix
-                if rc.linking_level <= APPENDIX_LINKING_LEVEL:
-                    # Case 1 and Case 3
-                    return f'<a href="#{rc.article_id}">{rc.title}</a>'
-                else:
-                    # Case 4:
-                    return rc.title
-            else:
-                if rc.linking_level <= APPENDIX_LINKING_LEVEL:
-                    # Case 3, left = `<a href="` and right = `">[text]</a>`
-                    return left + '#' + rc.article_id + self.replace_rc_links(right)
-                else:
-                    # Case 4
-                    return self.replace_rc_links(title) if title else rc.title
-        # Case 5
-        return self.replace_rc_links(title) if title else rc_link
-
     def replace_rc_links(self, text):
-        regex = re.compile(r'(\[\[|<a[^>]+href=")*(rc://[/A-Za-z0-9*_-]+)(\]\]|"[^>]*>(.*?)</a>)*')
-        text = regex.sub(self.replace_rc, text)
-        return text
+        soup = BeautifulSoup(text, 'html.parser')
+        rc_pattern = 'rc://[/A-Za-z0-9*_-]+'
+        rc_regex = re.compile(rc_pattern)
+
+        # Find anchor tags with an href of an rc link
+        anchors_with_rc = soup.find_all('a', href=rc_regex)
+        for anchor in anchors_with_rc:
+            href_rc_link = anchor['href']
+            if href_rc_link in self.all_rcs:
+                href_rc = self.all_rcs[href_rc_link]
+                anchor['href'] = f'#{href_rc.article_id}'
+            else:
+                anchor.replace_with_children()
+
+        # Find text either [[rc://...]] links or rc://... links and make them anchor elements
+        text_with_bracketed_rcs = soup(text=rc_regex)
+        for element_text in text_with_bracketed_rcs:
+            parts = re.split(rf'(\[*{rc_pattern}\]*)', element_text)
+            last_part = soup.new_string(parts[0])
+            element_text.replace_with(last_part)
+            for part in parts[1:]:
+                if not re.search(rc_regex, part):
+                    part = soup.new_string(part)
+                else:
+                    rc_link = part.strip('[]')
+                    if rc_link in self.all_rcs:
+                        part = BeautifulSoup(f'<a href="#{self.all_rcs[rc_link].article_id}">{self.all_rcs[rc_link].title}</a>',
+                                             'html.parser').find('a')
+                    else:
+                        part = soup.new_string(part)
+                last_part.insert_after(part)
+                last_part = part
+        return str(soup)
 
     @staticmethod
     def _fix_links(html):
@@ -950,8 +943,9 @@ class PdfConverter:
                         dep_article_dir = os.path.join(self.resources['ta'].repo_dir, project['identifier'], dependency)
                         if os.path.isdir(dep_article_dir):
                             dep_project = project['identifier']
+                    dep_rc_link = f'rc://{self.lang_code}/ta/man/{dep_project}/{dependency}'
                     lis += f'''
-                    <li>[[rc://{self.lang_code}/ta/man/{dep_project}/{dependency}]]</li>
+                    <li>[[{dep_rc_link}]]</li>
 '''
                 dependencies += f'''
         <div class="ta-dependencies">
@@ -977,8 +971,9 @@ class PdfConverter:
                         self.add_bad_link(rc, bad_rc_link)
                         self.logger.error(f'RECOMMENDED NOT FOUND FOR {bad_rc_link}')
                         continue
+                    rec_rc_link = f'rc://{self.lang_code}/ta/man/{rec_project}/{recommended}'
                     lis += f'''
-                    <li>[[rc://{self.lang_code}/ta/man/{rec_project}/{recommended}]]</li>
+                    <li>[[{rec_rc_link}]]</li>
 '''
                 recommendations = f'''
             <div class="ta-recommendations">
@@ -1140,7 +1135,6 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     logger.addHandler(logger_stream_handler)
 
     for lang_code in lang_codes:
-        setup_done = False
         resources = Resources()
         for resource_name in resource_names:
             repo_name = f'{lang_code}_{resource_name}'

@@ -147,8 +147,7 @@ def find_quote_variation_in_text(text, phrase, occurrence=1, ignore_small_words=
         phrase.replace('‘', "'")]
     for quote_variation in quote_variations:
         if quote_variation != phrase:
-            marked_text = mark_phrases_in_html(text, quote_variation, occurrence=occurrence,
-                                               ignore_small_words=ignore_small_words)
+            marked_text = mark_phrases_in_html(text, quote_variation)
             if marked_text:
                 return quote_variation
 
