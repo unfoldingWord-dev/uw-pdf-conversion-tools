@@ -741,10 +741,11 @@ class PdfConverter:
         return license_html
 
     def get_contributors_html(self):
-        contributors_html = ''''
+        contributors_html = '''
 <section id="contributors" class="no-header">
 '''
-        for idx, resource_name in enumerate(self.resources.keys()):
+        for idx, resource_name \
+                in enumerate(self.resources.keys()):
             resource = self.resources[resource_name]
             if resource.background_resource or not resource.manifest or not resource.contributors or \
                     resource_name in CONTRIBUTORS_TO_HIDE:
@@ -763,7 +764,7 @@ class PdfConverter:
             for contributor in contributors:
                 contributors_html += f'<div class="contributor">{contributor}</div>'
             contributors_html += '</div>'
-        contributors_html += ''''
+        contributors_html += '''
 </section>
 '''
         return contributors_html
