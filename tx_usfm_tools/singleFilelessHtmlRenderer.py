@@ -132,8 +132,8 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
         # if self.indentFlag:
         self.closeParagraph()  # always close the last indent before starting a new one
         self.indentFlag = True
-        self.write('\n<p class="indent-' + str(level) + '">\n')
-        self.write('&nbsp;' * (level * 4))  # spaces for PDF since we can't style margin with css
+        self.write('\n<p class="indent indent-' + str(level) + '">\n')
+        # self.write('&nbsp;' * (level * 4))  # spaces for PDF since we can't style margin with css
 
     def closeParagraph(self):
         # if 'NUM' in self.bookName and '00' in self.cc and self.indentFlag: logging.debug(f"@{self.cc}:{self.cv} closeParagraph() from {self.indentFlag}…")
@@ -355,7 +355,7 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
 
     def renderQS_S(self, token):
         assert not token.value
-        self.write('<i class="quote selah" style="float:right;">')
+        self.write('<i class="quote selah">')
     def renderQS_E(self, token):
         assert not token.value
         self.write('</i>')
@@ -485,7 +485,7 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
         self.chapterLabel = token.value
 
     def renderQR(self, token):
-        self.write('<i class="quote right" style="display:block;float:right;">'+token.value+'</i>')
+        self.write('<i class="quote right">'+token.value+'</i>')
 
 
     def renderF_S(self, token):

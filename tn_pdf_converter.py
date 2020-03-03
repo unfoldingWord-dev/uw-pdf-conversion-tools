@@ -18,7 +18,7 @@ import markdown2
 import subprocess
 import general_tools.html_tools as html_tools
 from glob import glob
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString, Tag
 from collections import OrderedDict
 from pdf_converter import PdfConverter, run_converter
 from tx_usfm_tools.singleFilelessHtmlRenderer import SingleFilelessHtmlRenderer
@@ -171,34 +171,28 @@ class TnPdfConverter(PdfConverter):
         book_file = os.path.join(self.resources[bible_id].repo_dir, f'{self.book_number}-{self.project_id.upper()}.usfm')
         book_usfm = read_file(book_file)
         unaligned_usfm = unalign_usfm(book_usfm)
-        chapters = unaligned_usfm.split(r'\c ')
-        for chapter_usfm in chapters[1:]:
-            chapter = re.findall(r'(\d+)', chapter_usfm)[0]
+        book_html, warnings = SingleFilelessHtmlRenderer({self.project_id.upper(): unaligned_usfm}).render()
+        book_soup = BeautifulSoup(book_html, 'html.parser')
+        for next_node in book_soup.find_all(['h2', 'span'], {'class': ['c-num', 'v-num']}):
+            chapter = re.findall(r'(\d+)', next_node.text)[0]
             book_data[chapter] = OrderedDict()
-            chapter_usfm = r'\c '+chapter_usfm
+            verses = []
+            next_node = next_node.nextSibling
+            while next_node:
+                if isinstance(next_node, NavigableString):
+                    if verses:
+                        for verse in verses:
+                            book_data[chapter][verse] += next_node
+                elif isinstance(next_node, Tag):
+                    if next_node.name == 'h2':
+                        break
+                    elif next_node.name == 'span' and next_node.has_attr('class') and 'v-num' in next_node['class']:
+                        verses = re.findall(r'\d+', next_node.text)
 
-            chapter_vo_file = os.path.join(bible_version_path, self.project_id, f'{chapter}.json')
-            chapter_verse_objects = load_json_object(chapter_vo_file)
-
-            verses = chapter_usfm.split(r'\v ')
-            for verse_usfm in verses[1:]:
-                from_verse, to_verse = re.findall(r'^(\d+)(?:-(\d+))*', verse_usfm)[0]
-                if not to_verse:
-                    to_verse = from_verse
-                for verse in range(int(from_verse), int(to_verse)+1):
-                    verse = str(verse)
-                    from_to_verse = f'{from_verse}-{to_verse}'
-                    if from_to_verse in chapter_verse_objects:
-                        usfm = rf'\v {from_to_verse} {self.get_text_from_verse_objects(chapter_verse_objects[from_to_verse])}'
-                    elif verse in chapter_verse_objects:
-                        usfm = rf'\v {verse} {self.get_text_from_verse_objects(chapter_verse_objects[verse]["verseObjects"])}'
-                    else:
-                        usfm = rf'\v {verse_usfm}'
-                    html = self.get_verse_html(usfm, bible_id, chapter, verse)
-                    book_data[chapter][verse] = {
-                        'usfm': usfm.strip(),
-                        'html': html.strip()
-                    }
+                    child = next(next_node.children)
+                    next_node.unwrap()
+                    next_node = child.previousSibling
+                next_node = next_node.nextSibling
         self.verse_usfm[bible_id] = book_data
 
     @staticmethod
@@ -659,8 +653,9 @@ class TnPdfConverter(PdfConverter):
 VERSE: {self.project_title} {chapter}:{verse}
 RC: {context_id['rc']}
 QUOTE: {quote_string}
-{bible_id.upper()}: {self.verse_usfm[bible_id][chapter][verse]['usfm']}
-{self.ol_bible_id.upper()}: {self.verse_usfm[self.ol_bible_id][chapter][verse]['usfm']}
+{bible_id.upper()}: {self.verse_usfm[bible_id][chapter][verse]}
+{self.ol_bible_id.upper()}: {self.verse_usfm[self.ol_bible_id][chapter][verse]
+                }
 '''
                 self.add_bad_link(aligned_text_rc, context_id['rc'], message)
         return alignment

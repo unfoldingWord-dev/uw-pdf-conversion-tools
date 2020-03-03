@@ -1134,6 +1134,9 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     logger_stream_handler.setFormatter(formatter)
     logger.addHandler(logger_stream_handler)
 
+    converter_args = vars(args)
+    converter_args['logger'] = logger
+
     for lang_code in lang_codes:
         resources = Resources()
         for resource_name in resource_names:
@@ -1149,18 +1152,11 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                 logo = logo_url
             resource = Resource(resource_name=resource_name, repo_name=repo_name, ref=ref, owner=owner, logo_url=logo, offline=offline, update=update)
             resources[resource_name] = resource
+        converter_args['lang_code'] = lang_code
+        converter_args['resources'] = resources
         for project_id in project_ids:
-            converter = pdf_converter_class(**{
-                'resources': resources,
-                'project_id': project_id,
-                'working_dir': args.working_dir,
-                'output_dir': args.output_dir,
-                'lang_code': lang_code,
-                'regenerate': args.regenerate,
-                'logger': logger,
-                'offline': offline,
-                'update': update
-            })
+            converter_args['project_id'] = project_id
+            converter = pdf_converter_class(**converter_args)
             project_id_str = f'_{project_id}' if project_id else ''
             logger.info(f'Starting PDF Converter for {converter.name}_{converter.main_resource.ref}{project_id_str}...')
             converter.run()

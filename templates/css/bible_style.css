@@ -1,5 +1,5 @@
 .bible-book {
-    columns: 2 auto;
+    columns: 2;
     margin: 0 !important;
     text-align: justify;
     justify-content: space-between;
@@ -17,28 +17,42 @@
     margin-bottom: 0;
 }
 
-p.indent-0 {
+.quote.selah {
+    float: right;
+}
+
+.quote.right {
+    display: block;
+    float: right;
+}
+
+p.indent .quote {
+    text-indent: 0 !important;
+}
+
+p.indent {
+    text-align: left !important;
     margin-left: 0 !important;
     margin-bottom: 0 !important;
+    text-indent: -2em;
+    padding-left: 2em;
+    clear: both; /* so anything floating right in the above quote won't flow into this one */
+}
+
+p.indent + p.indent {
     margin-top: 0 !important;
 }
 
 p.indent-1 {
-    margin-left: 1em !important;
-    margin-bottom: 0 !important;
-    margin-top: 0 !important;
+    padding-left: 3em !important;
 }
 
 p.indent-2 {
-    margin-left: 2em !important;
-    margin-bottom: 0 !important;
-    margin-top: 0 !important;
+    padding-left: 4em !important;
 }
 
 p.indent-3 {
-    margin-left: 3em !important;
-    margin-bottom: 0 !important;
-    margin-top: 0 !important;
+    padding-left: 5em !important;
 }
 
 .c-num {
