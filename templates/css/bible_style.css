@@ -154,3 +154,16 @@ sup {
     display: inline-block;
     width: 100%;
 }
+
+.is, .s {
+    text-align: center;
+}
+
+.is3, .s3, .s4 {
+    text-align: left !important;
+}
+
+.quote.acrostic.heading {
+    text-align: center;
+    font-style: italic;
+}

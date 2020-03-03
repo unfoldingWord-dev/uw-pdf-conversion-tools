@@ -153,44 +153,49 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
         #self.write('\n\n<span id="' + self.cb + '"></span>\n')
 
     def renderIDE(self, token):
-        pass # Ignore
+        pass  # Ignore
+
     def renderUSFMV(self, token):
-        pass # Ignore
+        pass  # Ignore
 
     def renderREM(self, token):
-        pass # Don't output these comments here
+        pass  # Don't output these comments here
 
     def renderH(self, token):
         self.bookName = token.value
         self.writeHeader()
 
     def renderTOC1(self, token):
-        pass # Ignore
+        pass  # Ignore
+
     def renderTOC2(self, token):
-        if not self.bookName: # i.e., there was no \h field in the USFM
+        if not self.bookName:  # i.e., there was no \h field in the USFM
             self.bookName = token.value
             self.writeHeader()
-    def renderTOC3(self, token):
-        pass # Ignore
 
+    def renderTOC3(self, token):
+        pass  # Ignore
 
     # def renderMT(self, token):
     #     return  #self.write('\n\n<h1>' + token.value + '</h1>') # removed to use TOC2
+
     def renderMT1(self, token):
-        return  #self.write('\n\n<h1>' + token.value + '</h1>') # removed to use TOC2
+        return #self.write('\n\n<h1>' + token.value + '</h1>') # removed to use TOC2
+
     def renderMT2(self, token):
         self.write('\n\n<h2>' + token.value + '</h2>')
+
     def renderMT3(self, token):
         self.write('\n\n<h2>' + token.value + '</h2>')
 
-
     # def renderMS(self, token):
     #     self.write('\n\n<h3>' + token.value + '</h3>')
+ 
     def renderMS1(self, token):
         self.write('\n\n<h3>' + token.value + '</h3>')
+ 
     def renderMS2(self, token):
         self.write('\n\n<h4>' + token.value + '</h4>')
-
 
     def renderP(self, token):
         assert not token.value
@@ -206,6 +211,7 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
         self.stopLI()
         self.closeParagraph()
         self.writeIndent(2)
+
     def renderPI2(self, token):
         assert not token.value
         # if 'NUM' in self.bookName and '00' in self.cc: logging.debug(f"@{self.cc}:{self.cv} renderPI({token.value})…")
@@ -229,37 +235,36 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
         self.write('\n\n<p>')
         self.inParagraph = True
 
-    # def renderS(self, token):
-    #     self.stopLI()
-    #     self.closeParagraph()
-    #     self.write('\n\n<h4 style="text-align:center">' + token.getValue() + '</h4>')
     def renderS1(self, token):
         self.stopLI()
         self.closeParagraph()
-        self.write('\n\n<h4 style="text-align:center">' + token.getValue() + '</h4>')
+        self.write('\n\n<h4 class="s s1">' + token.getValue() + '</h4>')
+
     def renderS2(self, token):
         self.stopLI()
         self.closeParagraph()
-        self.write('\n\n<h5 style="text-align:center">' + token.getValue() + '</h5>')
+        self.write('\n\n<h5 class="s s2">' + token.getValue() + '</h5>')
+
     def renderS3(self, token):
         self.stopLI()
         self.closeParagraph()
-        self.write('\n\n<h5">' + token.getValue() + '</h5>')
+        self.write('\n\n<h5 class="s s3">' + token.getValue() + '</h5>')
+
     def renderS4(self, token):
         self.stopLI()
         self.closeParagraph()
-        self.write('\n\n<h5">' + token.getValue() + '</h5>')
+        self.write('\n\n<h5 class="s s4>' + token.getValue() + '</h5>')
 
     def renderS5(self, token):
         if token.value:
-            logger = logging.warning if token.value==' ' else logging.error
+            logger = logging.warning if token.value == ' ' else logging.error
             logger(f"pseudo-USFM 's5' marker will lose following text: '{token.value}'")
         # if 'NUM' in self.bookName and '00' in self.cc: logging.debug(f"@{self.cc}:{self.cv} renderS5({token.value})…")
         self.write('\n<span class="chunk-break"></span>\n')
 
     def renderC(self, token):
         self.closeFootnote()
-        if not self.bookName: # i.e., there was no \h or \toc2 field in the USFM
+        if not self.bookName:  # i.e., there was no \h or \toc2 field in the USFM
             # NOTE: The next line is not tested on New Testament -- may be out by one book
             self.bookName = bookNames[int(self.cb)-1]
             logging.warning(f"Used '{self.bookName}' as book name (due to missing \\h and \\toc2 fields)")
@@ -272,9 +277,11 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
         self.cc = token.value.zfill(3)
         self.write('\n\n<h2 id="{0}-ch-{1}" class="c-num">{2} {3}</h2>'
                    .format(self.cb, self.cc, self.chapterLabel, token.value))
+
     def renderCA_S(self, token):
         assert not token.value
         self.write('<span class="altChapter">')
+
     def renderCA_E(self, token):
         assert not token.value
         self.write('</span>')
@@ -285,27 +292,31 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
         self.cv = token.value.zfill(3)
         self.write(' <span id="{0}-ch-{1}-v-{2}" class="v-num"><sup><b>{3}</b></sup></span>'.
                    format(self.cb, self.cc, self.cv, token.value))
+
     def renderVA_S(self, token):
         assert not token.value
         self.write('<span class="altVerse"><sup> (')
+
     def renderVA_E(self, token):
         assert not token.value
         self.write(')</sup></span>')
 
-
-    # def renderQ(self, token): # TODO: Can't this type of thing be in the abstractRenderer?
+    # def renderQ(self, token):  # TODO: Can't this type of thing be in the abstractRenderer?
     #     assert not token.value
     #     self.renderQ1(token)
+
     def renderQ1(self, token):
         assert not token.value
         self.stopLI()
         self.closeParagraph()
         self.writeIndent(1)
+
     def renderQ2(self, token):
         assert not token.value
         self.stopLI()
         self.closeParagraph()
         self.writeIndent(2)
+
     def renderQ3(self, token):
         assert not token.value
         self.stopLI()
@@ -384,7 +395,7 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
     def renderPERIPH(self, token):
         pass
 
-    # def renderLI(self, token): # TODO: Can't this type of thing be in the abstractRenderer?
+    # def renderLI(self, token):  # TODO: Can't this type of thing be in the abstractRenderer?
     #     assert not token.value
     #     # if 'NUM' in self.bookName and '00' in self.cc: logging.debug(f"@{self.cc}:{self.cv} renderLI({token.value})…")
     #     self.renderLI1(token)
@@ -422,22 +433,20 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
         self.closeParagraph()
         self.write('\n\n<h4>' + token.value + '</h4>')
 
-    # def render_is(self, token):
-    #     self.stopLI()
-    #     self.closeParagraph()
-    #     self.write('\n\n<h4 style="text-align:center">' + token.getValue() + '</h4>')
     def render_is1(self, token) -> None:
         self.stopLI()
         self.closeParagraph()
-        self.write('\n\n<h4 style="text-align:center">' + token.getValue() + '</h4>')
+        self.write('\n\n<h4 class="is is1">' + token.getValue() + '</h4>')
+
     def render_is2(self, token) -> None:
         self.stopLI()
         self.closeParagraph()
-        self.write('\n\n<h5 style="text-align:center">' + token.getValue() + '</h5>')
+        self.write('\n\n<h5 class="is is2">' + token.getValue() + '</h5>')
+
     def render_is3(self, token) -> None:
         self.stopLI()
         self.closeParagraph()
-        self.write('\n\n<h5">' + token.getValue() + '</h5>')
+        self.write('\n\n<h5 class="is is3>' + token.getValue() + '</h5>')
 
     def render_iot(self, token) -> None:
         self.stopLI()
@@ -502,7 +511,7 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
         self.footnote_text = text
 
     def renderFR(self, token):
-        pass # We don't need these footnote reference fields to be rendered
+        pass  # We don't need these footnote reference fields to be rendered
 
     def renderFT(self, token):
         # print(f"renderFT({token.value}) with '{self.footnote_text}'")
@@ -581,7 +590,7 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
     def renderXT(self, token):
         if self.crossReferenceFlag:
             self.crossReference_text += token.value
-        else: # Can occur not in a cross-reference
+        else:  # Can occur not in a cross-reference
             self.write(token.value)
     def renderXT_E(self, token):
         assert not token.value
@@ -675,7 +684,7 @@ class SingleFilelessHtmlRenderer(AbstractRenderer):
 
 
     def renderQA(self, token):
-        self.write('<p class="quote acrostic heading" style="text-align:center;text-style:italic;">'+token.value+'</p>')
+        self.write('<p class="quote acrostic heading">'+token.value+'</p>')
 
     def renderQAC(self, token):
         assert not token.value
