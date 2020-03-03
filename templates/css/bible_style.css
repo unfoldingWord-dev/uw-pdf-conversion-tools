@@ -1,5 +1,5 @@
 .bible-book {
-    columns: 2;
+    column-count: 2;
     margin: 0 !important;
     text-align: justify;
     justify-content: space-between;
@@ -24,6 +24,13 @@
 .quote.right {
     display: block;
     float: right;
+}
+
+span.d {
+    text-align: center;
+    font-style: italic;
+    display: block;
+    padding: 0 2em;
 }
 
 p.indent .quote {
