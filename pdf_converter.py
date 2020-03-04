@@ -527,6 +527,7 @@ class PdfConverter:
 
     def setup_resource(self, resource):
         self.logger.info(f'Setting up resource {resource.resource_name}...')
+        resource.update = self.update
         resource.clone(self.working_dir)
         self.logger.info(f'  ...set up to use `{resource.repo_name}`: `{resource.ref}` ({resource.commit})')
         self.generation_info[resource.repo_name] = {'ref': resource.ref, 'commit': resource.commit}
@@ -1105,7 +1106,6 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     offline = args.offline
     master = args.master
 
-    update = not offline
     extra_resource_name = None
     if extra_resource_id and hasattr(args, extra_resource_id):
         extra_resource_name = getattr(args, extra_resource_id)
@@ -1133,6 +1133,7 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
 
     for lang_code in lang_codes:
         resources = Resources()
+        update = not offline
         for resource_name in resource_names:
             repo_name = f'{lang_code}_{resource_name}'
             if resource_name == extra_resource_name:
@@ -1150,10 +1151,12 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
         converter_args['resources'] = resources
         for project_id in project_ids:
             converter_args['project_id'] = project_id
+            converter_args['update'] = update
             converter = pdf_converter_class(**converter_args)
             project_id_str = f'_{project_id}' if project_id else ''
             logger.info(f'Starting PDF Converter for {converter.name}_{converter.main_resource.ref}{project_id_str}...')
             converter.run()
+            update = False
     logger.removeHandler(logger_stream_handler)
     logger_stream_handler.close()
 
