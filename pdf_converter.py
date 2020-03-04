@@ -258,7 +258,6 @@ class PdfConverter:
         self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.pdf')
 
         self.determine_if_regeneration_needed()
-        self.save_resource_data()
         self.generate_html()
         self.generate_pdf()
 
@@ -571,30 +570,24 @@ class PdfConverter:
         write_file(save_file, jsonpickle.dumps(self.rcs))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_rcs_latest.json')
         symlink(save_file, link_file_path, True)
-        self.rcs = {}
-        self.all_rcs = {}
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_appendix_rcs.json')
         write_file(save_file, jsonpickle.dumps(self.appendix_rcs))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_appendix_rcs_latest.json')
         symlink(save_file, link_file_path, True)
-        self.appendix_rcs = {}
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_bad_links.json')
         write_file(save_file, jsonpickle.dumps(self.bad_links))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_links_latest.json')
         symlink(save_file, link_file_path, True)
-        self.bad_links = {}
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_bad_highlights.json')
         write_file(save_file, jsonpickle.dumps(self.bad_highlights))
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_highlights_latest.json')
         symlink(save_file, link_file_path, True)
-        self.bad_highlights = {}
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_ref}_generation_info.json')
         write_file(save_file, jsonpickle.dumps(self.generation_info))
-        self.generation_info = {}
 
     def get_previous_generation_info(self):
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_ref}_generation_info.json')
