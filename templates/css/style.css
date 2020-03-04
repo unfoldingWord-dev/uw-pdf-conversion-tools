@@ -60,7 +60,7 @@ h1.section-header {
 
 @page {
     size: letter portrait;
-    margin: 1.5cm;
+    margin: 2cm;
 
     @top-left {
         content: string(heading-left);
@@ -71,7 +71,7 @@ h1.section-header {
         line-height: 14px;
         height: 28px;
         vertical-align: top;
-        margin: 12px 0;
+        /*margin: 12px 0;*/
         padding-right: 10px;
     }
     @top-right {
@@ -83,7 +83,7 @@ h1.section-header {
         line-height: 14px;
         height: 28px;
         vertical-align: top;
-        margin: 12px 0;
+        /*margin: 12px 0;*/
         padding-left: 5px;
     }
     @bottom-center {
