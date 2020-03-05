@@ -45,7 +45,7 @@ class TqPdfConverter(PdfConverter):
         if self.main_resource.title in project['title']:
             return project['title'].replace(f' {self.main_resource.title}', '')
         else:
-            return project['title'].replace(f' {self.main_resource.simple_title}')
+            return project['title'].replace(f' {self.main_resource.simple_title}', '')
 
     def get_tq_html(self):
         tq_html = ''
