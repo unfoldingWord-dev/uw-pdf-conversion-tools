@@ -42,7 +42,8 @@ span.d {
     text-align: center;
     font-style: italic;
     display: block;
-    padding: 0 2em;
+    padding: 0 10px;
+    width: 300px;
 }
 
 p.indent .quote {

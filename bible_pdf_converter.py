@@ -77,6 +77,9 @@ class BiblePdfConverter(PdfConverter):
     def get_appendix_rcs(self):
         pass
 
+    def replace_rc_links(self, text):
+        return text
+
     def get_body_html(self):
         self.logger.info('Creating Bible for {0}...'.format(self.file_project_and_ref))
         self.add_style_sheet('css/bible_style.css')
