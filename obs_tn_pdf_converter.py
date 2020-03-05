@@ -13,11 +13,10 @@ This script generates the HTML and PDF OBS SN & SQ documents
 import os
 import re
 import markdown2
-import general_tools.html_tools as html_tools
 from glob import glob
 from pdf_converter import PdfConverter, run_converter
 from general_tools.file_utils import load_json_object
-from general_tools import obs_tools
+from general_tools import obs_tools, html_tools, alignment_tools
 
 # Enter ignores in lowercase
 TN_TITLES_TO_IGNORE = {
@@ -134,13 +133,16 @@ class ObsTnPdfConverter(PdfConverter):
                     notes_rc = self.add_rc(notes_rc_link, title=frame_title, article=notes_html)
 
                     if obs_text:
+                        orig_obs_text = obs_text
                         if notes_html:
                             phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')
-                            if phrases:
-                                obs_text = html_tools.highlight_text_with_phrases(obs_text, phrases, notes_rc,
-                                                                                  TN_TITLES_TO_IGNORE[self.lang_code],
-                                                                                  add_bad_highlight_func=self.add_bad_highlight)
-
+                            for phrase in phrases:
+                                alignment = alignment_tools.split_string_into_alignment(phrase)
+                                marked_obs_text = html_tools.mark_phrases_in_html(obs_text, alignment)
+                                if not marked_obs_text:
+                                    self.add_bad_highlight(notes_rc, orig_obs_text, notes_rc.rc_link, phrase)
+                                else:
+                                    obs_text = marked_obs_text
                     if frame_idx == len(frames) - 1:
                         if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
                             notes_html += f'''
