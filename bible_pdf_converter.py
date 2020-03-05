@@ -28,11 +28,13 @@ class BiblePdfConverter(PdfConverter):
         self.project_id = kwargs['project_id']
         self.bible_id = bible_id
         self.chapter = chapter
-        self.book_number = None
         self.chapters = self.parse_chapters(chapter)
-        if self.project_id:
-            self.book_number = BOOK_NUMBERS[kwargs['project_id']]
         super().__init__(*args, **kwargs)
+
+    @property
+    def book_number(self):
+        if self.project_id and self.project_id not in ['all', 'ot', 'nt']:
+            return BOOK_NUMBERS[self.project_id]
 
     @staticmethod
     def parse_chapters(chapter):
@@ -52,11 +54,25 @@ class BiblePdfConverter(PdfConverter):
 
     @property
     def file_id_project_str(self):
-        if self.project_id:
+        if self.project_id and self.project_id != 'all':
             chapter_str = f'-{self.pad(self.chapter)}' if self.chapter else ''
-            return f'_{self.book_number.zfill(2)}-{self.project_id.upper()}{chapter_str}'
+            book_number_str = f'{self.book_number.zfill(2)}-' if self.project_id not in ['ot', 'nt'] else ''
+            return f'_{book_number_str}{self.project_id.upper()}{chapter_str}'
         else:
             return ''
+
+    @property
+    def project_title(self):
+        if not self.project_id or self.project_id == 'all':
+            return ''
+        elif self.project_id == 'ot':
+            return self.translate('old_testament')
+        elif self.project_id == 'nt':
+            return self.translate('new_testament')
+        else:
+            project = self.project
+            if project:
+                return project['title']
 
     def get_appendix_rcs(self):
         pass
@@ -73,13 +89,25 @@ class BiblePdfConverter(PdfConverter):
             return project['title'].replace(f' {self.main_resource.simple_title}', '')
 
     def get_bible_html(self):
-        bible_html = f'''
-<section id="{self.lang_code}-{self.name}" class="bible">
-'''
-        if self.project_id:
-            projects = [self.main_resource.find_project(self.project_id)]
-        else:
+        if not self.project_id:
+            self.project_id = 'all'
+        if self.project_id == 'all':
             projects = self.main_resource.projects
+        else:
+            if self.project_id == 'ot' or self.project_id == 'nt':
+                first_book = int(BOOK_NUMBERS['gen']) - 1
+                last_book = int(BOOK_NUMBERS['rev']) - 1
+                if self.project_id == 'ot':
+                    last_book = int(BOOK_NUMBERS['mal'])
+                else:
+                    first_book = int(BOOK_NUMBERS['mat']) - 2
+                project_ids = list(BOOK_NUMBERS.keys())[first_book:last_book]
+            else:
+                project_ids = [self.project_id]
+            projects = [self.main_resource.find_project(project_id) for project_id in project_ids]
+        bible_html = f'''
+<section id="{self.lang_code}-{self.name}" class="bible {self.name}-bible bible-{self.project_id} {self.name}-bible-{self.project_id}">
+'''
         for project_idx, project in enumerate(projects):
             project_id = project['identifier']
             project_num = BOOK_NUMBERS[project_id]
@@ -91,6 +119,7 @@ class BiblePdfConverter(PdfConverter):
                 usfm = usfm_split[0]
                 for chapter in self.chapters:
                     usfm += '\\c ' + usfm_split[chapter]
+            self.logger.info(f'Converting {project_id.upper()} from USFM to HTML...')
             html, warnings = SingleFilelessHtmlRenderer({project_id.upper(): usfm}).render()
             soup = BeautifulSoup(html, 'html.parser')
             book_header = soup.find('h1')
@@ -110,7 +139,7 @@ class BiblePdfConverter(PdfConverter):
                 chapter_header['heading_title'] = heading_title
             article_html = ''.join(['%s' % x for x in soup.body.contents]).strip()
             bible_html += f'''
-    <article id="{self.lang_code}-{self.name}-{project_id}" class="bible-book">
+    <article id="{self.lang_code}-{self.name}-{project_id}" class="bible-book bible-book-{project_id} {self.name}-bible-book">
         <div class="bible-book-wrapper">
             {article_html}
         </div>

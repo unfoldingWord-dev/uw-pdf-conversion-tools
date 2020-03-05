@@ -1,5 +1,5 @@
 .bible-book {
-    /*column-count: 2;*/
+    column-count: 2;
     margin: 0 !important;
     text-align: justify;
     justify-content: space-between;
@@ -7,9 +7,21 @@
 }
 
 .bible-book-wrapper {
-    /*width: 320px;*/
-    /*height: 100%;*/
-    /*min-height: 100px;*/
+    width: 320px;
+    height: 100%;
+    min-height: 100px;
+}
+
+.bible-book-psa,
+.bible-otttt .bible-book {
+    column-count: 1 !important;
+}
+
+.bible-book-psa .bible-book-wrapper,
+.bible-ottttt .bible-book .bible-book-wrapper {
+    width: auto !important;
+    height: auto !important;
+    min-height: auto !important;
 }
 
 .bible-book h1 {

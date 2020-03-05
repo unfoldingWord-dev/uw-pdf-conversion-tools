@@ -172,6 +172,7 @@ class TnPdfConverter(PdfConverter):
         book_usfm = read_file(book_file)
 
         unaligned_usfm = unalign_usfm(book_usfm)
+        self.logger.info(f'Converting {self.project_id.upper()} from USFM to HTML...')
         book_html, warnings = SingleFilelessHtmlRenderer({self.project_id.upper(): unaligned_usfm}).render()
         html_verse_splits = re.split(r'(<span id="[^"]+-ch-0*(\d+)-v-(\d+(?:-\d+)?)" class="v-num">)', book_html)
         usfm_chapter_splits = re.split(r'\\c ', unaligned_usfm)

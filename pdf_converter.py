@@ -80,7 +80,6 @@ class PdfConverter:
         self.converters_dir = os.path.dirname(os.path.realpath(__file__))
         self.style_sheets = []
 
-        self._name = self.main_resource.resource_name
         self._project = None
 
         self.logger = logger
@@ -105,7 +104,7 @@ class PdfConverter:
 
     @property
     def name(self):
-        return self._name
+        return self.main_resource.resource_name
 
     @property
     def title(self):
