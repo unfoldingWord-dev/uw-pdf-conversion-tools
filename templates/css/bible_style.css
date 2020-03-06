@@ -13,12 +13,14 @@
 }
 
 .bible-book-psa,
-.bible-ot .bible-book {
+.bible-ot .bible-book,
+.bible-all .bible-book {
     column-count: 1 !important;
 }
 
 .bible-book-psa .bible-book-wrapper,
-.bible-ot .bible-book .bible-book-wrapper {
+.bible-ot .bible-book .bible-book-wrapper,
+.bbile-all .bible-book .bible-book-wrapper {
     width: auto !important;
     height: auto !important;
     min-height: auto !important;
