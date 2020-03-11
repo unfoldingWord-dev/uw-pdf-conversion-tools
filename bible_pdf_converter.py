@@ -82,7 +82,7 @@ class BiblePdfConverter(PdfConverter):
 
     def get_body_html(self):
         self.logger.info('Creating Bible for {0}...'.format(self.file_project_and_ref))
-        self.add_style_sheet('css/bible_style.css')
+        self.add_style_sheet('../css/bible_style.css')
         return self.get_bible_html()
 
     def get_book_title(self, project):

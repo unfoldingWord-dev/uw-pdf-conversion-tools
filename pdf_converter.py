@@ -309,21 +309,23 @@ class PdfConverter:
             os.makedirs(self.log_dir)
         self.logger.info(f'Log directory is {self.log_dir}')
 
-        self.add_style_sheet('css/style.css')
+        self.add_style_sheet('../css/style.css')
         possible_styles = [self.lang_code, self.name, self.main_resource.resource_name, f'{self.lang_code}_{self.name}']
         for style in possible_styles:
-            style_file = f'css/{style}_style.css'
+            style_file = f'../css/{style}_style.css'
             style_path = os.path.join(self.converters_dir, f'templates/{style_file}')
             if os.path.exists(style_path):
                 self.add_style_sheet(style_file)
 
-        css_link = os.path.join(self.output_res_dir, 'css')
-        css_path = os.path.join(self.converters_dir, 'templates/css')
-        symlink(css_path, css_link)
+        css_link = os.path.join(self.output_dir, 'css')
+        if not os.path.exists(css_link):
+            css_path = os.path.join(self.converters_dir, 'templates/css')
+            symlink(css_path, css_link)
 
         index_link = os.path.join(self.output_dir, 'index.php')
-        index_path = os.path.join(self.converters_dir, 'index.php')
-        symlink(index_path, index_link)
+        if not os.path.exists(index_link):
+            index_path = os.path.join(self.converters_dir, 'index.php')
+            symlink(index_path, index_link)
         self.logger.info(f'index.php file linked to {index_link}')
 
     def setup_logger(self):
