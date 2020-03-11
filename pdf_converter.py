@@ -250,8 +250,9 @@ class PdfConverter:
             }
 
     def run(self):
-        self.setup_dirs()
+        self.setup_working_dir()
         self.setup_resources()
+        self.setup_dirs()
         self.setup_logger()
         self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.html')
         self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.pdf')
@@ -260,8 +261,8 @@ class PdfConverter:
         self.generate_html()
         self.generate_pdf()
 
-    def setup_dirs(self):
-        self.logger.info('Setting up directories...')
+    def setup_working_dir(self):
+        self.logger.info('Setting up working directory...')
         if not self.working_dir:
             if 'WORKING_DIR' in os.environ:
                 self.working_dir = os.environ['WORKING_DIR']
@@ -271,6 +272,8 @@ class PdfConverter:
                 self.remove_working_dir = True
         self.logger.info(f'Working directory is {self.working_dir}')
 
+    def setup_dirs(self):
+        self.logger.info('Setting up directories...')
         if not self.output_dir:
             if 'OUTPUT_DIR' in os.environ:
                 self.output_dir = os.environ['OUTPUT_DIR']
@@ -286,7 +289,7 @@ class PdfConverter:
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
-        self.output_res_dir = os.path.join(self.output_dir, self.name)
+        self.output_res_dir = os.path.join(self.output_dir, f'{self.name}_{self.ref}')
         if not os.path.exists(self.output_res_dir):
             os.mkdir(self.output_res_dir)
         self.logger.info(f'Resource output directory is {self.output_res_dir}')
@@ -530,12 +533,12 @@ class PdfConverter:
         resource.clone(self.working_dir)
         self.logger.info(f'  ...set up to use `{resource.repo_name}`: `{resource.ref}` ({resource.commit})')
         self.generation_info[resource.repo_name] = {'ref': resource.ref, 'commit': resource.commit}
-        logo_path = os.path.join(self.images_dir, resource.logo_file)
-        if not os.path.exists(logo_path) and not self.offline:
-            try:
-                download_file(resource.logo_url, logo_path)
-            except IOError:
-                self.logger.error(f'No logo file found for {resource.logo_url}')
+        #logo_path = os.path.join(self.images_dir, resource.logo_file)
+        #if not os.path.exists(logo_path) and not self.offline:
+        #    try:
+        #        download_file(resource.logo_url, logo_path)
+        #    except IOError:
+        #        self.logger.error(f'No logo file found for {resource.logo_url}')
 
     def setup_resources(self):
         self.logger.info('Setting up resources...')
