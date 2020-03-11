@@ -10,7 +10,7 @@ date_default_timezone_set('US/Eastern');
 $dirs = array();
 $dir = opendir("."); // open the cwd..also do an err check.
 while(false != ($subdir = readdir($dir))) {
-        if(($subdir != ".") && ($subdir != "..") && is_dir($subdir) && ($subdir != "images")) {
+        if(is_dir($subdir) && ! in_array([".", "..", "images", "save", "log"], $subdir)) {
                 $dirs[] = $subdir; // put in array.
         }
 }
@@ -29,7 +29,7 @@ foreach($dirs as $dir) {
     $subdir = opendir($dir); // open the cwd..also do an err check.
     while(false != ($subfile = readdir($subdir))) {
         $filepath= './'.$dir.'/'.$subfile;
-        if(($subfile != ".") && ($subfile != "..") && ($subfile != "index.php") && is_link($filepath) && !is_dir($filepath) && ($subfile != "css")) {
+        if(is_link($filepath)) {
                 $files[] = $subfile; // put in array.
         }
     }
