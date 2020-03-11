@@ -10,7 +10,7 @@ date_default_timezone_set('US/Eastern');
 $dirs = array();
 $dir = opendir("."); // open the cwd..also do an err check.
 while(false != ($subdir = readdir($dir))) {
-        if(is_dir($subdir) && ! in_array([".", "..", "images", "save", "log"], $subdir)) {
+        if(is_dir($subdir) && ! in_array($subdir, [".", "..", "css", "images", "save", "log"])) {
                 $dirs[] = $subdir; // put in array.
         }
 }
