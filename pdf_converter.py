@@ -294,7 +294,7 @@ class PdfConverter:
             os.mkdir(self.output_res_dir)
         self.logger.info(f'Resource output directory is {self.output_res_dir}')
 
-        self.images_dir = os.path.join(self.output_res_dir, 'images')
+        self.images_dir = os.path.join(self.output_dir, 'images')
         if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
         self.logger.info(f'Images directory is {self.images_dir}')
@@ -380,7 +380,6 @@ class PdfConverter:
             body_html = self.replace_rc_links(body_html)
             self.logger.info('Generating Contributors HTML...')
             body_html += self.get_contributors_html()
-            body_html = self.download_all_images(body_html)
             self.logger.info('Generating TOC HTML...')
             body_html, toc_html = self.get_toc_html(body_html)
             self.logger.info('Done generating TOC HTML.')
@@ -389,9 +388,11 @@ class PdfConverter:
                 html_template = string.Template(template_file.read())
             title = f'{self.title} - v{self.version}'
 
-            body = '\n'.join([cover_html, license_html, toc_html, body_html])
+            body_html = '\n'.join([cover_html, license_html, toc_html, body_html])
+            if not self.offline:
+                body_html = self.download_all_images(body_html)
             link = '\n'.join([f'<link href="{style}" rel="stylesheet">' for style in self.style_sheets])
-            html = html_template.safe_substitute(lang=self.lang_code, title=title, link=link, body=body)
+            html = html_template.safe_substitute(lang=self.lang_code, title=title, link=link, body=body_html)
             write_file(self.html_file, html)
 
             link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_latest.html')
@@ -600,17 +601,17 @@ class PdfConverter:
             return {}
 
     def download_all_images(self, html):
-        img_dir = os.path.join(self.images_dir, 'downloaded')
-        os.makedirs(img_dir, exist_ok=True)
         soup = BeautifulSoup(html, 'html.parser')
         for img in soup.find_all('img'):
             if img['src'].startswith('http'):
                 url = img['src']
-                filename = re.search(r'/([\w_-]+[.](jpg|gif|png))$', url).group(1)
-                img['src'] = f'images/downloaded/{filename}'
-                filepath = os.path.join(img_dir, filename)
-                if not os.path.exists(filepath) and not self.offline:
-                    download_file(url, filepath)
+                url_as_file_name = re.search(r'https*://([\w/_%.-]+[.](jpg|gif|png))', url, flags=re.IGNORECASE).group(1)
+                file_path = f'images/{url_as_file_name}'
+                full_file_path = os.path.join(self.output_dir, file_path)
+                if not os.path.exists(full_file_path) and not self.offline:
+                    os.makedirs(os.path.dirname(full_file_path), exist_ok=True)
+                    download_file(url, full_file_path)
+                    img['src'] = f'../{file_path}'
         return str(soup)
 
     @abstractmethod
@@ -702,7 +703,7 @@ class PdfConverter:
             version_title_html = f'<h2 class="cover-version">{self.translate("license.version")} {self.version}</h2>'
         cover_html = f'''
 <article id="main-cover" class="cover">
-    <img src="images/{self.main_resource.logo_file}" alt="{self.name.upper()}"/>
+    <img src="{self.main_resource.logo_url}" alt="{self.name.upper()}"/>
     <h1 id="cover-title">{self.title}</h1>
     {project_title_html}
     {version_title_html}
