@@ -299,12 +299,12 @@ class PdfConverter:
             os.makedirs(self.images_dir)
         self.logger.info(f'Images directory is {self.images_dir}')
 
-        self.save_dir = os.path.join(self.output_res_dir, 'save')
+        self.save_dir = os.path.join(self.output_dir, 'save')
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
         self.logger.info(f'Save directory is {self.save_dir}')
 
-        self.log_dir = os.path.join(self.output_res_dir, 'log')
+        self.log_dir = os.path.join(self.output_dir, 'log')
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
         self.logger.info(f'Log directory is {self.log_dir}')
