@@ -76,7 +76,7 @@ class ObsPdfConverter(PdfConverter):
 <article class="blank-page">
 </article>        
 '''
-        stylesheets = [os.path.join(self.converters_dir, 'templates', style) for style in self.style_sheets]
+        stylesheets = [os.path.join(self.output_res_dir, style) for style in self.style_sheets]
         for chapter_num in range(1, 51):
             chapter_num = str(chapter_num).zfill(2)
             obs_chapter_data = obs_tools.get_obs_chapter_data(self.main_resource.repo_dir, chapter_num)
@@ -108,7 +108,7 @@ class ObsPdfConverter(PdfConverter):
     def get_cover_html(self):
         cover_html = f'''
 <article id="main-cover" class="cover no-header-footer">
-    <img src="css/uw-obs-logo.png" alt="{self.name.upper()}"/>
+    <img src="{self.main_resource.logo_url}" alt="{self.name.upper()}"/>
 </article>
 <article class="blank-page no-footer">
 </article>
