@@ -614,6 +614,7 @@ class PdfConverter:
                 full_file_path = os.path.join(self.output_dir, file_path)
                 if not os.path.exists(full_file_path) and not self.offline:
                     os.makedirs(os.path.dirname(full_file_path), exist_ok=True)
+                    print(f'{url}\n\n')
                     download_file(url, full_file_path)
                     img['src'] = f'../{file_path}'
         return str(soup)
@@ -696,6 +697,7 @@ class PdfConverter:
         for level in range(prev_toc_level, 0, -1):
             toc_html += '</li>\n</ul>\n'
         toc_html += '</article>'
+        print(toc_html)
         return [str(soup), toc_html]
 
     def get_cover_html(self):
