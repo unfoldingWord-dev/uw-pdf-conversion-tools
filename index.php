@@ -17,7 +17,7 @@ while(false != ($subdir = readdir($dir))) {
 
 natsort($dirs); // sort.
 
-echo '<div class="menu">';
+echo '<div class="menu"><h1>Resources:</h1>';
 foreach($dirs as $dir) {
     echo '<a class="menu-item" href="#'.$dir.'" style="width:200px;display:inline-block">'.$dir.'</a>'."\n";
 }
