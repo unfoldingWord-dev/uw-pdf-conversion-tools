@@ -81,7 +81,7 @@ class TaPdfConverter(PdfConverter):
             self.config = yaml.full_load(read_file(os.path.join(project_path, 'config.yaml')))
             articles_html += f'''
 <article id="{self.lang_code}-{project_id}-cover" class="manual-cover cover">
-    <img src="images/{self.main_resource.logo_file}" alt="{project_id}" />
+    <img src="{self.main_resource.logo_url}" alt="{project_id}" />
     <h1>{self.title}</h1>
     <h2 class="section-header" toc-level="1">{project['title']}</h2>
 </article>

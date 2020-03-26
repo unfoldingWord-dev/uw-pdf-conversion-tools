@@ -69,7 +69,7 @@ class TqPdfConverter(PdfConverter):
             tq_html += f'''
 <section id="{self.lang_code}-{self.name}-{project_id}" class="tq-book">
     <article id="{self.lang_code}-{self.name}-{project_id}-cover" class="resource-title-page no-header-footer"">
-        <img src="images/{self.main_resource.logo_file}" class="logo" alt="UTN">
+        <img src="{self.main_resource.logo_url}" class="logo" alt="UTQ">
         <h1{' class="section-header"' if project_idx == 0 else ''}>{self.title}</h1>
         <h2 class="section-header no-heading">{self.get_book_title(project)}</h2>
     </article>

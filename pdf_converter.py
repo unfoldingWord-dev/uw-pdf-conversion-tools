@@ -888,7 +888,7 @@ class PdfConverter:
             html = f'''
 <section>
     <article id="{self.lang_code}-{resource.resource_name}-appendix-cover" class="resource-title-page break">
-        <img src="images/{resource.logo_file}" alt="{resource.resource_name.upper()}">
+        <img src="{resource.logo_url}" alt="{resource.resource_name.upper()}">
         <h1 class="section-header">{resource.title}</h1>
         <h2 class="cover-version">{self.translate("license.version")} {resource.version}</h2>
     </article>

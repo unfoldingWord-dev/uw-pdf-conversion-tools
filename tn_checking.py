@@ -94,7 +94,7 @@ class TnCheckingPdfConverter(TnPdfConverter):
         tn_html = f'''
 <section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
     <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
-        <img src="images/{self.main_resource.logo_file}" class="logo" alt="UTN">
+        <img src="{self.main_resource.logo_url}" class="logo" alt="UTN">
         <h1 class="section-header">{self.title}</h1>
         <h2 class="section-header">{self.project_title}</h2>
     </article>
