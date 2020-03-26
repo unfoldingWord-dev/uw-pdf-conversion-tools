@@ -634,47 +634,44 @@ class PdfConverter:
     {self.toc_title}
 '''
         prev_toc_level = 0
+        prev_header_level = 0
         soup = BeautifulSoup(body_html, 'html.parser')
         heading_titles = [None, None, None, None, None, None]
         headers = soup.find_all(re.compile(r'^h\d'), {'class': 'section-header'})
         for header in headers:
-            toc_level = int(header.get('toc-level', header.name[1]))
-            # Handle closing of ul/li tags or handle the opening of new ul tags
-            if toc_level > prev_toc_level:
-                for level in range(prev_toc_level, toc_level):
-                    toc_html += '\n<ul>\n'
-                    heading_titles[level] = None
-            elif toc_level < prev_toc_level:
-                toc_html += '\n</li>\n'
-                for level in range(prev_toc_level, toc_level, -1):
-                    toc_html += '</ul>\n</li>\n'
-                    heading_titles[level-1] = None
-            elif prev_toc_level > 0:
-                toc_html += '\n</li>\n'
             if header.get('id'):
                 article_id = header.get('id')
             else:
                 parent = header.find_parent(['article', 'section'])
                 article_id = parent.get('id')
 
-            heading_title = None
-            if not header.has_attr('class') or 'no-heading' not in header['class']:
-                if header.has_attr('heading_title'):
-                    heading_title = header['heading_title']
-                else:
-                    rc = self.get_rc_by_article_id(article_id)
-                    if rc:
-                        heading_title = rc.toc_title
-                    else:
-                        heading_title = header.text
-            if heading_title:
-                heading_titles[toc_level-1] = heading_title
-            else:
-                heading_titles[toc_level - 1] = None
-
             if article_id:
-                toc_title = None
-                if not header.has_attr('class') or 'no-toc' not in header['class']:
+                is_toc = not header.has_attr('class') or 'no-toc' not in header['class']
+                is_heading = not header.has_attr('class') or 'no-heading' not in header['class']
+
+                if not is_toc and not is_heading:
+                    continue
+
+                toc_level = int(header.get('toc-level', header.name[1]))
+                header_level = int(header.get('header-level', toc_level))
+                print(f'{prev_toc_level}:{toc_level}:{prev_header_level}:{header_level}:{article_id}:{is_toc}:{is_heading}')
+
+                # Get the proper TOC title and add it to the TOC string with an open <li>
+                if is_toc:
+                    if toc_level > prev_toc_level:
+                        for level in range(prev_toc_level, toc_level):
+                            print(':opened ul')
+                            toc_html += '\n<ul>\n'
+                    elif toc_level < prev_toc_level:
+                        print(':closed /li')
+                        toc_html += '\n</li>\n'  # close current item's open <li> tag
+                        for level in range(prev_toc_level, toc_level, -1):
+                            print(':closed /ul /li')
+                            toc_html += '</ul>\n</li>\n'
+                    elif prev_toc_level > 0:
+                        print(':closed /li')
+                        toc_html += '\n</li>\n'
+
                     if header.has_attr('toc_title'):
                         toc_title = header['toc_title']
                     else:
@@ -683,20 +680,41 @@ class PdfConverter:
                             toc_title = rc.toc_title
                         else:
                             toc_title = header.text
-                if toc_title:
+                    print(f':opened li:{toc_title}')
                     toc_html += f'<li><a href="#{article_id}"><span>{toc_title}</span></a>\n'
+                    prev_toc_level = toc_level
 
-                right_heading_string = ' :: '.join(filter(None, heading_titles[1:toc_level]))
-                if len(right_heading_string):
-                    right_heading_tag = soup.new_tag('span', **{'class': 'hidden heading-right'})
-                    right_heading_tag.string = right_heading_string
-                    header.insert_before(right_heading_tag)
+                # Get the proper Heading title and add a heading tag
+                if is_heading:
+                    if header_level > prev_header_level:
+                        for level in range(prev_header_level, header_level):
+                            heading_titles[level] = None
+                    elif header_level < prev_header_level:
+                        for level in range(prev_header_level, header_level, -1):
+                            heading_titles[level - 1] = None
 
-                prev_toc_level = toc_level
+                    if header.has_attr('heading_title'):
+                        heading_title = header['heading_title']
+                    else:
+                        rc = self.get_rc_by_article_id(article_id)
+                        if rc:
+                            heading_title = rc.toc_title
+                        else:
+                            heading_title = header.text
+                    heading_titles[header_level - 1] = heading_title
+
+                    right_heading_string = ' :: '.join(filter(None, heading_titles[1:header_level]))
+                    if len(right_heading_string):
+                        right_heading_tag = soup.new_tag('span', **{'class': 'hidden heading-right'})
+                        right_heading_tag.string = right_heading_string
+                        header.insert_before(right_heading_tag)
+                    prev_header_level = header_level
 
         for level in range(prev_toc_level, 0, -1):
+            print(':closed /li /ul at end')
             toc_html += '</li>\n</ul>\n'
         toc_html += '</article>'
+
         print(toc_html)
         return [str(soup), toc_html]
 
