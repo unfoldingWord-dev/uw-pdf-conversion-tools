@@ -253,7 +253,7 @@ class PdfConverter:
         self.setup_working_dir()
         self.setup_resources()
         self.setup_dirs()
-        self.setup_stylesheets()
+        self.setup_style_sheets()
         self.setup_logger()
         self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.html')
         self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.pdf')
@@ -321,7 +321,7 @@ class PdfConverter:
             symlink(index_path, index_link)
         self.logger.info(f'index.php file linked to {index_link}')
 
-    def setup_stylesheets(self):
+    def setup_style_sheets(self):
         self.add_style_sheet('../css/style.css')
         possible_styles = [self.lang_code, self.name, self.main_resource.resource_name, f'{self.lang_code}_{self.name}']
         for style in possible_styles:
