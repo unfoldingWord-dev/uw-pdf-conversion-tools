@@ -3,6 +3,18 @@
   <head>
     <meta charset="utf-8">
     <title>Resource list</title>
+    <style>
+body {
+  background-color: white;
+  padding: 1em;
+}
+
+.menu {
+  -webkit-column-width: 150px;
+  -moz-column-width: 150px;
+  column-width: 150px;
+}
+</style>
   </head>
 <body>
 <?php
@@ -17,11 +29,11 @@ while(false != ($subdir = readdir($dir))) {
 
 natsort($dirs); // sort.
 
-echo '<div class="menu"><h1>Resources:</h1>';
+echo '<div><h1>Resources:</h1><div class="menu">';
 foreach($dirs as $dir) {
-    echo '<a class="menu-item" href="#'.$dir.'" style="width:200px;display:inline-block">'.$dir.'</a>'."\n";
+    echo '<a class="menu-item" href="#'.$dir.'">'.$dir.'</a><br/>'."\n";
 }
-echo '</div>';
+echo '</div></div>';
 
 // print.
 foreach($dirs as $dir) {
