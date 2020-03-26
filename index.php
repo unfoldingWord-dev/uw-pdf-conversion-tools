@@ -25,6 +25,14 @@ body {
   </head>
 <body>
 <?php
+$sort_by_sort = function($a, $b) {
+   if($_GET['sort']=='date') {
+     return $a['mtime'] > $b['mtime'] ? -1 : ($a['mtime'] == $b['mtime'] ? 0 : 1);
+   } else {
+     return strnatcmp($a['name'], $b['name']);
+   }
+};
+
 date_default_timezone_set('US/Eastern');
 $dirs = array();
 $dir = opendir("."); // open the cwd..also do an err check.
@@ -38,13 +46,7 @@ while(false != ($subdir = readdir($dir))) {
        }
 }
 
-usort($dirs, function($a, $b) {
-   if($_GET['sort']=='date') {
-     return $a['mtime'] > $b['mtime'] ? -1 : ($a['mtime'] == $b['mtime'] ? 0 : 1);
-   } else {
-     return strnatcmp($a['name'], $b['name']);
-   }
-});
+usort($dirs, $sort_by_sort);
 
 echo '<div class="sort">Sort: <a href="?sort=name">name</a> | <a href="?sort=date">last generated</a></div>';
 echo '<div><h1>Resources:</h1><div class="menu">';
@@ -60,17 +62,21 @@ foreach($dirs as $data) {
     $subdir = opendir($dir); // open the cwd..also do an err check.
     while(false != ($subfile = readdir($subdir))) {
         $filepath= './'.$dir.'/'.$subfile;
+        $stat = stat("./$filepath");
         if(is_link($filepath)) {
-                $files[] = $subfile; // put in array.
+                $files[] = array(
+                    'name'=>$subfile,
+                    'mtime'=>$stat['mtime'],
+                );
         }
     }
 
     if ($files) {
-        natsort($files); // sort.
-
+        usort($files, $sort_by_sort);
         echo "<h2 id='".$dir."'>".$dir."</h2>\n";
         echo "<p>\n";
-        foreach($files as $file) {
+        foreach($files as $file_data) {
+            $file = $file_data['name'];
             $filepath = './'.$dir.'/'.$file;
             $realfile = './'.$dir.'/'.basename(readlink($filepath));
 
