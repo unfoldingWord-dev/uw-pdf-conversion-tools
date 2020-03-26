@@ -14,6 +14,13 @@ body {
   -moz-column-width: 150px;
   column-width: 150px;
 }
+
+.item {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    -webkit-column-break-inside: avoid !important;
+    column-break-inside: avoid: !important;
+}
 </style>
   </head>
 <body>
@@ -33,7 +40,7 @@ echo 'Modification time: ' . $stat['mtime']; // will show unix time stamp.
 echo '<div><h1>Resources:</h1><div class="menu">';
 foreach($dirs as $dir) {
     $stat = stat("./$dir");
-    echo '<a class="menu-item" href="#'.$dir.'">'.$dir.'</a><br/><em>('.date("Y-m-d", $stat['mtime']).')</em><br/><br/>'."\n";
+    echo '<div class="item"><a class="menu-item" href="#'.$dir.'">'.$dir.'</a><br/><em>('.date("Y-m-d", $stat['mtime']).')</em></div>'."\n";
 }
 echo '</div></div>';
 
