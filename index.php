@@ -29,24 +29,34 @@ date_default_timezone_set('US/Eastern');
 $dirs = array();
 $dir = opendir("."); // open the cwd..also do an err check.
 while(false != ($subdir = readdir($dir))) {
-        if(is_dir($subdir) && ! in_array($subdir, [".", "..", "css", "images", "save", "log"])) {
-                $dirs[] = $subdir; // put in array.
-        }
+       if(is_dir($subdir) && ! in_array($subdir, [".", "..", "css", "images", "save", "log"])) {
+            $stat = stat("./$subdir");
+            $dirs[] = array(
+                'name'=>$subdir,
+                'mtime'=>$stat['mtime']
+            );
+       }
 }
 
-natsort($dirs); // sort.
-echo 'Modification time: ' . $stat['mtime']; // will show unix time stamp.
+usort($dirs, function($a, $b) {
+   if($_GET['sort']=='date') {
+     return $a['mtime'] > $b['mtime'] ? -1 : ($a['mtime'] == $b['mtime'] ? 0 : 1);
+   } else {
+     return strnatcmp($a['name'], $b['name']);
+   }
+});
 
+echo '<div class="sort">Sort: <a href="?sort=name">name</a> | <a href="?sort=date">last generated</a></div>';
 echo '<div><h1>Resources:</h1><div class="menu">';
-foreach($dirs as $dir) {
-    $stat = stat("./$dir");
-    echo '<div class="item"><a class="menu-item" href="#'.$dir.'">'.$dir.'</a><br/><em>('.date("Y-m-d", $stat['mtime']).')</em></div>'."\n";
+foreach($dirs as $data) {
+    echo '<div class="item"><a class="menu-item" href="#'.$data['name'].'">'.$data['name'].'</a><br/><em>('.date("Y-m-d", $data['mtime']).')</em></div>'."\n";
 }
 echo '</div></div>';
 
 // print.
-foreach($dirs as $dir) {
+foreach($dirs as $data) {
     $files = array();
+    $dir = $data['name'];
     $subdir = opendir($dir); // open the cwd..also do an err check.
     while(false != ($subfile = readdir($subdir))) {
         $filepath= './'.$dir.'/'.$subfile;
