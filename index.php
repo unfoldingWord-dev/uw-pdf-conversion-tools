@@ -25,54 +25,69 @@ body {
   </head>
 <body>
 <?php
-$sort_by_sort = function($a, $b) {
-   if($_GET['sort']=='date') {
-     return $a['mtime'] > $b['mtime'] ? -1 : ($a['mtime'] == $b['mtime'] ? 0 : 1);
-   } else {
-     return strnatcmp($a['name'], $b['name']);
-   }
-};
-
 date_default_timezone_set('US/Eastern');
 $dirs = array();
 $dir = opendir("."); // open the cwd..also do an err check.
 while(false != ($subdir = readdir($dir))) {
        if(is_dir($subdir) && ! in_array($subdir, [".", "..", "css", "images", "save", "log"])) {
             $stat = stat("./$subdir");
-            $dirs[] = array(
+            $data = array(
                 'name'=>$subdir,
-                'mtime'=>$stat['mtime']
+                'mtime'=>$stat['mtime'],
             );
+            $subdir_dir = opendir($subdir); // open the cwd..also do an err check.
+            $files = array();
+            while(false != ($subfile = readdir($subdir_dir))) {
+                $filepath= './'.$subdir.'/'.$subfile;
+                if(is_link($filepath)) {
+                    $stat = stat($filepath);
+                    $files[] = array(
+                        'name'=>$subfile,
+                        'mtime'=>$stat['mtime'],
+                    );
+                }
+            }
+            if ($files) {
+                usort($files, function($a, $b) {return $a['mtime'] > $b['mtime'] ? -1 : ($a['mtime'] == $b['mtime'] ? 0 : 1);});
+                $data['files'] = $files;
+                $data['mtime'] = $files[0]['mtime'];
+                $dirs[] = $data;
+            }
        }
 }
 
-usort($dirs, $sort_by_sort);
+usort($dirs, function($a, $b) {
+   if(isset($_GET['sort']) && $_GET['sort']=='date') {
+     return $a['mtime'] > $b['mtime'] ? -1 : ($a['mtime'] == $b['mtime'] ? 0 : 1);
+   } else {
+     return strnatcmp($a['name'], $b['name']);
+   }
+});
 
 echo '<div class="sort">Sort: <a href="?sort=name">name</a> | <a href="?sort=date">last generated</a></div>';
 echo '<div><h1>Resources:</h1><div class="menu">';
 foreach($dirs as $data) {
-    echo '<div class="item"><a class="menu-item" href="#'.$data['name'].'">'.$data['name'].'</a><br/><em>('.date("Y-m-d", $data['mtime']).')</em></div>'."\n";
+    $files = $data['files'];
+    if ($files) {
+        $mtime = $files[0]['mtime'];
+        echo '<div class="item"><a class="menu-item" href="#'.$data['name'].'">'.$data['name'].'</a><br/><em>('.date("Y-m-d", $mtime).')</em></div>'."\n";
+    }
 }
 echo '</div></div>';
 
 // print.
 foreach($dirs as $data) {
-    $files = array();
+    $files = $data['files'];
     $dir = $data['name'];
-    $subdir = opendir($dir); // open the cwd..also do an err check.
-    while(false != ($subfile = readdir($subdir))) {
-        $filepath= './'.$dir.'/'.$subfile;
-        $stat = stat("./$filepath");
-        if(is_link($filepath)) {
-                $files[] = array(
-                    'name'=>$subfile,
-                    'mtime'=>$stat['mtime'],
-                );
-        }
-    }
 
     if ($files) {
-        usort($files, $sort_by_sort);
+        usort($files, function($a, $b) {
+            if(isset($_GET['sort']) && $_GET['sort']=='date') {
+                return $a['mtime'] > $b['mtime'] ? -1 : ($a['mtime'] == $b['mtime'] ? 0 : 1);
+            } else {
+                return strnatcmp($a['name'], $b['name']);
+            }
+        });
         echo "<h2 id='".$dir."'>".$dir."</h2>\n";
         echo "<p>\n";
         foreach($files as $file_data) {
