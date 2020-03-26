@@ -17,11 +17,11 @@ while(false != ($subdir = readdir($dir))) {
 
 natsort($dirs); // sort.
 
-echo '<p>';
+echo '<div class="menu">';
 foreach($dirs as $dir) {
-    echo '<a href="#'.$dir.'">'.$dir.'</a>'."<br/>\n";
+    echo '<a class="menu-item" href="#'.$dir.'" style="width:200px;display:inline-block">'.$dir.'</a>'."\n";
 }
-echo '</p>';
+echo '</div>';
 
 // print.
 foreach($dirs as $dir) {
