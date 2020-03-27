@@ -179,11 +179,11 @@ section, article {
     overflow: auto;
 }
 
-h1.section-header {
+h1 {
     font-size: 2em !important;
 }
 
-h2.section-header {
+h2 {
     font-size: 1.5em !important;
 }
 
