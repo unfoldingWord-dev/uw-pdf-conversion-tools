@@ -187,7 +187,8 @@ class PdfConverter:
 
     def add_style_sheet(self, style_sheet):
         self.logger.info(f'Adding CSS style sheet: {style_sheet}')
-        self.style_sheets.append(style_sheet)
+        if style_sheet not in self.style_sheets:
+            self.style_sheets.append(style_sheet)
 
     def translate(self, key):
         if not self.translations:
@@ -614,7 +615,6 @@ class PdfConverter:
                 full_file_path = os.path.join(self.output_dir, file_path)
                 if not os.path.exists(full_file_path) and not self.offline:
                     os.makedirs(os.path.dirname(full_file_path), exist_ok=True)
-                    print(f'{url}\n\n')
                     download_file(url, full_file_path)
                     img['src'] = f'../{file_path}'
         return str(soup)
@@ -654,22 +654,17 @@ class PdfConverter:
 
                 toc_level = int(header.get('toc-level', header.name[1]))
                 header_level = int(header.get('header-level', toc_level))
-                print(f'{prev_toc_level}:{toc_level}:{prev_header_level}:{header_level}:{article_id}:{is_toc}:{is_heading}')
 
                 # Get the proper TOC title and add it to the TOC string with an open <li>
                 if is_toc:
                     if toc_level > prev_toc_level:
                         for level in range(prev_toc_level, toc_level):
-                            print(':opened ul')
                             toc_html += '\n<ul>\n'
                     elif toc_level < prev_toc_level:
-                        print(':closed /li')
                         toc_html += '\n</li>\n'  # close current item's open <li> tag
                         for level in range(prev_toc_level, toc_level, -1):
-                            print(':closed /ul /li')
                             toc_html += '</ul>\n</li>\n'
                     elif prev_toc_level > 0:
-                        print(':closed /li')
                         toc_html += '\n</li>\n'
 
                     if header.has_attr('toc_title'):
@@ -680,7 +675,6 @@ class PdfConverter:
                             toc_title = rc.toc_title
                         else:
                             toc_title = header.text
-                    print(f':opened li:{toc_title}')
                     toc_html += f'<li><a href="#{article_id}"><span>{toc_title}</span></a>\n'
                     prev_toc_level = toc_level
 
@@ -711,11 +705,9 @@ class PdfConverter:
                     prev_header_level = header_level
 
         for level in range(prev_toc_level, 0, -1):
-            print(':closed /li /ul at end')
             toc_html += '</li>\n</ul>\n'
         toc_html += '</article>'
 
-        print(toc_html)
         return [str(soup), toc_html]
 
     def get_cover_html(self):
@@ -814,7 +806,7 @@ class PdfConverter:
         anchors_with_rc = soup.find_all('a', href=rc_regex)
         for anchor in anchors_with_rc:
             href_rc_link = anchor['href']
-            if href_rc_link in self.all_rcs:
+            if href_rc_link in self.all_rcs and self.all_rcs[href_rc_link].linking_level <= APPENDIX_LINKING_LEVEL:
                 href_rc = self.all_rcs[href_rc_link]
                 anchor['href'] = f'#{href_rc.article_id}'
             else:
@@ -831,13 +823,14 @@ class PdfConverter:
                     part = soup.new_string(part)
                 else:
                     rc_link = part.strip('[]')
-                    if rc_link in self.all_rcs:
+                    if rc_link in self.all_rcs and self.all_rcs[rc_link].linking_level <= APPENDIX_LINKING_LEVEL:
                         part = BeautifulSoup(f'<a href="#{self.all_rcs[rc_link].article_id}">{self.all_rcs[rc_link].title}</a>',
                                              'html.parser').find('a')
                     else:
                         part = soup.new_string(part)
                 last_part.insert_after(part)
                 last_part = part
+
         return str(soup)
 
     @staticmethod
@@ -864,9 +857,9 @@ class PdfConverter:
             self.crawl_ta_tw_deep_linking(rc)
 
     def crawl_ta_tw_deep_linking(self, source_rc: ResourceContainerLink):
-        if not source_rc.article or source_rc.linking_level > APPENDIX_LINKING_LEVEL + 1:
+        if not source_rc or not source_rc.article:
             return
-        self.logger.info(f'Crawling {source_rc.rc_link}...')
+        self.logger.info(f'Crawling {source_rc.rc_link} (level: {source_rc.linking_level})...')
         # get all rc links. the "?:" in the regex means to not leave the (ta|tw) match in the result
         rc_links = re.findall(r'rc://[A-Z0-9_*-]+/(?:ta|tw)/[A-Z0-9/_*-]+', source_rc.article, flags=re.IGNORECASE | re.MULTILINE)
         for rc_link in rc_links:
@@ -874,23 +867,26 @@ class PdfConverter:
                 rc = self.rcs[rc_link] if rc_link in self.rcs else self.appendix_rcs[rc_link]
                 if rc.linking_level > source_rc.linking_level + 1:
                     rc.linking_level = source_rc.linking_level + 1
-                rc.add_reference(source_rc)
-                continue
-            rc = self.add_appendix_rc(rc_link, linking_level=source_rc.linking_level+1)
-            if rc.resource not in self.resources:
-                # We don't have this resource in our list of resources, so adding
-                resource = Resource(resource_name=rc.resource, repo_name=f'{self.lang_code}_{rc.resource}',
-                                    owner=self.main_resource.owner)
-                self.setup_resource(resource)
+                already_crawled = True
+            else:
+                rc = self.add_appendix_rc(rc_link, linking_level=source_rc.linking_level + 1)
+                if rc.resource not in self.resources:
+                    # We don't have this resource in our list of resources, so adding
+                    resource = Resource(resource_name=rc.resource, repo_name=f'{self.lang_code}_{rc.resource}',
+                                        owner=self.main_resource.owner)
+                    self.setup_resource(resource)
+                already_crawled = False
             rc.add_reference(source_rc)
-            if not rc.article:
+            if not rc.article and (not already_crawled or rc.linking_level <= APPENDIX_LINKING_LEVEL):
                 if rc.resource == 'ta':
-                    self.logger.info(f'Getting articles for {rc.rc_link}...')
                     self.get_ta_article_html(rc, source_rc)
                 elif rc.resource == 'tw':
                     self.get_tw_article_html(rc, source_rc)
-                if rc.article:
-                    self.crawl_ta_tw_deep_linking(rc)
+                if rc.article and rc.title:
+                    if rc.linking_level <= APPENDIX_LINKING_LEVEL:
+                        self.crawl_ta_tw_deep_linking(rc)
+                    else:
+                        rc.set_article(None)
                 else:
                     self.add_bad_link(source_rc, rc.rc_link)
                     self.logger.error(f'LINK TO UNKNOWN RESOURCE FOUND IN {source_rc.rc_link}: {rc.rc_link}')

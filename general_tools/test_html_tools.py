@@ -4,7 +4,7 @@ from .html_tools import mark_phrases_in_html, unnest_a_links
 
 class Test(TestCase):
     def test_mark_phrase_in_html(self):
-        marked_text = mark_phrases_in_html('here I am', 'I')
+        marked_text = mark_phrases_in_html('here I am', [['I']])
         expected_text = 'here <span class="highlight">I</span> am'
         self.assertEqual(expected_text, marked_text)
         marked_text = mark_phrases_in_html('here I now am', 'I...am')
