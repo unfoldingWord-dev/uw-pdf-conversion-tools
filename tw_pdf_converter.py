@@ -42,7 +42,7 @@ class TwPdfConverter(PdfConverter):
     <section id="{self.lang_code}-{self.name}-{category}" class="tw-category">
         <article id="{self.lang_code}-{self.name}-{category}-cover" class="resource-title-page no-header-footer">
             <img src="{self.main_resource.logo_url}" class="logo" alt="UTW">
-            <h1{' class="no-toc"' if category != list(category_titles.keys())[0] else ''}>{self.title}</h1>
+            <h1{' class="section-header"' if category == list(category_titles.keys())[0] else ''}>{self.title}</h1>
             <h2 class="section-header">{category_title}</h2>
         </article>
 '''

@@ -26,6 +26,7 @@ body {
 <body>
 <?php
 date_default_timezone_set('US/Eastern');
+$sort = isset($_GET['sort'])?$_GET['sort']:'date';
 $dirs = array();
 $dir = opendir("."); // open the cwd..also do an err check.
 while(false != ($subdir = readdir($dir))) {
@@ -57,15 +58,18 @@ while(false != ($subdir = readdir($dir))) {
 }
 
 usort($dirs, function($a, $b) {
-   if(isset($_GET['sort']) && $_GET['sort']=='date') {
+   global $sort;
+   if($sort=='date') {
      return $a['mtime'] > $b['mtime'] ? -1 : ($a['mtime'] == $b['mtime'] ? 0 : 1);
    } else {
      return strnatcmp($a['name'], $b['name']);
    }
 });
 
-echo '<div class="sort">Sort: <a href="?sort=name">name</a> | <a href="?sort=date">last generated</a></div>';
-echo '<div><h1>Resources:</h1><div class="menu">';
+echo '<div class="sort">Sort by: '.($sort=='name'?'<strong>Name</strong>':'<a href="?sort=name">Name</a>').' | '.($sort=='date'?'<strong>Last Generated</strong>':'<a href="?sort=date">Last Generated</a>').'</div>';
+echo '<div><h1 style="padding-bottom:0;margin-bottom:0">Resources:</h1>';
+echo '<p>(Sorted by '.($sort=='date'?'date last generated, descending':'name, ascending').')</p>';
+echo '<div class="menu">';
 foreach($dirs as $data) {
     $files = $data['files'];
     if ($files) {
@@ -82,7 +86,8 @@ foreach($dirs as $data) {
 
     if ($files) {
         usort($files, function($a, $b) {
-            if(isset($_GET['sort']) && $_GET['sort']=='date') {
+            global $sort;
+            if($sort=='date') {
                 return $a['mtime'] > $b['mtime'] ? -1 : ($a['mtime'] == $b['mtime'] ? 0 : 1);
             } else {
                 return strnatcmp($a['name'], $b['name']);
