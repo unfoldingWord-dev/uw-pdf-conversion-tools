@@ -140,7 +140,9 @@ class ObsTnPdfConverter(PdfConverter):
                                 alignment = alignment_tools.split_string_into_alignment(phrase)
                                 marked_obs_text = html_tools.mark_phrases_in_html(obs_text, alignment)
                                 if not marked_obs_text:
-                                    self.add_bad_highlight(notes_rc, orig_obs_text, notes_rc.rc_link, phrase)
+                                    if self.lang_code in TN_TITLES_TO_IGNORE and \
+                                            phrase.lower() not in TN_TITLES_TO_IGNORE[self.lang_code]:
+                                        self.add_bad_highlight(notes_rc, orig_obs_text, notes_rc.rc_link, phrase)
                                 else:
                                     obs_text = marked_obs_text
                     if frame_idx == len(frames) - 1:
