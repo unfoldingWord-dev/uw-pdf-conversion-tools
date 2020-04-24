@@ -56,6 +56,9 @@ class TaPdfConverter(PdfConverter):
 #         toc_html += '</ul>'
 #         return toc_html
 
+#    def finish_up(self):
+#        self.generate_docx()
+
     def get_body_html(self):
         self.logger.info('Generating TA html...')
         # self.toc_html = self.get_toc_from_yaml()

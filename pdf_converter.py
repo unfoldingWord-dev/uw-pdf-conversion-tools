@@ -21,6 +21,7 @@ import sys
 import argparse
 import jsonpickle
 import yaml
+import pypandoc
 import general_tools.html_tools as html_tools
 from typing import List, Type
 from bs4 import BeautifulSoup
@@ -74,6 +75,7 @@ class PdfConverter:
 
         self.html_file = None
         self.pdf_file = None
+        self.docx_file = None
         self.generation_info = {}
         self.translations = {}
         self.remove_working_dir = False
@@ -258,10 +260,15 @@ class PdfConverter:
         self.setup_logger()
         self.html_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.html')
         self.pdf_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.pdf')
+        self.docx_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}.docx')
 
         self.determine_if_regeneration_needed()
         self.generate_html()
         self.generate_pdf()
+        self.finish_up()
+
+    def finish_up(self):
+        pass
 
     def setup_working_dir(self):
         self.logger.info('Setting up working directory...')
@@ -425,6 +432,23 @@ class PdfConverter:
         else:
             self.logger.info(
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
+
+    def generate_docx(self):
+        if self.regenerate or not os.path.exists(self.docx_file):
+            if os.path.islink(self.docx_file):
+                os.unlink(self.docx_file)
+            self.logger.info(f'Generating DOCX file {self.docx_file}...')
+            # Convert HTML to DOCX with pypandoc
+            pypandoc.convert(source=self.html_file, format='html', to='docx', outputfile=self.docx_file,
+                             extra_args=['-RTS'])
+            self.logger.info('Generated DOCX file.')
+            self.logger.info(f'DOCX file located at {self.pdf_file}')
+
+            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_latest.docx')
+            symlink(self.docx_file, link_file_path, True)
+        else:
+            self.logger.info(
+                f'DOCX file {self.docx_file} is already there. Not generating. Use -r to force regeneration.')
 
     def save_bad_links_html(self):
         save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}_bad_links.html')
