@@ -47,7 +47,7 @@ def get_strings(wrapper):
     return strings
 
 
-def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on_word=True):
+def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on_word=True, log=False):
     soup = BeautifulSoup(html, 'html.parser')
     text = soup.text
     for phrase_idx, words in enumerate(phrases):
@@ -59,11 +59,15 @@ def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on
         first_word = words[0]['word']
         first_word_occurrence = words[0]['occurrence']
 
-        word_break = r'\b'
-        if not break_on_word:
-            word_break = ''
+        start_indices = []
+        if break_on_word:
+            start_indices = [i.start() for i in re.finditer(rf'\b{re.escape(first_word)}\b', text)]
+        if not break_on_word or not start_indices:
+            start_indices = [i.start() for i in re.finditer(f'{re.escape(first_word)}', text)]
 
-        start_indices = [i.start() for i in re.finditer(f'{word_break}{re.escape(first_word)}{word_break}', text)]
+        if log:
+            print(text)
+            print(start_indices)
         if len(start_indices) < first_word_occurrence:
             return
 
@@ -71,6 +75,8 @@ def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on
         phrase_end = -1
         for start_index in start_indices[first_word_occurrence-1:]:
             end_index = start_index + len(phrase)
+            if log:
+                print(phrase+'|'+text[start_index:end_index])
             if end_index > len(text):
                 return
             if phrase == text[start_index:end_index]:
@@ -78,6 +84,8 @@ def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on
                 phrase_end = end_index
                 break
 
+        if log:
+            print(phrase_start)
         if phrase_start < 0:
             return
 
