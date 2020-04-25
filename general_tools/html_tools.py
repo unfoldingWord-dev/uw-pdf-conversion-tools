@@ -1,4 +1,5 @@
 import re
+import string
 from bs4 import BeautifulSoup, Tag
 from .alignment_tools import flatten_alignment
 
@@ -37,14 +38,14 @@ def get_phrases_to_highlight(html, header_tag=None):
     return phrases
 
 
-def get_strings(wrapper):
-    strings = []
+def get_text_strings_from_element(wrapper):
+    text_strings = []
     for el in wrapper.contents:
         if type(el) == Tag:
-            strings += get_strings(el)
+            text_strings += get_text_strings_from_element(el)
         else:
-            strings.append(el)
-    return strings
+            text_strings.append(el)
+    return text_strings
 
 
 def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on_word=True):
@@ -59,11 +60,17 @@ def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on
         first_word = words[0]['word']
         first_word_occurrence = words[0]['occurrence']
 
-        start_indices = []
         if break_on_word:
-            start_indices = [i.start() for i in re.finditer(rf'\b{re.escape(first_word)}\b', text)]
-        if not break_on_word or not start_indices:
-            start_indices = [i.start() for i in re.finditer(f'{re.escape(first_word)}', text)]
+            # This gets tricky for phrases that start/end with curly quotes, as then
+            # it doesn't see a word break (\b) before or after it, so we also have to look for
+            # beginning/end of string (^ $) and punctuation before/after it
+            word_break_before = rf'(^|\b|(?<=[{re.escape(string.punctuation)}\s]))'
+            word_break_after = rf'($|\b|(?=[{re.escape(string.punctuation)}\s]))'
+        else:
+            word_break_before = ''
+            word_break_after = ''
+
+        start_indices = [i.start() for i in re.finditer(rf'{word_break_before}{re.escape(first_word)}{word_break_after}', text)]
 
         if len(start_indices) < first_word_occurrence:
             return
@@ -82,40 +89,40 @@ def mark_phrases_in_html(html, phrases, tag='<span class="highlight">', break_on
         if phrase_start < 0:
             return
 
-        strings = get_strings(soup)
+        text_strings = get_text_strings_from_element(soup)
         to_process_index = 0
-        string = strings.pop(0)
-        while (to_process_index + len(string)) <= phrase_start:
-            to_process_index += len(string)
-            string = strings.pop(0)
+        text_string = text_strings.pop(0)
+        while (to_process_index + len(text_string)) <= phrase_start:
+            to_process_index += len(text_string)
+            text_string = text_strings.pop(0)
 
         while to_process_index < phrase_end:
             match_start = phrase_start - to_process_index
             match_end = phrase_end - to_process_index
             if match_start < 0:
                 match_start = 0
-            if match_end > len(string):
-                match_end = len(string)
+            if match_end > len(text_string):
+                match_end = len(text_string)
 
-            pre_match_str = string[:match_start]
+            pre_match_str = text_string[:match_start]
             pre_match = soup.new_string(pre_match_str)
-            string.replace_with(pre_match)
+            text_string.replace_with(pre_match)
 
-            match_str = string[match_start:match_end]
+            match_str = text_string[match_start:match_end]
             match_tag_soup = BeautifulSoup(tag, 'html.parser')
             match_tag = match_tag_soup.find()
             match_tag.string = match_str
             pre_match.insert_after(match_tag)
 
-            if match_end < len(string):
-                post_match_str = string[match_end:]
+            if match_end < len(text_string):
+                post_match_str = text_string[match_end:]
                 post_match = soup.new_string(post_match_str)
                 match_tag.insert_after(post_match)
-                strings.insert(0, post_match)
+                text_strings.insert(0, post_match)
 
             to_process_index += match_end
             if to_process_index < phrase_end:
-                string = strings.pop(0)
+                text_string = text_strings.pop(0)
     return str(soup)
 
 
