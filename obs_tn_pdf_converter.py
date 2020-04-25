@@ -138,13 +138,7 @@ class ObsTnPdfConverter(PdfConverter):
                             phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')
                             for phrase in phrases:
                                 alignment = alignment_tools.split_string_into_alignment(phrase)
-                                log = False
-                                if chapter_num == "45" and frame_num == "09":
-                                    log = True
-                                    print(phrase)
-                                    print(alignment)
-                                    print(obs_text)
-                                marked_obs_text = html_tools.mark_phrases_in_html(obs_text, alignment, log=log)
+                                marked_obs_text = html_tools.mark_phrases_in_html(obs_text, alignment)
                                 if not marked_obs_text:
                                     if self.lang_code in TN_TITLES_TO_IGNORE and \
                                             phrase.lower() not in TN_TITLES_TO_IGNORE[self.lang_code]:
