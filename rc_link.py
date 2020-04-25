@@ -26,6 +26,7 @@ class ResourceContainerLink(object):
         self.lang_code = parts[0]
         self.resource = parts[1]
         self.type = parts[2] if len(parts) > 2 else None
+        # Below fixes when type is missing from rc link, e.g. rc://en/ta/translate/translate-names (missing /man/)
         if self.type and self.type not in ['book', 'help', 'dict', 'man', 'bundle']:
             type_map = {'obs': 'book', 'ta': 'man', 'tn': 'help', 'tw': 'dict'}
             if self.resource in type_map:
