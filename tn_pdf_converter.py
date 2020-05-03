@@ -82,7 +82,7 @@ class TnPdfConverter(PdfConverter):
         sorted_resources = sorted(self.resources, key=lambda x: self.resources[x].repo_name)
         resource_refs = '-'.join(list(map(lambda x: f'{self.resources[x].repo_name}_{self.resources[x].ref}' + (f'_{self.resources[x].commit}' if not self.resources[x].ref_is_tag else ''), sorted_resources)))
         self.resources_dir = os.path.join(self.working_dir, f'resources_{resource_refs}')
-        if not os.path.exists(self.resources_dir):
+        if self.update or not os.path.exists(self.resources_dir):
             cmd = f'cd "{self.converters_dir}/tn_resources" && node start.js {self.lang_code} "{self.resources_dir}" {self.ult_id} {self.ust_id}'
             self.logger.info(f'Running: {cmd}')
             ret = subprocess.call(cmd, shell=True)
