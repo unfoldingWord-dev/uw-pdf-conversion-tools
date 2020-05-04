@@ -663,9 +663,8 @@ class TnPdfConverter(PdfConverter):
 VERSE: {self.project_title} {chapter}:{verse}
 RC: {context_id['rc']}
 QUOTE: {quote_string}
-{bible_id.upper()}: {self.book_data[bible_id][chapter][verse]}
-{self.ol_bible_id.upper()}: {self.book_data[self.ol_bible_id][chapter][verse]
-                }
+{bible_id.upper()}: {self.book_data[bible_id][chapter][verse]['usfm']}
+{self.ol_bible_id.upper()}: {self.book_data[self.ol_bible_id][chapter][verse]['usfm']}
 '''
                 self.add_bad_link(aligned_text_rc, context_id['rc'], message)
         return alignment
