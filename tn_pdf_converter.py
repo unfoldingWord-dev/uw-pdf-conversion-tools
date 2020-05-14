@@ -386,7 +386,6 @@ class TnPdfConverter(PdfConverter):
                 not self.tw_words_data[chapter][verse]:
             return ''
         group_datas = self.tw_words_data[chapter][verse]
-        links = []
         for group_data_idx, group_data in enumerate(group_datas):
             tw_rc = group_data['contextId']['rc']
             occurrence = group_data['contextId']['occurrence']
@@ -398,6 +397,10 @@ class TnPdfConverter(PdfConverter):
                 title = flatten_alignment(alignment)
             else:
                 title = f'[[{group_data["contextId"]["rc"]}]]'
+            group_datas[group_data_idx]['title'] = title
+        group_datas.sort(key=lambda x: x['title'])
+        links = []
+        for group_data_idx, group_data in enumerate(group_datas):
             links.append(f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{group_data_idx + 1}">{title}</a>{occurrence_text}')
         tw_html = f'''
                 <h3>{self.resources['tw'].simple_title} - {bible_id.upper()}</h3>
