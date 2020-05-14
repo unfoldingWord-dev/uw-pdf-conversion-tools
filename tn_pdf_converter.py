@@ -363,17 +363,26 @@ class TnPdfConverter(PdfConverter):
         tn_title = f'{self.project_title} {chapter}:{verse}'
         tn_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
         tn_rc = self.add_rc(tn_rc_link, title=tn_title)
+        scripture = self.get_scripture(chapter, verse)
+        ult_with_tw_words = self.get_scripture_with_tw_words(self.ult_id, chapter, verse, rc)
+        # ult_with_tw_words = self.get_scripture_with_tn_quotes(self.ult_id, chapter, verse, rc, ult_with_tw_words)
+        ust_with_tw_words = self.get_scripture_with_tw_words(self.ust_id, chapter, verse, rc)
+        # ust_with_tw_words = self.get_scripture_with_tn_quotes(self.ust_id, chapter, verse, rc, ust_with_tw_words)
+
         tn_article = f'''
                 <article id="{tn_rc.article_id}">
                     <h4 class="section-header no-toc">{tn_title}</h4>
                     <div class="tn-notes">
                             <div class="col1">
-                                {self.get_scripture(chapter, verse)}
+                                <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
+                                <div class="bible-text">{ult_with_tw_words}</div>
+                                <h3 class="bible-resource-title">{self.ust_id.upper()}</h3>
+                                <div class="bible-text">{ust_with_tw_words}</div>
                             </div>
                             <div class="col2">
                                 {self.get_tn_article_text(chapter, verse)}
-                                {self.get_tw_html_list(self.ult_id, chapter, verse)}
-                                {self.get_tw_html_list(self.ust_id, chapter, verse)}
+                                {self.get_tw_html_list(self.ult_id, chapter, verse, ult_with_tw_words)}
+                                {self.get_tw_html_list(self.ust_id, chapter, verse, ust_with_tw_words)}
                             </div>
                     </div>
                 </article>
@@ -381,7 +390,7 @@ class TnPdfConverter(PdfConverter):
         tn_rc.set_article(tn_article)
         return tn_article
 
-    def get_tw_html_list(self, bible_id, chapter, verse):
+    def get_tw_html_list(self, bible_id, chapter, verse, scripture=''):
         if chapter not in self.tw_words_data or verse not in self.tw_words_data[chapter] or \
                 not self.tw_words_data[chapter][verse]:
             return ''
@@ -393,7 +402,9 @@ class TnPdfConverter(PdfConverter):
             else:
                 title = f'[[{group_data["contextId"]["rc"]}]]'
             group_datas[group_data_idx]['title'] = title
-        group_datas.sort(key=lambda x: x['title'].lower())
+        rc_pattern = 'rc://[/A-Za-z0-9*_-]+'
+        rc_order = re.findall(rc_pattern, scripture)
+        group_datas.sort(key=lambda x: str(rc_order.index(x['contextId']['rc']) if x['contextId']['rc'] in rc_order else x['title']))
         links = []
         for group_data_idx, group_data in enumerate(group_datas):
             tw_rc = group_data['contextId']['rc']
@@ -410,20 +421,6 @@ class TnPdfConverter(PdfConverter):
                 </ul>
 '''
         return tw_html
-
-    def get_scripture(self, chapter, verse, rc=None):
-        ult_with_tw_words = self.get_scripture_with_tw_words(self.ult_id, chapter, verse, rc)
-        # ult_with_tw_words = self.get_scripture_with_tn_quotes(self.ult_id, chapter, verse, rc, ult_with_tw_words)
-        ust_with_tw_words = self.get_scripture_with_tw_words(self.ust_id, chapter, verse, rc)
-        # ust_with_tw_words = self.get_scripture_with_tn_quotes(self.ust_id, chapter, verse, rc, ust_with_tw_words)
-
-        scripture = f'''
-            <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
-            <div class="bible-text">{ult_with_tw_words}</div>
-            <h3 class="bible-resource-title">{self.ust_id.upper()}</h3>
-            <div class="bible-text">{ust_with_tw_words}</div>
-'''
-        return scripture
 
     def get_tn_article_text(self, chapter, verse):
         verse_notes = ''
