@@ -1068,9 +1068,9 @@ class PdfConverter:
         return go_back_to_html
 
     def fix_ta_links(self, text, project):
-        text = re.sub(r'href="\.\./([^/"]+)/01\.md"', rf'href="rc://{self.lang_code}/ta/man/{project}/\1"', text,
+        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+?)/*(01\.md)*"', rf'href="rc://{self.lang_code}/ta/man/\1/\2"', text,
                       flags=re.IGNORECASE | re.MULTILINE)
-        text = re.sub(r'href="\.\./\.\./([^/"]+)/([^/"]+)/01\.md"', rf'href="rc://{self.lang_code}/ta/man/\1/\2"', text,
+        text = re.sub(r'href="\.\./([^/"]+?)/*(01\.md)*"', rf'href="rc://{self.lang_code}/ta/man/{project}/\1"', text,
                       flags=re.IGNORECASE | re.MULTILINE)
         text = re.sub(r'href="([^# :/"]+)"', rf'href="rc://{self.lang_code}/ta/man/{project}/\1"', text,
                       flags=re.IGNORECASE | re.MULTILINE)
