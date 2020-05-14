@@ -363,7 +363,6 @@ class TnPdfConverter(PdfConverter):
         tn_title = f'{self.project_title} {chapter}:{verse}'
         tn_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
         tn_rc = self.add_rc(tn_rc_link, title=tn_title)
-        scripture = self.get_scripture(chapter, verse)
         ult_with_tw_words = self.get_scripture_with_tw_words(self.ult_id, chapter, verse, rc)
         # ult_with_tw_words = self.get_scripture_with_tn_quotes(self.ult_id, chapter, verse, rc, ult_with_tw_words)
         ust_with_tw_words = self.get_scripture_with_tw_words(self.ust_id, chapter, verse, rc)
