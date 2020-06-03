@@ -214,17 +214,17 @@ class PdfConverter:
         return t
 
     @staticmethod
-    def create_rc(rc_link, article=None, title=None, linking_level=0, article_id=None):
+    def create_rc(rc_link, article='', title=None, linking_level=0, article_id=None):
         rc = ResourceContainerLink(rc_link, article=article, title=title, linking_level=linking_level,
                                    article_id=article_id)
         return rc
 
-    def add_rc(self, rc_link, article=None, title=None, linking_level=0, article_id=None):
+    def add_rc(self, rc_link, article='', title=None, linking_level=0, article_id=None):
         rc = self.create_rc(rc_link, article=article, title=title, linking_level=linking_level, article_id=article_id)
         self.rcs[rc.rc_link] = rc
         return rc
 
-    def add_appendix_rc(self, rc_link, article=None, title=None, linking_level=0):
+    def add_appendix_rc(self, rc_link, article='', title=None, linking_level=0):
         rc = self.create_rc(rc_link, article=article, title=title, linking_level=linking_level)
         self.appendix_rcs[rc.rc_link] = rc
         return rc

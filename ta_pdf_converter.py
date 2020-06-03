@@ -97,20 +97,20 @@ class TaPdfConverter(PdfConverter):
             return ''
         source_rc = self.create_rc(f'rc://{self.lang_code}/ta/man/{project_id}/toc.yaml')
         articles_html = ''
-        for section in section['sections']:
+        for subsection in section['sections']:
             self.section_count += 1
-            if 'link' in section:
-                link = section['link']
-                title = self.get_title(project_id, link, section['title'])
+            if 'link' in subsection:
+                link = subsection['link']
+                title = self.get_title(project_id, link, subsection['title'])
             else:
                 link = f'section-container-{self.section_count}'
-                title = section['title']
+                title = subsection['title']
             rc_link = f'rc://{self.lang_code}/ta/man/{project_id}/{link}'
             rc = self.add_rc(rc_link, title=title)
-            if 'link' in section:
+            if 'link' in subsection:
                 self.get_ta_article_html(rc, source_rc, self.config, toc_level)
-            if 'sections' in section:
-                sub_articles = self.get_articles_from_toc(project_id, section, toc_level + 1)
+            if 'sections' in subsection:
+                sub_articles = self.get_articles_from_toc(project_id, subsection, toc_level + 1)
                 section_header = ''
                 if not rc.article:
                     section_header = f'''
