@@ -200,13 +200,14 @@ h6.section-header {
     font-size: 1.2em;
 }
 
-.section-header + *
-{
+section > section,
+section > article {
     page-break-before: avoid !important;
     break-before: avoid-page !important;
 }
 
-section > article:nth-of-type(1) + section:nth-of-type(1) {
+section > section + *, 
+section > article + * {
     page-break-before: always !important;
     break-before: page !important;
 }
