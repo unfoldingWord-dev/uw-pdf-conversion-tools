@@ -107,6 +107,7 @@ class ObsPdfConverter(PdfConverter):
                     #     obs_html += page_html
                     #     break
                     obs_html += page_html
+                    break
         return obs_html
 
     def get_cover_html(self):
