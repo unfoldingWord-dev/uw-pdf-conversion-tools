@@ -16,12 +16,24 @@ def get_obs_chapter_data(obs_dir, chapter_num):
                              'html.parser')
         obs_chapter_data['title'] = soup.h1.text
         paragraphs = soup.find_all('p')
-        for idx, p in enumerate(paragraphs):  # iterate over loop [above sections]
-            if idx % 2 == 1:
-                obs_chapter_data['frames'].append(p.text)
-            elif p.img:
+        current_frame_text = '' 
+        last_was_image = False
+        for idx, p in enumerate(paragraphs):
+            if p.img:            
                 src = p.img['src'].split('?')[0]
                 obs_chapter_data['images'].append(src)
-            else:
+                if current_frame_text:
+                   obs_chapter_data['frames'].append(current_frame_text)
+                   current_frame_text = ''
+                last_was_image = True
+            elif idx == len(paragraphs) - 1 and not last_was_image:
                 obs_chapter_data['bible_reference'] = p.text
+                last_was_image = False
+            else:
+                if current_frame_text:
+                    current_frame_text = "\n\n"
+                current_frame_text += p.text
+                last_was_image = False
+        if current_frame_text:
+            obs_chapter_data['frames'].append(current_frame_text)
     return obs_chapter_data

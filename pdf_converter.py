@@ -194,11 +194,12 @@ class PdfConverter:
             self.style_sheets.append(style_sheet)
 
     def translate(self, key):
+        lang = self.lang_code
         if not self.translations:
-            if self.lang_code not in LANGUAGE_FILES:
-                self.logger.error(f'No locale file for {self.lang_code}.')
-                exit(1)
-            locale_file = os.path.join(self.converters_dir, 'locale', LANGUAGE_FILES[self.lang_code])
+            if lang not in LANGUAGE_FILES:
+                self.logger.error(f'No locale file for {lang}. Using English (en)')
+                lang = 'en'
+            locale_file = os.path.join(self.converters_dir, 'locale', LANGUAGE_FILES[lang])
             if not os.path.isfile(locale_file):
                 self.logger.error(f'No locale file found at {locale_file} for {self.lang_code}.')
                 exit(1)
