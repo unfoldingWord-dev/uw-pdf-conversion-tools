@@ -91,10 +91,13 @@ class ObsPdfConverter(PdfConverter):
                 page_template = self.get_page_template(obs_chapter_data, frame_idx)
                 font_size_em = 1.0
                 frames_str = f'{chapter_num}:{str(frame_idx+1).zfill(2)}'
+                has_two_frames = True
                 if frame_idx < len(frames) - 1:
                     frames_str += f'-{str(frame_idx+2).zfill(2)}'
+                else:
+                    has_two_frames = False
                 self.logger.info(f'Fitting {frames_str} to page with font_size={font_size_em}em...')
-                while True:  # mimic do-while loop with break
+                while has_two_frames:  # mimic do-while loop with break
                     # See if the page fits on one printed page. If not, reduce font size by .05em
                     # Bible reference font size is always .1em less than the text font size
                     page_html = page_template.safe_substitute(font_size=f'{font_size_em}em',
