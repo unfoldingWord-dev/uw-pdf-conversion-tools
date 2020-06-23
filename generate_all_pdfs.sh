@@ -13,11 +13,11 @@ export OUTPUT_DIR=/home/rmahn/output
 
 cd /home/rmahn/repos/uw-pdf-conversion-tools
 
-./obs_tn_pdf_converter.py -l en -l fr $@
-./obs_sn_pdf_converter.py -l en -l fr $@
+./obs_tn_pdf_converter.py -l en -l fr -l shu $@
+./obs_sn_pdf_converter.py -l en -l fr -l shu $@
 ./obs_sn_sq_pdf_converter.py -l en -l fr $@
-./obs_sq_pdf_converter.py -l en -l fr $@
-./obs_pdf_converter.py -l en -l fr $@
+./obs_sq_pdf_converter.py -l en -l fr -l shu $@
+./obs_pdf_converter.py -l en -l fr -l shu $@
 ./tn_checking.py -l en $@
 ./tw_checking.py -l en $@
 ./ta_pdf_converter.py -l en $@

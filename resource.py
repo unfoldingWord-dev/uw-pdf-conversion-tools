@@ -18,7 +18,7 @@ from general_tools.file_utils import load_yaml_object
 
 DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_REF = 'master'
-OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog']
+OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog', 'PCET']
 LOGO_MAP = {
     'ta': 'uta',
     'tn': 'utn',

@@ -36,7 +36,8 @@ DEFAULT_LANG_CODE = 'en'
 LANGUAGE_FILES = {
     'en': 'English-en_US.json',
     'fr': 'French-fr_FR.json',
-    'kn': 'Kannada-kn_IN.json'
+    'kn': 'Kannada-kn_IN.json',
+    'shu': 'Chadian_Arabic-shu_CHAD.json'
 }
 APPENDIX_LINKING_LEVEL = 1
 APPENDIX_RESOURCES = ['ta', 'tw']

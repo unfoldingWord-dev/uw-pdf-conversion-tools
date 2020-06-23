@@ -62,7 +62,7 @@ html, body {
 }
 
 .cover img {
-    width: 100%;
+    width: auto !important;
 }
 
 #contents > ul > li > a {
