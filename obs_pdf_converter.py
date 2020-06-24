@@ -100,15 +100,13 @@ class ObsPdfConverter(PdfConverter):
                     # Bible reference font size is always .1em less than the text font size
                     page_html = page_template.safe_substitute(font_size=f'{font_size_em}em',
                                                               bible_reference_font_size=f'{font_size_em-0.1}em')
-                    # doc = HTML(string=page_html, base_url=self.output_res_dir).render(stylesheets=stylesheets)
-                    # if len(doc.pages) > 1:
-                    #     font_size_em -= .05
-                    #     self.logger.info(f'REfitting {frames_str} to page with font_size={font_size_em}em...')
-                    # else:
-                    #     obs_html += page_html
-                    #     break
-                    obs_html += page_html
-                    break
+                    doc = HTML(string=page_html, base_url=self.output_res_dir).render(stylesheets=stylesheets)
+                    if len(doc.pages) > 1:
+                        font_size_em -= .05
+                        self.logger.info(f'REfitting {frames_str} to page with font_size={font_size_em}em...')
+                    else:
+                        obs_html += page_html
+                        break
         return obs_html
 
     def get_cover_html(self):
