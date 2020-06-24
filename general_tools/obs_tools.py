@@ -31,7 +31,7 @@ def get_obs_chapter_data(obs_dir, chapter_num):
                 last_was_image = False
             else:
                 if current_frame_text:
-                    current_frame_text = "\n\n"
+                    current_frame_text += "<br/>\n<br/>\n"
                 current_frame_text += p.text
                 last_was_image = False
         if current_frame_text:
