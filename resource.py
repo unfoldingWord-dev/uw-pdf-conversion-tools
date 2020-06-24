@@ -132,6 +132,14 @@ class Resource(object):
         return self.manifest['dublin_core']['title']
 
     @property
+    def language_name(self):
+        return self.manifest['dublin_core']['language']['title']
+
+    @property
+    def language_id(self):
+        return self.manifest['dublin_core']['language']['identifier']
+
+    @property
     def simple_title(self):
         return self.title.replace('unfoldingWord® ', '')
 

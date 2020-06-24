@@ -113,8 +113,8 @@ class ObsTnPdfConverter(PdfConverter):
     <article id="{self.lang_code}-obs-tn-{chapter_num}">
         <h2 class="section-header">{chapter_data['title']}</h2>
 '''
-                frames = [''] + chapter_data['frames']  # first item of '' if there are intro notes from the 00.md file
-                for frame_idx, obs_text in enumerate(frames):
+                frames = [None] + chapter_data['frames']  # first item of '' if there are intro notes from the 00.md file
+                for frame_idx, frame in enumerate(frames):
                     frame_num = str(frame_idx).zfill(2)
                     frame_title = f'{chapter_num}:{frame_num}'
                     notes_file = os.path.join(obs_tn_chapter_dir, f'{frame_num}.md')
@@ -122,7 +122,7 @@ class ObsTnPdfConverter(PdfConverter):
                     if os.path.isfile(notes_file):
                         notes_html = markdown2.markdown_path(notes_file)
                         notes_html = html_tools.increment_headers(notes_html, 3)
-                    if not obs_text and not notes_html:
+                    if (not frame or not frame['text']) and not notes_html:
                         continue
 
                     # HANDLE RC LINKS FOR OBS FRAME
@@ -132,7 +132,8 @@ class ObsTnPdfConverter(PdfConverter):
                     notes_rc_link = f'rc://{self.lang_code}/obs-tn/help/{chapter_num}/{frame_num}'
                     notes_rc = self.add_rc(notes_rc_link, title=frame_title, article=notes_html)
 
-                    if obs_text:
+                    if frame and frame['text']:
+                        obs_text = frame['text']
                         orig_obs_text = obs_text
                         if notes_html:
                             phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')

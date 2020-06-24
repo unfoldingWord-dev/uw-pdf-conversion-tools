@@ -49,9 +49,9 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
             obs_sn_html += f'<h2 class="section-header">{chapter_data["title"]}</h2>\n'
             if 'bible_reference' in chapter_data and chapter_data['bible_reference']:
                 obs_sn_html += f'''
-                    <div class="bible-reference" class="no-break">{chapter_data['bible_reference']}</div>
+                    <div class="bible-reference no-break">{chapter_data['bible_reference']}</div>
 '''
-            for frame_idx, obs_text in enumerate(chapter_data['frames']):
+            for frame_idx, frame in enumerate(chapter_data['frames']):
                 frame_num = str(frame_idx+1).zfill(2)
                 frame_title = f'{chapter_num}:{frame_num}'
                 obs_sn_file = os.path.join(sn_chapter_dir, f'{frame_num}.md')
@@ -70,7 +70,8 @@ class ObsSnPdfConverter(ObsSnSqPdfConverter):
                 obs_rc_link = f'rc://{self.lang_code}/obs/bible/obs/{chapter_num}/{frame_num}'
                 self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
 
-                if obs_text and notes_html:
+                if frame['text'] and notes_html:
+                    obs_text = frame['text']
                     orig_obs_text = obs_text
                     phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')
                     if phrases:

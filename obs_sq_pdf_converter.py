@@ -75,7 +75,7 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
             {frame_title}
         </div>
         <div class="obs-frame-text">
-            {frame}
+            {frame['text']}
         </div>
     </div>
 '''

@@ -37,25 +37,23 @@ class ObsPdfConverter(PdfConverter):
         return f'<h1>{self.main_resource.simple_title}</h1>'
 
     def get_page_template(self, obs_chapter_data, frame_idx):
-        frame_image1 = obs_chapter_data['images'][frame_idx]
-        frame_text1 = obs_chapter_data['frames'][frame_idx]
+        frame1 = obs_chapter_data['frames'][frame_idx]
         page_template_html = f'''
     <article class="obs-page">
         <div class="obs-frame no-break obs-frame-odd">
-            <img src="{frame_image1}" class="obs-img"/>
+            <img src="{frame1['image']}" class="obs-img"/>
             <div class="obs-text no-break" style="font-size: $font_size">
-                {frame_text1}
+                {frame1['text']}
             </div>
 '''
         if frame_idx + 1 < len(obs_chapter_data['frames']):
-            frame_image2 = obs_chapter_data['images'][frame_idx + 1]
-            frame_text2 = obs_chapter_data['frames'][frame_idx + 1]
+            frame2 = obs_chapter_data['frames'][frame_idx + 1]
             page_template_html += f'''
         </div>
         <div class="obs-frame no-break obs-frame-even">
-            <img src="{frame_image2}" class="obs-img"/>
+            <img src="{frame2['image']}" class="obs-img"/>
             <div class="obs-text no-break" style="font-size: $font_size">
-                {frame_text2}
+                {frame2['text']}
             </div>
 '''
         # If this page is at the end of the chapter, need the bible reference
@@ -116,7 +114,11 @@ class ObsPdfConverter(PdfConverter):
     def get_cover_html(self):
         cover_html = f'''
 <article id="main-cover" class="cover no-header-footer">
-    <img src="{self.main_resource.logo_url}" alt="{self.name.upper()}"/>
+    <img src="https://cdn.door43.org/obs/png/uW_OBS_Logo.png" alt="{self.name.upper()}"/>
+    <div class="language">
+        {self.main_resource.language_name}<br/>
+        {self.main_resource.language_id}
+    </div>
 </article>
 <article class="blank-page no-footer">
 </article>

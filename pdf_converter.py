@@ -398,10 +398,12 @@ class PdfConverter:
             body_html, toc_html = self.get_toc_html(body_html)
             self.logger.info('Done generating TOC HTML.')
 
+            self.logger.info('Populating HTML template...')
             with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
                 html_template = string.Template(template_file.read())
             title = f'{self.title} - v{self.version}'
 
+            self.logger.info('Piecing together the HTML file...')
             body_html = '\n'.join([cover_html, license_html, toc_html, body_html])
             if not self.offline:
                 body_html = self.download_all_images(body_html)
@@ -641,6 +643,7 @@ class PdfConverter:
                 full_file_path = os.path.join(self.output_dir, file_path)
                 if not os.path.exists(full_file_path) and not self.offline:
                     os.makedirs(os.path.dirname(full_file_path), exist_ok=True)
+                    self.logger.info(f'Downloading {url} to {full_file_path}...')
                     download_file(url, full_file_path)
                     img['src'] = f'../{file_path}'
         return str(soup)
