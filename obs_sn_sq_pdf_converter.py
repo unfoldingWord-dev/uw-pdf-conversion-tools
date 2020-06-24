@@ -97,6 +97,7 @@ class ObsSnSqPdfConverter(PdfConverter):
                 obs_rc_link = f'rc://{self.lang_code}/obs/book/obs/{chapter_num}/{frame_num}'
                 self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
 
+                obs_text = ''
                 if frame['text'] and notes_html:
                     obs_text = frame['text']
                     orig_obs_text = obs_text

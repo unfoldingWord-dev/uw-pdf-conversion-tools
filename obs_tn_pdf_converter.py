@@ -132,6 +132,7 @@ class ObsTnPdfConverter(PdfConverter):
                     notes_rc_link = f'rc://{self.lang_code}/obs-tn/help/{chapter_num}/{frame_num}'
                     notes_rc = self.add_rc(notes_rc_link, title=frame_title, article=notes_html)
 
+                    obs_text = ''
                     if frame and frame['text']:
                         obs_text = frame['text']
                         orig_obs_text = obs_text
