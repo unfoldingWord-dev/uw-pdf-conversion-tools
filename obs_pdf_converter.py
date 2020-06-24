@@ -34,7 +34,7 @@ class ObsPdfConverter(PdfConverter):
 
     @property
     def toc_title(self):
-        return f'<h1>{self.main_resource.simple_title}</h1>'
+        return f'<h1>{self.main_resource.title}</h1>'
 
     def get_page_template(self, obs_chapter_data, frame_idx):
         frame1 = obs_chapter_data['frames'][frame_idx]
