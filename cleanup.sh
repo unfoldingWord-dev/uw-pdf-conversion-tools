@@ -11,7 +11,7 @@ OIFS="$IFS"
 IFS=$'\n'
 
 cd /home/rmahn/output
-files="$(find obs* ta* tn* tw* ult* ust* -type f -name '*.html' -or -name '*.pdf' -or -name "*.json" -or -name "*.log")"
+files="$(find save log obs* ta* tn* tw* ult* ust* -type f -name '*.html' -or -name '*.pdf' -or -name "*_rcs.json" -or -name "*_bad_*.json" -or -name "*_appendix_rcs.json" -or -name "*.log")"
 for f in $files; do
     dir=$(dirname $f)
     list="$(find -L $dir -xtype l -samefile "$f")"
