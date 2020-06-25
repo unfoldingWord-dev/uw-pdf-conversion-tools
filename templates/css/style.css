@@ -144,17 +144,19 @@ h1.section-header {
 #contents ul li {
     width: 100%;
 }
+#contents ul li:before {
+    float: left;
+    width: 0;
+    white-space: nowrap;
+    content:". . . . . . . . . . . . . . . . . . . . "". . . . . . . . . . . . . . . . . . . . "". . . . . . . . . . . . . . . . . . . . "". . . . . . . . . . . . . . . . . . . . "
+}
 #contents ul li a {
     color: #000 !important;
     text-decoration: none;
-    border-bottom: 1px dashed rgb(200, 200, 200);
-    clear: both;
-    display: block;
-    height: 1.2em;
 }
 #contents ul li a span {
-    float: left;
     background-color: white;
+    padding-bottom: 5px;
 }
 #contents ul li div.toc-item a::before {
     content: target-text(attr(href));
