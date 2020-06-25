@@ -150,10 +150,13 @@ h1.section-header {
     border-bottom: 1px dashed rgb(200, 200, 200);
     clear: both;
     display: block;
+    margin-left: 2em;
+    text-indent: -2em;
 }
 #contents ul li a span {
     background-color: white;
     padding-bottom: 7px;
+    text-indent: 2em;
 }
 #contents ul li div.toc-item a::before {
     content: target-text(attr(href));
