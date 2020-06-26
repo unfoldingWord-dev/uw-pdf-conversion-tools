@@ -129,6 +129,7 @@ h1.section-header {
 
 #contents h1 {
     text-align: center;
+    font-size: 1.6em;
 }
 
 #contents > ul > li > a {
@@ -161,12 +162,14 @@ h1.section-header {
 #contents ul li div.toc-item a::before {
     content: target-text(attr(href));
 }
-#contents ul li  a::after {
+#contents ul li a::after {
     color: inherit;
     content: target-counter(attr(href), page);
     float: right;
     background-color: white;
-    margin-bottom: 3px;
+    text-align: right;
+    width: 18px;
+    padding-bottom: 1px;
 }
 
 h1, h2, h3, h4, h5, h6 {
