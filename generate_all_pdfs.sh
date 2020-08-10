@@ -23,8 +23,8 @@ cd /home/rmahn/repos/uw-pdf-conversion-tools
 ./ta_pdf_converter.py -l en $@
 ./tq_pdf_converter.py -l en $@
 ./tq_pdf_converter.py -l en -p all $@
-./tn_checking.py -l en $@
 ./tn_pdf_converter.py $@
+./tn_checking.py -l en $@
 #./bible_pdf_converter.py -l en -b ult $@
 #./bible_pdf_converter.py -l en -b ust $@
 #./bible_pdf_converter.py -l en -b ult -p nt $@
