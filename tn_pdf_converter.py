@@ -234,14 +234,15 @@ class TnPdfConverter(PdfConverter):
             for idx, field in enumerate(header):
                 field = field.strip()
                 if idx >= len(row):
-                    self.logger.error(f'ERROR: {book_file} is malformed')
+                    self.logger.error(f'ERROR: {book_file} is malformed at row {row_count}: {row}')
+                    self.add_bad_link(self.create_rc(f'{self.lang_code}_tn_{self.book_number}-{self.project_id.upper()}.tsv#{row_count}'), f'Line {row_count}', f'Malformed row: {row}')
                     found = False
                     break
                 else:
                     found = True
                     verse_data[field] = row[idx]
             if not found:
-                break
+                continue
             chapter = verse_data['Chapter'].lstrip('0')
             verse = verse_data['Verse'].lstrip('0')
             if verse_data['Occurrence']:

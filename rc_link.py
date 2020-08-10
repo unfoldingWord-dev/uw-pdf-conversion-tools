@@ -22,18 +22,22 @@ class ResourceContainerLink(object):
 
     def __init__(self, rc_link, article='', title=None, linking_level=0, article_id=None):
         self._rc_link = rc_link
-        parts = rc_link[5:].split('/')
-        self.lang_code = parts[0]
-        self.resource = parts[1]
-        self.type = parts[2] if len(parts) > 2 else None
-        # Below fixes when type is missing from rc link, e.g. rc://en/ta/translate/translate-names (missing /man/)
-        if self.type and self.type not in ['book', 'help', 'dict', 'man', 'bundle']:
-            type_map = {'obs': 'book', 'ta': 'man', 'tn': 'help', 'tw': 'dict'}
-            if self.resource in type_map:
-                self.type = type_map[self.resource]
-                parts.insert(2, self.type)
-        self.project = parts[3] if len(parts) > 3 else None
-        self.extra_info = parts[4:]
+        self.resource = ''
+        self.type = ''
+        self.lang_code = ''
+        if rc_link.startswith('rc://'):
+            parts = rc_link[5:].split('/')
+            self.lang_code = parts[0]
+            self.resource = parts[1]
+            self.type = parts[2] if len(parts) > 2 else None
+            # Below fixes when type is missing from rc link, e.g. rc://en/ta/translate/translate-names (missing /man/)
+            if self.type and self.type not in ['book', 'help', 'dict', 'man', 'bundle']:
+                type_map = {'obs': 'book', 'ta': 'man', 'tn': 'help', 'tw': 'dict'}
+                if self.resource in type_map:
+                    self.type = type_map[self.resource]
+                    parts.insert(2, self.type)
+            self.project = parts[3] if len(parts) > 3 else None
+            self.extra_info = parts[4:]
         self._article = article
         self._title = title
         self.linking_level = linking_level
@@ -42,8 +46,11 @@ class ResourceContainerLink(object):
 
     @property
     def rc_link(self):
-        return 'rc://' + '/'.join(filter(None, [self.lang_code, self.resource, self.type, self.project] +
-                                         self.extra_info))
+        if self._rc_link.startswith('rc://'):
+            return 'rc://' + '/'.join(filter(None, [self.lang_code, self.resource, self.type, self.project] +
+                                             self.extra_info))
+        else:
+            return self._rc_link
 
     @property
     def chapter(self):
