@@ -235,7 +235,7 @@ class TnPdfConverter(PdfConverter):
                 field = field.strip()
                 if idx >= len(row):
                     self.logger.error(f'ERROR: {book_file} is malformed at row {row_count}: {row}')
-                    self.add_bad_link(self.create_rc(f'{self.lang_code}_tn_{self.book_number}-{self.project_id.upper()}.tsv#{row_count}'), f'Line {row_count}', f'Malformed row: {row}')
+                    self.add_error_message(self.create_rc(f'{self.lang_code}_tn_{self.book_number}-{self.project_id.upper()}.tsv#{row_count}'), f'Line {row_count}', f'Malformed row: {row}')
                     found = False
                     break
                 else:
@@ -667,7 +667,7 @@ QUOTE: {quote_string}
 {bible_id.upper()}: {self.book_data[bible_id][chapter][verse]['usfm']}
 {self.ol_bible_id.upper()}: {self.book_data[self.ol_bible_id][chapter][verse]['usfm']}
 '''
-                self.add_bad_link(aligned_text_rc, context_id['rc'], message)
+                self.add_error_message(aligned_text_rc, context_id['rc'], message)
         return alignment
 
     def fix_tn_links(self, html, chapter):

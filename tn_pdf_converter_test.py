@@ -650,7 +650,7 @@ QUOTE: {quote_string}
 {bible_id.upper()}: {self.verse_usfm[bible_id][chapter][verse]['usfm']}
 {self.ol_bible_id.upper()}: {self.verse_usfm[self.ol_bible_id][chapter][verse]['usfm']}
 '''
-                self.add_bad_link(aligned_text_rc, context_id['rc'], message)
+                self.add_error_message(aligned_text_rc, context_id['rc'], message)
         return alignment
 
     def fix_tn_links(self, html, chapter):

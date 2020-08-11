@@ -89,7 +89,7 @@ class ObsTnPdfConverter(PdfConverter):
                                 fix = f'change to: {term}'
                             source_rc_link = f'rc://{self.lang_code}/tw_cat/{chapter["id"]}/{frame["id"]}'
                             source_rc = self.create_rc(source_rc_link)
-                            self.add_bad_link(source_rc, item['id'], fix)
+                            self.add_error_message(source_rc, item['id'], fix)
         return self._tw_cat
 
     def get_body_html(self):

@@ -68,7 +68,7 @@ class PdfConverter:
         self.images_dir = None
         self.output_res_dir = None
 
-        self.bad_links = {}
+        self.errors = {}
         self.bad_highlights = {}
         self.rcs = {}
         self.appendix_rcs = {}
@@ -231,15 +231,15 @@ class PdfConverter:
         self.appendix_rcs[rc.rc_link] = rc
         return rc
 
-    def add_bad_link(self, source_rc, bad_rc_link, message=None):
+    def add_error_message(self, source_rc, bad_rc_link, message=None):
         if source_rc:
-            if source_rc.rc_link not in self.bad_links:
-                self.bad_links[source_rc.rc_link] = {
+            if source_rc.rc_link not in self.errors:
+                self.errors[source_rc.rc_link] = {
                     'source_rc': source_rc,
-                    'bad_links': {}
+                    'errors': {}
                 }
-            if bad_rc_link not in self.bad_links[source_rc.rc_link] or message:
-                self.bad_links[source_rc.rc_link]['bad_links'][bad_rc_link] = message
+            if bad_rc_link not in self.errors[source_rc.rc_link] or message:
+                self.errors[source_rc.rc_link]['errors'][bad_rc_link] = message
 
     def add_bad_highlight(self, source_rc, text, rc_link, phrase, message=None):
         if source_rc:
@@ -414,7 +414,7 @@ class PdfConverter:
             link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_latest.html')
             symlink(self.html_file, link_file_path, True)
 
-            self.save_bad_links_html()
+            self.save_errors_html()
             self.save_bad_highlights_html()
             self.save_resource_data()
             self.logger.info('Generated HTML file.')
@@ -454,50 +454,55 @@ class PdfConverter:
     #         self.logger.info(
     #             f'DOCX file {self.docx_file} is already there. Not generating. Use -r to force regeneration.')
 
-    def save_bad_links_html(self):
-        save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}_bad_links.html')
-        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_bad_links_latest.html')
+    def save_errors_html(self):
+        save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}_errors.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_errors_latest.html')
 
-        if not self.bad_links:
-            self.logger.info('No bad links for this version!')
+        if not self.errors:
+            self.logger.info('No errors for this version!')
             if os.path.exists(save_file):
                 os.unlink(save_file)
             if os.path.exists(link_file_path):
                 os.unlink(link_file_path)
             return
 
-        bad_links_html = '''
-<h1>BAD LINKS</h1>
+        errors_html = '''
+<h1>ERRORS</h1>
 <ul>
 '''
-        for source_rc_link in sorted(self.bad_links.keys()):
-            source_rc = self.bad_links[source_rc_link]['source_rc']
-            bad_links = self.bad_links[source_rc_link]['bad_links']
-            for rc_link in sorted(bad_links.keys()):
-                bad_links_html += f'''
+        for source_rc_link in sorted(self.errors.keys()):
+            source_rc = self.errors[source_rc_link]['source_rc']
+            errors = self.errors[source_rc_link]['errors']
+            for rc_link in sorted(errors.keys()):
+                errors_html += f'''
     <li>
         In article 
         <a href="{os.path.basename(self.html_file)}#{source_rc.article_id}" title="See in the HTML" target="{self.name}-html">
             {source_rc_link}
         </a>:
-        BAD RC LINK: `{rc_link}`
 '''
-                if bad_links[rc_link]:
-                    message = bad_links[rc_link]
+                if rc_link.startswith('rc://'):
+                    errors_html += f'''
+        BAD RC LINK: `{rc_link}`'''
+                else:
+                    errors_html += f'''
+        {rc_link}'''
+                if errors[rc_link]:
+                    message = errors[rc_link]
                 else:
                     message = 'linked article not found'
                 if '\n' in message:
                     message = f'<br/><pre>{message}</pre>'
-                bad_links_html += f': {message}'
-                bad_links_html += f'''
+                errors_html += f', {message}'
+                errors_html += f'''
     </li>
 '''
-        bad_links_html += '''
+        errors_html += '''
 </ul>
 '''
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
-        html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_project_and_unique_ref}', link='', body=bad_links_html)
+        html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_project_and_unique_ref}', link='', body=errors_html)
         write_file(save_file, html)
         symlink(save_file, link_file_path, True)
 
@@ -613,9 +618,9 @@ class PdfConverter:
         link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_appendix_rcs_latest.json')
         symlink(save_file, link_file_path, True)
 
-        save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_bad_links.json')
-        write_file(save_file, jsonpickle.dumps(self.bad_links))
-        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_bad_links_latest.json')
+        save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_errors.json')
+        write_file(save_file, jsonpickle.dumps(self.errors))
+        link_file_path = os.path.join(self.save_dir, f'{self.file_project_and_ref}_errors_latest.json')
         symlink(save_file, link_file_path, True)
 
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_bad_highlights.json')
@@ -917,7 +922,7 @@ class PdfConverter:
                     else:
                         rc.set_article(None)
                 else:
-                    self.add_bad_link(source_rc, rc.rc_link)
+                    self.add_error_message(source_rc, rc.rc_link)
                     self.logger.error(f'LINK TO UNKNOWN RESOURCE FOUND IN {source_rc.rc_link}: {rc.rc_link}')
                     del self.appendix_rcs[rc.rc_link]
 
@@ -959,7 +964,7 @@ class PdfConverter:
                     message = 'dir exists but no 01.md file'
                 else:
                     message = '01.md file exists but no content'
-            self.add_bad_link(source_rc, rc.rc_link, message)
+            self.add_error_message(source_rc, rc.rc_link, message)
             self.logger.error(f'TA ARTICLE NOT FOUND: {article_file} - {message}')
             return
         top_box = ''
@@ -1015,7 +1020,7 @@ class PdfConverter:
                                 break
                     if not os.path.exists(rec_article_dir):
                         bad_rc_link = f"{rc.project}/config.yaml -> '{rc.path}' -> 'recommended' -> '{recommended}'"
-                        self.add_bad_link(rc, bad_rc_link)
+                        self.add_error_message(rc, bad_rc_link)
                         self.logger.error(f'RECOMMENDED NOT FOUND FOR {bad_rc_link}')
                         continue
                     rec_rc_link = f'rc://{self.lang_code}/ta/man/{rec_project}/{recommended}'
@@ -1098,7 +1103,7 @@ class PdfConverter:
             file_path = os.path.join(self.resources[rc.resource].repo_dir, rc.project, f'{path2}.md')
         if os.path.isfile(file_path):
             if fix:
-                self.add_bad_link(source_rc, rc.rc_link, fix)
+                self.add_error_message(source_rc, rc.rc_link, fix)
                 self.logger.error(f'FIX FOUND FOR FOR TW ARTICLE IN {source_rc.rc_link}: {rc.rc_link} => {fix}')
             tw_article_html = markdown2.markdown_path(file_path)
             tw_article_html = html_tools.make_first_header_section_header(tw_article_html)
@@ -1112,7 +1117,7 @@ class PdfConverter:
             rc.set_title(html_tools.get_title_from_html(tw_article_html))
             rc.set_article(tw_article_html)
         else:
-            self.add_bad_link(source_rc, rc.rc_link)
+            self.add_error_message(source_rc, rc.rc_link)
             self.logger.error(f'TW ARTICLE NOT FOUND: {file_path}')
 
     def fix_tw_links(self, text, group):
