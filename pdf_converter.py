@@ -745,12 +745,15 @@ class PdfConverter:
         return [str(soup), toc_html]
 
     def get_cover_html(self):
+        version_str = f'{self.translate("license.version")} {self.version}'
+        if self.main_resource.ref == DEFAULT_REF:
+           version_str += f' ({DEFAULT_REF} - {self.main_resource.commit})'
         if self.project_id:
             project_title_html = f'<h2 class="cover-project">{self.project_title}</h2>'
-            version_title_html = f'<h3 class="cover-version">{self.translate("license.version")} {self.version}</h3>'
+            version_title_html = f'<h3 class="cover-version">{version_str}</h3>'
         else:
             project_title_html = ''
-            version_title_html = f'<h2 class="cover-version">{self.translate("license.version")} {self.version}</h2>'
+            version_title_html = f'<h2 class="cover-version">{version_str}</h2>'
         cover_html = f'''
 <article id="main-cover" class="cover">
     <img src="{self.main_resource.logo_url}" alt="{self.name.upper()}"/>
@@ -774,11 +777,16 @@ class PdfConverter:
             publisher = resource.publisher
             issued = resource.issued
 
+            version_str = version
+            if resource.ref == DEFAULT_REF:
+                version_str += f' ({DEFAULT_REF} - {resource.commit})'
+                issued = f'{resource.commit_date} (last commit)'
+              
             license_html += f'''
     <div class="resource-info">
       <div class="resource-title"><strong>{title}</strong></div>
       <div class="resource-date"><strong>{self.translate('license.date')}:</strong> {issued}</div>
-      <div class="resource-version"><strong>{self.translate('license.version')}:</strong> {version}</div>
+      <div class="resource-version"><strong>{self.translate('license.version')}:</strong> {version_str}</div>
       <div class="resource-publisher"><strong>{self.translate('license.published_by')}:</strong> {publisher}</div>
     </div>
 '''

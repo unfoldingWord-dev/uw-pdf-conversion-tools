@@ -122,6 +122,10 @@ class Resource(object):
         return self.repo.git.rev_parse('HEAD', short=10)
 
     @property
+    def commit_date(self):
+        return self.repo.git.rev_parse('HEAD', short=10)
+
+    @property
     def manifest(self):
         if not self._manifest and self.repo_dir:
             self._manifest = load_yaml_object(os.path.join(self.repo_dir, 'manifest.yaml'))
