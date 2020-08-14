@@ -502,11 +502,11 @@ class PdfConverter:
 '''
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
-        html = html_template.safe_substitute(title=f'BAD LINKS FOR {self.file_project_and_unique_ref}', link='', body=errors_html)
+        html = html_template.safe_substitute(title=f'ERRORS FOR {self.file_project_and_unique_ref}', link='', body=errors_html)
         write_file(save_file, html)
         symlink(save_file, link_file_path, True)
 
-        self.logger.info(f'BAD LINKS HTML file can be found at {save_file}')
+        self.logger.info(f'ERRORS HTML file can be found at {save_file}')
 
     def save_bad_highlights_html(self):
         save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}_bad_highlights.html')
