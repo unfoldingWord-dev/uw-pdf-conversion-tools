@@ -14,6 +14,7 @@ Class for a resource
 import os
 import git
 from collections import OrderedDict
+from datetime import datetime
 from general_tools.file_utils import load_yaml_object
 
 DEFAULT_OWNER = 'unfoldingWord'
@@ -123,7 +124,8 @@ class Resource(object):
 
     @property
     def commit_date(self):
-        return self.repo.git.rev_parse('HEAD', short=10)
+        return datetime.utcfromtimestamp(self.repo.head.commit.committed_date).strftime('%Y-%m-%d %H:%M:%S')
+
 
     @property
     def manifest(self):
