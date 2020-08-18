@@ -112,6 +112,7 @@ class TwCheckingPdfConverter(TnPdfConverter):
         <h3 class="section-header">[[{tw_rc.rc_link}]]</h3>
         <table width="100%">
             <tr>
+               <th style="width:1px;padding:0 !important"></th>
                <th>Verse</th>
                <th>{self.ult_id.upper()} Alignment</th>
                <th>{self.ult_id.upper()} Text</th>
@@ -156,7 +157,8 @@ class TwCheckingPdfConverter(TnPdfConverter):
                     else:
                         context_id['scripture'][self.ol_bible_id] = f'<div style="color: red">{scripture}</div>'
                     tw_html += f'''
-            <tr>
+            <tr id="{tw_rc.article_id}-{chapter}-{verse}">
+                <td style="width:1px;padding:0 !important"><a href="#{tw_rc.article_id}-{chapter}-{verse}"><i class="fa fa-link"></i></td>
                 <td>
                     {chapter}:{verse}
                 </td>
