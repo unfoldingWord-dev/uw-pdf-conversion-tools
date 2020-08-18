@@ -111,6 +111,7 @@ class TnCheckingPdfConverter(TnPdfConverter):
         <h3 class="section-header">Support Reference: [[{tn_rc.rc_link}]]</h3>
         <table width="100%">
             <tr>
+               <th style="width:1px;padding:0 !important"></th>
                <th>Verse</th>
                <th>{self.ult_id.upper()} Alignment</th>
                <th>{self.ult_id.upper()} Text</th>
@@ -151,9 +152,10 @@ class TnCheckingPdfConverter(TnPdfConverter):
                             scripture = marked_html
                         group_data['scripture'][self.ol_bible_id] = f'<div style="color: red">{scripture}</div>'
                     tn_html += f'''
-            <tr>
+            <tr id="{group_data['ID']}">
+                <td style="width:1px;padding:0 !important"><a href="#{group_data['ID']}"><i class="fa fa-link"></i></a></td>
                 <td>
-                    {chapter}:{verse} 
+                    {chapter}:{verse}
                     (<a href="https://git.door43.org/unfoldingWord/{self.lang_code}_tn/src/branch/master/{self.lang_code}_tn_{self.book_number}-{self.project_id.upper()}.tsv#L{group_data['row']}" target="tn-repo">{group_data['ID']}</a>)
                 </td>
                 <td>
