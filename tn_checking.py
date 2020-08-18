@@ -10,9 +10,12 @@
 """
 This script generates the TN checking PDF
 """
+import os
+import string
 from tn_pdf_converter import TnPdfConverter, main
 from general_tools.html_tools import mark_phrases_in_html
 from general_tools.alignment_tools import flatten_alignment, split_string_into_alignment
+from general_tools.file_utils import write_file, symlink
 
 ORDERED_GROUPS = {
     'kt': 'Key Terms',
@@ -152,8 +155,8 @@ class TnCheckingPdfConverter(TnPdfConverter):
                             scripture = marked_html
                         group_data['scripture'][self.ol_bible_id] = f'<div style="color: red">{scripture}</div>'
                     tn_html += f'''
-            <tr id="{group_data['ID']}">
-                <td style="width:1px;padding:0 !important"><a href="#{group_data['ID']}"><i class="fa fa-link"></i></a></td>
+            <tr id="{group_data['rc'].article_id}">
+                <td style="width:1px;padding:0 !important"><a id="{group_data['ID']}"></a><a href="#{group_data['rc'].article_id}"><i class="fa fa-link"></i></a></td>
                 <td>
                     {chapter}:{verse}
                     (<a href="https://git.door43.org/unfoldingWord/{self.lang_code}_tn/src/branch/master/{self.lang_code}_tn_{self.book_number}-{self.project_id.upper()}.tsv#L{group_data['row']}" target="tn-repo">{group_data['ID']}</a>)
@@ -188,6 +191,65 @@ class TnCheckingPdfConverter(TnPdfConverter):
 '''
         self.logger.info('Done generating TN Checking HTML.')
         return tn_html
+
+    def save_errors_html(self):
+        save_file = os.path.join(self.output_res_dir, f'{self.file_project_and_unique_ref}_errors.html')
+        link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_errors_latest.html')
+
+        if not self.errors:
+            self.logger.info('No errors for this version!')
+            if os.path.exists(save_file):
+                os.unlink(save_file)
+            if os.path.exists(link_file_path):
+                os.unlink(link_file_path)
+            return
+
+        errors_html = '''
+<h1>ERRORS</h1>
+<ul>
+'''
+        for source_rc_link in sorted(self.errors.keys()):
+            parts = source_rc_link[5:].split('/')
+            book = parts[3]
+            chapter = parts[4]
+            verse = parts[5]
+            tn_id = parts[6]
+            source_rc = self.errors[source_rc_link]['source_rc']
+            errors = self.errors[source_rc_link]['errors']
+            for rc_link in sorted(errors.keys()):
+                errors_html += f'''
+    <li>
+        TN NOTE 
+        <a href="{os.path.basename(self.html_file)}#{source_rc.article_id}" title="See in the HTML" target="{self.name}-html">
+            {book} {chapter}:{verse} - {tn_id}
+        </a>:
+'''
+                if rc_link.startswith('rc://'):
+                    errors_html += f'''
+        BAD RC LINK: `{rc_link}`'''
+                else:
+                    errors_html += f'''
+        {rc_link}'''
+                if errors[rc_link]:
+                    message = errors[rc_link]
+                else:
+                    message = 'linked article not found'
+                if '\n' in message:
+                    message = f'<br/><pre>{message}</pre>'
+                errors_html += f': {message}'
+                errors_html += f'''
+    </li>
+'''
+        errors_html += '''
+</ul>
+'''
+        with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
+            html_template = string.Template(template_file.read())
+        html = html_template.safe_substitute(title=f'ERRORS FOR {self.file_project_and_unique_ref}', link='', body=errors_html)
+        write_file(save_file, html)
+        symlink(save_file, link_file_path, True)
+
+        self.logger.info(f'ERRORS HTML file can be found at {save_file}')
 
 
 if __name__ == '__main__':

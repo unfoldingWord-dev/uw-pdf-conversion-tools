@@ -660,14 +660,15 @@ class TnPdfConverter(PdfConverter):
                 if isinstance(quote_string, list):
                     flatten_quote(context_id['quote'])
             if int(self.book_number) > 40 or self.project_id.lower() == 'rut' or self.project_id.lower() == 'jon':
-                message = f'''OL ({self.ol_lang_code.upper()}) quote not found in {bible_id.upper()} alignment:
+                title = f'OL ({self.ol_lang_code.upper()}) quote not found in {bible_id.upper()} {self.project_title} {chapter}:{verse} alignment'
+                message = f'''
 VERSE: {self.project_title} {chapter}:{verse}
 RC: {context_id['rc']}
 QUOTE: {quote_string}
 {bible_id.upper()}: {self.book_data[bible_id][chapter][verse]['usfm']}
 {self.ol_bible_id.upper()}: {self.book_data[self.ol_bible_id][chapter][verse]['usfm']}
 '''
-                self.add_error_message(aligned_text_rc, context_id['rc'], message)
+                self.add_error_message(self.create_rc(context_id['rc']), title, message)
         return alignment
 
     def fix_tn_links(self, html, chapter):

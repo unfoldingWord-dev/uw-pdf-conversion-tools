@@ -493,7 +493,7 @@ class PdfConverter:
                     message = 'linked article not found'
                 if '\n' in message:
                     message = f'<br/><pre>{message}</pre>'
-                errors_html += f', {message}'
+                errors_html += f': {message}'
                 errors_html += f'''
     </li>
 '''
