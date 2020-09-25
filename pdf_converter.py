@@ -766,8 +766,9 @@ class PdfConverter:
 
     def get_license_html(self):
         license_html = f'''
-<article id="license">
-    <h1>{self.translate('license.copyrights_and_licensing')}</h1>
+<article id="copyrights-and-license">
+    <div id="copyrights">
+        <h1>{self.translate('license.copyrights_and_licensing')}</h1>
 '''
         for resource_name, resource in self.resources.items():
             if resource.background_resource or not resource.manifest:
@@ -783,16 +784,21 @@ class PdfConverter:
                 issued = f'{resource.commit_date} (last commit)'
               
             license_html += f'''
-    <div class="resource-info">
-      <div class="resource-title"><strong>{title}</strong></div>
-      <div class="resource-date"><strong>{self.translate('license.date')}:</strong> {issued}</div>
-      <div class="resource-version"><strong>{self.translate('license.version')}:</strong> {version_str}</div>
-      <div class="resource-publisher"><strong>{self.translate('license.published_by')}:</strong> {publisher}</div>
+        <div class="resource-info">
+          <div class="resource-title"><strong>{title}</strong></div>
+          <div class="resource-date"><strong>{self.translate('license.date')}:</strong> {issued}</div>
+          <div class="resource-version"><strong>{self.translate('license.version')}:</strong> {version_str}</div>
+          <div class="resource-publisher"><strong>{self.translate('license.published_by')}:</strong> {publisher}</div>
+        </div>
     </div>
+    <div id="license">
 '''
         license_file = os.path.join(self.main_resource.repo_dir, 'LICENSE.md')
         license_html += markdown2.markdown_path(license_file)
-        license_html += '</article>'
+        license_html += '''
+    </div>
+</article>
+'''
         return license_html
 
     def get_contributors_html(self):

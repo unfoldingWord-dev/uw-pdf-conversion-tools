@@ -13,6 +13,6 @@ set -x
 
 MY_DIR=$(cd $(dirname "$0") && pwd)
 
-cd "$MY_DIR/tn_resources"
+cd "$MY_DIR/resources"
 npm ci
 

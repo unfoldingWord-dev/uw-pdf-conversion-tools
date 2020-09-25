@@ -9,7 +9,7 @@ NOTE: Python 3 Only
 cd /opt && git clone https://github.com/unfoldingWord-dev/uw-pdf-conversion-tools.git
 cd /opt/uw-pdf-conversion-tools && pip3 install -r requirements.txt
 cd /opt/uw-pdf-conversion-tools
-./setup_tn_resources.sh # only needed one time, for tn_* PDF converters
+./setup_resources.sh # only needed one time, for tn_* and sn_* PDF converters
 ./run.sh <converter> [-hr] [-l <lang>] [-w <working_dir>] [-o <output_dir>] [-p <project>] [--owner <owner>] [--<resource>-tag <tag>] 
 ```
 

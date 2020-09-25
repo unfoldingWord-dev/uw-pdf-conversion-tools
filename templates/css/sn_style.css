@@ -1,0 +1,129 @@
+/*.sn-chapter article {*/
+/*    page-break-before: avoid !important;*/
+/*    break-before: avoid !important;*/
+/*}*/
+
+/*section.sn-chapter article:not(:last-child) {*/
+/*    padding-bottom: 10px;*/
+/*    border-bottom: solid #999 1px;*/
+/*}*/
+
+div.sn-notes .col1 {
+    width: 35%;
+    float: right;
+    border: 1px dashed lightgray;
+    margin: 0 10px 10px 10px;
+    padding: 5px;
+}
+
+div.sn-notes .bible-resource-title {
+    margin-bottom: 0;
+    color: #555;
+}
+
+.verse-note-reference {
+    font-weight: normal;
+    font-size: .8em;
+}
+
+/*a.tw-phrase-1 {*/
+/*    color: slateblue !important;*/
+/*}*/
+
+/*a.tw-phrase-2 {*/
+/*    color: darkgreen !important;*/
+/*}*/
+
+/*a.tw-phrase-3 {*/
+/*    color: darkcyan !important;*/
+/*}*/
+
+/*a.tw-phrase-4 {*/
+/*    color: slateblue !important;*/
+/*}*/
+
+/*a.tw-phrase-5 {*/
+/*    color: lightcoral !important;*/
+/*}*/
+
+/*a.tw-phrase-6 {*/
+/*    color: darkmagenta !important;*/
+/*}*/
+
+/*a.tw-phrase-7 {*/
+/*    color: orangered !important;*/
+/*}*/
+
+/*a.tw-phrase-8 {*/
+/*    color: darkolivegreen !important;*/
+/*}*/
+
+/*a.tw-phrase-9 {*/
+/*    color: chocolate !important;*/
+/*}*/
+
+/*a.tw-phrase-10 {*/
+/*    color: cornflowerblue !important;*/
+/*}*/
+
+span.tw-phrase {
+    color: #0000BB !important;
+}
+
+span.sn-note.highlight {
+    font-weight: bold;
+}
+
+span.sn-note.highlight span.highlight {
+    text-decoration: underline;
+    font-weight: 900;
+}
+
+span.sn-note.highlight span.highlight span.highlight {
+    text-decoration: double;
+}
+
+span.sn-note.highlight a.tw-phrase {
+    text-decoration: underline
+}
+
+span.sn-note.highlight span.highlight a.tw-phrase {
+    text-decoration: double;
+    font-weight: 900;
+}
+
+a.split,
+span.split {
+    text-decoration: underline;
+}
+
+span.nested-link {
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+}
+
+span.nested-link > span.nested-link {
+  text-decoration-line: underline;
+  text-decoration-style: double;
+}
+
+span.nested-link > span.nested-link > span.nested-link {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+}
+
+span.nested-link > span.nested-link > span.nested-link > span.nested-link {
+  text-decoration-line: none;
+}
+
+.no-notes {
+    font-style: italic;
+}
+
+article table td {
+    vertical-align: top;
+}
+
+.sn-checking .highlight {
+    background-color: yellow;
+}

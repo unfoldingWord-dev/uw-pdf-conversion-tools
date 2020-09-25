@@ -21,6 +21,7 @@ DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_REF = 'master'
 OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog', 'PCET', 'EXEGETICAL-BCS']
 LOGO_MAP = {
+    'sn': 'utn',
     'ta': 'uta',
     'tn': 'utn',
     'tw': 'utw',
