@@ -78,6 +78,9 @@ class SnPdfConverter(PdfConverter):
         else:
             return ''
 
+    def get_appendix_rcs(self):
+        return
+
     def process_bibles(self):
         sorted_resources = sorted(self.resources, key=lambda x: self.resources[x].repo_name)
         resource_refs = '-'.join(list(map(lambda x: f'{self.resources[x].repo_name}_{self.resources[x].ref}' + (f'_{self.resources[x].commit}' if not self.resources[x].ref_is_tag else ''), sorted_resources)))
@@ -364,10 +367,10 @@ class SnPdfConverter(PdfConverter):
         sn_title = f'{self.project_title} {chapter}:{verse}'
         sn_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
         sn_rc = self.add_rc(sn_rc_link, title=sn_title)
-        ult_with_tw_words = self.get_scripture_with_tw_words(self.ult_id, chapter, verse)
-        # ult_with_tw_words = self.get_scripture_with_sn_quotes(self.ult_id, chapter, verse, rc, ult_with_tw_words)
-        ust_with_tw_words = self.get_scripture_with_tw_words(self.ust_id, chapter, verse)
-        # ust_with_tw_words = self.get_scripture_with_sn_quotes(self.ust_id, chapter, verse, rc, ust_with_tw_words)
+        ult_text = self.get_plain_scripture(self.ult_id, chapter, verse)
+        ult_text = self.get_scripture_with_sn_quotes(self.ult_id, chapter, verse, self.create_rc(f'rc://{self.lang_code}/ult/bible/{self.project_id}/{chapter}/{verse}', ult_text), ult_text)
+        ust_text = self.get_plain_scripture(self.ust_id, chapter, verse)
+        ust_text = self.get_scripture_with_sn_quotes(self.ust_id, chapter, verse, self.create_rc(f'rc://{self.lang_code}/ust/bible/{self.project_id}/{chapter}/{verse}', ult_text), ust_text)
 
         sn_article = f'''
                 <article id="{sn_rc.article_id}">
@@ -375,52 +378,18 @@ class SnPdfConverter(PdfConverter):
                     <div class="sn-notes">
                             <div class="col1">
                                 <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
-                                <div class="bible-text">{ult_with_tw_words}</div>
+                                <div class="bible-text">{ult_text}</div>
                                 <h3 class="bible-resource-title">{self.ust_id.upper()}</h3>
-                                <div class="bible-text">{ust_with_tw_words}</div>
+                                <div class="bible-text">{ust_text}</div>
                             </div>
                             <div class="col2">
                                 {self.get_sn_article_text(chapter, verse)}
-                                {self.get_tw_html_list(self.ult_id, chapter, verse, ult_with_tw_words)}
-                                {self.get_tw_html_list(self.ust_id, chapter, verse, ust_with_tw_words)}
                             </div>
                     </div>
                 </article>
 '''
         sn_rc.set_article(sn_article)
         return sn_article
-
-    def get_tw_html_list(self, bible_id, chapter, verse, scripture=''):
-        if chapter not in self.tw_words_data or verse not in self.tw_words_data[chapter] or \
-                not self.tw_words_data[chapter][verse]:
-            return ''
-        group_datas = self.tw_words_data[chapter][verse]
-        for group_data_idx, group_data in enumerate(group_datas):
-            alignment = group_data['alignments'][bible_id]
-            if alignment:
-                title = flatten_alignment(alignment)
-            else:
-                title = f'[[{group_data["contextId"]["rc"]}]]'
-            group_datas[group_data_idx]['title'] = title
-        rc_pattern = 'rc://[/A-Za-z0-9*_-]+'
-        rc_order = re.findall(rc_pattern, scripture)
-        group_datas.sort(key=lambda x: str(rc_order.index(x['contextId']['rc']) if x['contextId']['rc'] in rc_order else x['title']))
-        links = []
-        for group_data_idx, group_data in enumerate(group_datas):
-            tw_rc = group_data['contextId']['rc']
-            occurrence = group_data['contextId']['occurrence']
-            occurrence_text = ''
-            if occurrence > 1:
-                occurrence_text = f' ({occurrence})'
-            title = group_data['title']
-            links.append(f'<a href="{tw_rc}" class="tw-phrase tw-phrase-{group_data_idx + 1}">{title}</a>{occurrence_text}')
-        tw_html = f'''
-                <h3>{self.resources['tw'].simple_title} - {bible_id.upper()}</h3>
-                <ul class="tw-list">
-                    <li>{'</li><li>'.join(links)}</li>
-                </ul>
-'''
-        return tw_html
 
     def get_sn_article_text(self, chapter, verse):
         verse_notes = ''
@@ -763,7 +732,7 @@ QUOTE: {quote_string}
 
 def main(sn_class, resource_names=None):
     if not resource_names:
-        resource_names = ['sn', 'ult', 'ust', 'ta', 'tw', 'ugnt', 'uhb']
+        resource_names = ['sn', 'ult', 'ust', 'ugnt', 'uhb']
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--ust-id', dest='ust_id', default=DEFAULT_UST_ID, required=False, help="UST ID")
     parser.add_argument('--ult-id', dest='ult_id', default=DEFAULT_ULT_ID, required=False, help="ULT ID")
