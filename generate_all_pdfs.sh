@@ -13,6 +13,7 @@ export OUTPUT_DIR=/home/rmahn/output
 
 cd /home/rmahn/repos/uw-pdf-conversion-tools
 
+./sn_pdf_converter.py -l en -p tit $@
 ./obs_tn_pdf_converter.py -l en -l fr -l kn $@
 ./obs_sn_pdf_converter.py -l en -l fr -l shu $@ 
 ./obs_sn_sq_pdf_converter.py -l en -l fr -l shu $@ 

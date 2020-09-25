@@ -13,7 +13,10 @@
     "fs-extra": "^8.1.0",
     "js-yaml": "^3.14.0",
     "path-extra": "^4.3.0",
+    "rimraf": "^3.0.2",
+    "string-punctuation-tokenizer": "^2.1.2",
     "tc-source-content-updater": "^0.6.20",
+    "tsv-groupdata-parser": "^0.9.17",
     "usfm-js": "^2.1.0"
   },
   "devDependencies": {
