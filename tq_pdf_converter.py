@@ -41,12 +41,6 @@ class TqPdfConverter(PdfConverter):
         self.logger.info('Creating TQ for {0}...'.format(self.file_project_and_ref))
         return self.get_tq_html()
 
-    def get_book_title(self, project):
-        if self.main_resource.title in project['title']:
-            return project['title'].replace(f' {self.main_resource.title}', '')
-        else:
-            return project['title'].replace(f' {self.main_resource.simple_title}', '')
-
     def get_tq_html(self):
         tq_html = ''
         if self.project_id:
@@ -71,7 +65,7 @@ class TqPdfConverter(PdfConverter):
     <article id="{self.lang_code}-{self.name}-{project_id}-cover" class="resource-title-page no-header-footer"">
         <img src="{self.main_resource.logo_url}" class="logo" alt="UTQ">
         <h1{' class="section-header"' if project_idx == 0 else ''}>{self.title}</h1>
-        <h2 class="section-header no-heading">{self.get_book_title(project)}</h2>
+        <h2 class="section-header no-heading">{book_title}</h2>
     </article>
 '''
             for chapter_dir in chapter_dirs:

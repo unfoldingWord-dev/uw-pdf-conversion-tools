@@ -20,7 +20,7 @@ import general_tools.html_tools as html_tools
 from glob import glob
 from bs4 import BeautifulSoup
 from collections import OrderedDict
-from pdf_converter import PdfConverter, run_converter
+from pdf_converter import PdfConverter, RepresentsInt, run_converter
 from tx_usfm_tools.singleFilelessHtmlRenderer import SingleFilelessHtmlRenderer
 from general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
 from general_tools.alignment_tools import get_alignment, flatten_alignment, flatten_quote
@@ -298,7 +298,7 @@ class SnPdfConverter(PdfConverter):
 
     def get_sn_html(self):
         sn_html = f'''
-<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}" class="no-break-articles">
+<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name} no-break-articles">
     <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
         <img src="{self.main_resource.logo_url}" class="logo" alt="USN">
         <h1 class="section-header">{self.title}</h1>
@@ -569,9 +569,12 @@ class SnPdfConverter(PdfConverter):
             sn_notes = []
         orig_scripture = scripture
         for sn_note_idx, sn_note in enumerate(sn_notes):
+            occurrence = 1
+            if RepresentsInt(sn_note['Occurrence']) and int(sn_note['Occurrence']) > 0:
+                occurrence = int(sn_note['Occurrence'])
             gl_quote_phrase = [[{
                 'word': sn_note['GLQuote'],
-                'occurrence': int(sn_note['Occurrence']) if int(sn_note['Occurrence']) > 0 else 1
+                'occurrence': occurrence
             }]]
             phrase = sn_note['alignments'][bible_id]
             if not phrase:

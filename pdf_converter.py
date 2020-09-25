@@ -176,9 +176,17 @@ class PdfConverter:
 
     @property
     def project_title(self):
-        project = self.project
-        if project:
-            return project['title']
+        return self.get_project_title(self.project)
+
+    def get_project_title(self, project):
+        if not project:
+            project = self.project
+        if not project:
+            return ''
+        if self.main_resource.title in project['title']:
+            return project['title'].replace(f' {self.main_resource.title}', '')
+        else:
+            return project['title'].replace(f' {self.main_resource.simple_title}', '')
 
     def pad(self, num, project_id=None):
         if not project_id:
@@ -1231,3 +1239,10 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     logger.removeHandler(logger_stream_handler)
     logger_stream_handler.close()
 
+
+def RepresentsInt(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False

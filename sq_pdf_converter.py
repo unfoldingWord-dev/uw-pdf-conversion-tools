@@ -20,7 +20,7 @@ import general_tools.html_tools as html_tools
 from glob import glob
 from bs4 import BeautifulSoup
 from collections import OrderedDict
-from pdf_converter import PdfConverter, run_converter
+from pdf_converter import PdfConverter, RepresentsInt, run_converter
 from tx_usfm_tools.singleFilelessHtmlRenderer import SingleFilelessHtmlRenderer
 from general_tools.bible_books import BOOK_NUMBERS, BOOK_CHAPTER_VERSES
 from general_tools.alignment_tools import get_alignment, flatten_alignment, flatten_quote
@@ -80,6 +80,12 @@ class SqPdfConverter(PdfConverter):
 
     def get_appendix_rcs(self):
         return
+
+    def get_book_title(self, project):
+        if self.main_resource.title in project['title']:
+            return project['title'].replace(f' {self.main_resource.title}', '')
+        else:
+            return project['title'].replace(f' {self.main_resource.simple_title}', '')
 
     def process_bibles(self):
         keys = sorted(list(self.resources.keys())[1:])
@@ -298,8 +304,8 @@ class SqPdfConverter(PdfConverter):
 
     def get_sq_html(self):
         sq_html = f'''
-<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
-    <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
+<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name} no-break-articles page-break">
+    <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page page-break">
         <img src="{self.main_resource.logo_url}" class="logo" alt="USQ">
         <h1 class="section-header">{self.title}</h1>
         <h2 class="section-header no-heading">{self.project_title}</h2>
@@ -327,7 +333,7 @@ class SqPdfConverter(PdfConverter):
             chapter_rc_link = f'rc://{self.lang_code}/sq/help/{self.project_id}/{self.pad(chapter)}'
             chapter_rc = self.add_rc(chapter_rc_link, title=chapter_title)
             sq_html += f'''
-    <section id="{chapter_rc.article_id}" class="sq-chapter">
+    <section id="{chapter_rc.article_id}" class="sq-chapter page-break">
         <h3 class="section-header no-heading">{chapter_title}</h3>
 '''
             if 'intro' in self.sq_book_data[chapter]:
@@ -569,9 +575,12 @@ class SqPdfConverter(PdfConverter):
             sq_notes = []
         orig_scripture = scripture
         for sq_note_idx, sq_note in enumerate(sq_notes):
+            occurrence = 1
+            if RepresentsInt(sq_note['Occurrence']) and int(sq_note['Occurrence']) > 0:
+                occurrence = int(sq_note['Occurrence'])
             gl_quote_phrase = [[{
                 'word': sq_note['GLQuote'],
-                'occurrence': int(sq_note['Occurrence']) if int(sq_note['Occurrence']) > 0 else 1
+                'occurrence': occurrence
             }]]
             phrase = sq_note['alignments'][bible_id]
             if not phrase:

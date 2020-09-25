@@ -236,20 +236,30 @@ section > article + * {
     clear: both;
 }
 
-.no-break,
-section.no-break-articles article {
+.no-break{
     page-break-before: avoid !important;
     break-before: avoid !important;
+}
+
+section.no-break-articles article + article,
+section.no-break-articles > section + *, section > article + * {
+    page-break-before: auto !important;
+    break-before: auto !important;
+}
+
+section article:first-child,
+section .section-header + article:nth-child(2),
+section.no-break-articles article:first-child,
+section.no-break-articles .section-header article:nth-child(2) {
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
 }
 
 section.no-break-articles article {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-}
-
-section.no-break-articles > section + *, section > article + * {
-    page-break-before: avoid !important;
-    break-before: avoid !important;
 }
 
 dl {
