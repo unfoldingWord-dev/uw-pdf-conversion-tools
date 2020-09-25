@@ -22,6 +22,7 @@ DEFAULT_REF = 'master'
 OWNERS = [DEFAULT_OWNER, 'STR', 'Door43-Catalog', 'PCET', 'EXEGETICAL-BCS']
 LOGO_MAP = {
     'sn': 'utn',
+    'sq': 'utq',
     'ta': 'uta',
     'tn': 'utn',
     'tw': 'utw',

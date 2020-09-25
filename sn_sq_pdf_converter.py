@@ -8,7 +8,7 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the HTML and PDF OBS SN & SQ documents
+This script generates the HTML and PDF SN & SQ documents
 """
 import os
 import re
@@ -19,7 +19,7 @@ from pdf_converter import PdfConverter, run_converter
 from general_tools import obs_tools, alignment_tools
 
 
-class ObsSnSqPdfConverter(PdfConverter):
+class SnSqPdfConverter(PdfConverter):
 
     @property
     def name(self):
@@ -42,7 +42,7 @@ class ObsSnSqPdfConverter(PdfConverter):
         obs_sn_sq_html = f'''
 <section id="{self.lang_code}-obs-sn">
     <div class="resource-title-page no-header">
-        <img src="{self.resources['obs-sn'].logo_url}" class="logo" alt="OBS">
+        <img src="{self.resources['obs'].logo_url}" class="logo" alt="OBS">
         <h1 class="section-header">{self.simple_title}</h1>
     </div>
 '''
@@ -171,4 +171,4 @@ class ObsSnSqPdfConverter(PdfConverter):
 
 
 if __name__ == '__main__':
-    run_converter(['obs-sn', 'obs-sq', 'obs'], ObsSnSqPdfConverter)
+    run_converter(['sn', 'sq', 'ult', 'ust', 'ugnt', 'uhb'], SnSqPdfConverter)

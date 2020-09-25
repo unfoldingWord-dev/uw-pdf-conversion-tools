@@ -39,7 +39,7 @@ class ObsSqPdfConverter(ObsSnSqPdfConverter):
         obs_sq_html = f'''
 <section id="{self.lang_code}-obs-sq">
     <div class="resource-title-page">
-        <img src="{self.resources['obs'].logo_url}" class="logo" alt="OBS">
+        <img src="{self.resources['obs-sq'].logo_url}" class="logo" alt="OBS">
         <h1 class="section-header">{self.simple_title}</h1>
     </div>
 '''

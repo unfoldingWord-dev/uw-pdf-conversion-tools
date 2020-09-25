@@ -8,7 +8,7 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the HTML and PDF TN documents
+This script generates the HTML and PDF SN documents
 """
 import os
 import re
@@ -18,7 +18,7 @@ import markdown2
 import subprocess
 import general_tools.html_tools as html_tools
 from glob import glob
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup
 from collections import OrderedDict
 from pdf_converter import PdfConverter, run_converter
 from tx_usfm_tools.singleFilelessHtmlRenderer import SingleFilelessHtmlRenderer
@@ -82,8 +82,8 @@ class SnPdfConverter(PdfConverter):
         return
 
     def process_bibles(self):
-        sorted_resources = sorted(self.resources, key=lambda x: self.resources[x].repo_name)
-        resource_refs = '-'.join(list(map(lambda x: f'{self.resources[x].repo_name}_{self.resources[x].ref}' + (f'_{self.resources[x].commit}' if not self.resources[x].ref_is_tag else ''), sorted_resources)))
+        keys = sorted(list(self.resources.keys())[1:])
+        resource_refs = '-'.join(list(map(lambda x: f'{x}_{self.resources[x].ref}' + (f'_{self.resources[x].commit}' if not self.resources[x].ref_is_tag else ''), keys)))
         self.resources_dir = os.path.join(self.working_dir, f'resources_{resource_refs}')
         if self.update or not os.path.exists(self.resources_dir):
             cmd = f'cd "{self.converters_dir}/resources" && node start.js {self.lang_code} "{self.resources_dir}" {self.ult_id} {self.ust_id}'
@@ -94,7 +94,7 @@ class SnPdfConverter(PdfConverter):
                 exit(1)
 
     def get_body_html(self):
-        self.logger.info('Creating TN for {0}...'.format(self.file_project_and_ref))
+        self.logger.info('Creating SN for {0}...'.format(self.file_project_and_ref))
         self.process_bibles()
         self.populate_book_data(self.ult_id)
         self.populate_book_data(self.ust_id)
@@ -107,7 +107,6 @@ class SnPdfConverter(PdfConverter):
         self.sn_groups_data = None
         self.tw_words_data = None
         return html
-
 
     def get_usfm_from_verse_objects(self, verse_objects):
         usfm = ''
@@ -299,9 +298,9 @@ class SnPdfConverter(PdfConverter):
 
     def get_sn_html(self):
         sn_html = f'''
-<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
+<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}" class="no-break-articles">
     <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
-        <img src="{self.main_resource.logo_url}" class="logo" alt="UTN">
+        <img src="{self.main_resource.logo_url}" class="logo" alt="USN">
         <h1 class="section-header">{self.title}</h1>
         <h2 class="section-header no-heading">{self.project_title}</h2>
     </article>
@@ -360,7 +359,7 @@ class SnPdfConverter(PdfConverter):
         sn_html += '''
 </section>
 '''
-        self.logger.info('Done generating TN HTML.')
+        self.logger.info('Done generating SN HTML.')
         return sn_html
 
     def get_sn_article(self, chapter, verse):
