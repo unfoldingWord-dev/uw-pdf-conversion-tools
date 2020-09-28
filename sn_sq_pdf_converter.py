@@ -34,6 +34,12 @@ class SnSqPdfConverter(TsvPdfConverter):
     def name(self):
         return 'sn-sq'
 
+    @property
+    def simple_title(self):
+        sn_title = self.resources['sn'].simple_title
+        sq_title = self.resources['sq'].simple_title
+        return f'{sn_title} & {sq_title}'
+
     def get_appendix_rcs(self):
         return
 
@@ -208,7 +214,7 @@ class SnSqPdfConverter(TsvPdfConverter):
 <section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
     <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
         <img src="{self.main_resource.logo_url}" class="logo" alt="USN">
-        <h1 class="section-header">{self.title}</h1>
+        <h1 class="section-header">{self.simple_title}</h1>
         <h2 class="section-header no-heading">{self.project_title}</h2>
     </article>
 '''
