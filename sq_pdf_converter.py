@@ -440,7 +440,7 @@ class SqPdfConverter(TsvPdfConverter):
         return scripture
 
     def fix_sq_links(self, html, chapter):
-        html = self.fix_tsv_links(html)
+        html = self.fix_tsv_links(html, chapter)
         return html
 
 
