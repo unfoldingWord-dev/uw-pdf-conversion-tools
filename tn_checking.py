@@ -253,4 +253,4 @@ class TnCheckingPdfConverter(TnPdfConverter):
 
 
 if __name__ == '__main__':
-    main(TnCheckingPdfConverter)
+    main(TnCheckingPdfConverter, ['tn', 'ta', 'tw'])

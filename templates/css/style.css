@@ -242,7 +242,8 @@ section > article + * {
 }
 
 section.no-break-articles article + article,
-section.no-break-articles > section + *, section > article + * {
+section.no-break-articles > section + *,
+section > article.no-break-articles + * {
     page-break-before: auto !important;
     break-before: auto !important;
 }

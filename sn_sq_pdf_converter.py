@@ -8,167 +8,466 @@
 #  Richard Mahn <rich.mahn@unfoldingword.org>
 
 """
-This script generates the HTML and PDF SN & SQ documents
+This script generates the HTML and PDF SN-SQ documents
 """
 import os
 import re
 import markdown2
 import general_tools.html_tools as html_tools
-from bs4 import BeautifulSoup
-from pdf_converter import PdfConverter, run_converter
-from general_tools import obs_tools, alignment_tools
+from collections import OrderedDict
+from pdf_converter import RepresentsInt, run_converter
+from tsv_pdf_converter import TsvPdfConverter, main
+from general_tools.bible_books import BOOK_CHAPTER_VERSES
+from general_tools.alignment_tools import get_alignment, flatten_alignment, flatten_quote
+
+QUOTES_TO_IGNORE = ['general information:', 'connecting statement:']
 
 
-class SnSqPdfConverter(PdfConverter):
+class SnSqPdfConverter(TsvPdfConverter):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sn_book_data = OrderedDict()
+        self.sq_book_data = OrderedDict()
 
     @property
     def name(self):
-        return 'obs-sn-sq'
+        return 'sn-sq'
 
-    @property
-    def title(self):
-        sn_title = self.resources['obs-sn'].title
-        sq_title = self.resources['obs-sq'].title
-        return f'{sn_title}\n<br/>\n&\n<br/>\n{sq_title}'
-
-    @property
-    def simple_title(self):
-        sn_title = self.resources['obs-sn'].simple_title
-        sq_title = self.resources['obs-sq'].simple_title
-        return f'{sn_title} & {sq_title}'
+    def get_appendix_rcs(self):
+        return
 
     def get_body_html(self):
-        self.logger.info('Generating OBS SN SQ html...')
-        obs_sn_sq_html = f'''
-<section id="{self.lang_code}-obs-sn">
-    <div class="resource-title-page no-header">
-        <img src="{self.resources['obs'].logo_url}" class="logo" alt="OBS">
-        <h1 class="section-header">{self.simple_title}</h1>
-    </div>
-'''
-        intro_file = os.path.join(self.resources['obs-sq'].repo_dir, 'content', '00.md')
-        if os.path.isfile(intro_file):
-            intro_id = 'obs-sq-intro'
-            intro_content = markdown2.markdown_path(intro_file)
-            intro_content = html_tools.increment_headers(intro_content, 1)
-            intro_content = intro_content.replace('<h2>', '<h2 class="section-header">', 1)
-            obs_sn_sq_html += f'''
-    <article id="{intro_id}">
-        {intro_content}
+        self.logger.info('Creating SN for {0}...'.format(self.file_project_and_ref))
+        self.process_bibles()
+        self.populate_book_data(self.ult_id)
+        self.populate_book_data(self.ust_id)
+        self.populate_book_data(self.ol_bible_id, self.ol_lang_code)
+        self.populate_sn_book_data()
+        self.populate_sq_book_data()
+        html = self.get_sn_sq_html()
+        self.sn_book_data = None
+        return html
+
+    def populate_sn_book_data(self):
+        book_filename = f'{self.lang_code}_{self.resources["sn"].resource_name}_{self.book_number}-{self.project_id.upper()}.tsv'
+        book_filepath = os.path.join(self.resources['sn'].repo_dir, book_filename)
+        if not os.path.isfile(book_filepath):
+            return
+        book_data = OrderedDict()
+        reader = self.unicode_csv_reader(open(book_filepath))
+        header = next(reader)
+        row_count = 1
+        for row in reader:
+            row_count += 1
+            verse_data = {
+                'contextId': None,
+                'row': row_count,
+                'alignments': {
+                    self.ult_id: None,
+                    self.ust_id: None
+                }
+            }
+            found = False
+            for idx, field in enumerate(header):
+                field = field.strip()
+                if idx >= len(row):
+                    self.logger.error(f'ERROR: {book_filepath} is malformed at row {row_count}: {row}')
+                    self.add_error_message(self.create_rc(f'{book_filename}#{row_count}'), f'Line {row_count}', f'Malformed row: {row}')
+                    found = False
+                    break
+                else:
+                    found = True
+                    verse_data[field] = row[idx]
+            if not found:
+                continue
+            chapter = verse_data['Chapter'].lstrip('0')
+            verse = verse_data['Verse'].lstrip('0')
+            if verse_data['Occurrence']:
+                occurrence = int(verse_data['Occurrence'])
+            else:
+                occurrence = 1
+            sn_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}/{verse_data["ID"]}'
+            sn_title = f'{verse_data["GLQuote"]}'
+            if verse_data['OrigQuote']:
+                context_id = None
+                if not context_id and chapter.isdigit() and verse.isdigit():
+                    context_id = {
+                        'reference': {
+                            'chapter': int(chapter),
+                            'verse': int(verse)
+                        },
+                        'rc': f'rc://{self.lang_code}/sn/help///{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}',
+                        'quote': verse_data['OrigQuote'],
+                        'occurrence': occurrence,
+                        'quoteString': verse_data['OrigQuote']
+                    }
+                if context_id:
+                    context_id['rc'] += f'/{verse_data["ID"]}'
+                    context_id['quoteString'] = verse_data['OrigQuote']
+                    verse_data['contextId'] = context_id
+                    verse_data['alignments'] = {
+                        self.ult_id: self.get_aligned_text(self.ult_id, context_id),
+                        self.ust_id: self.get_aligned_text(self.ust_id, context_id)
+                    }
+                if verse_data['alignments'][self.ult_id]:
+                    sn_title = flatten_alignment(verse_data['alignments'][self.ult_id]) + f' ({self.ult_id.upper()})'
+                    if verse_data['alignments'][self.ust_id]:
+                        sn_title += '<br/>' + flatten_alignment(verse_data['alignments'][self.ust_id]) + f' ({self.ust_id.upper()})'
+                else:
+                    sn_title = f'{verse_data["GLQuote"]}'
+            sn_rc = self.create_rc(sn_rc_link, title=sn_title)
+            verse_data['title'] = sn_title
+            verse_data['rc'] = sn_rc
+            if chapter not in book_data:
+                book_data[chapter] = OrderedDict()
+            if verse not in book_data[chapter]:
+                book_data[chapter][verse] = []
+            book_data[str(chapter)][str(verse)].append(verse_data)
+        self.sn_book_data = book_data
+
+    def populate_sq_book_data(self):
+        book_filename = f'{self.lang_code}_{self.resources["sq"].resource_name}_{self.book_number}-{self.project_id.upper()}.tsv'
+        book_filepath = os.path.join(self.resources['sq'].repo_dir, book_filename)
+        if not os.path.isfile(book_filepath):
+            return
+        book_data = OrderedDict()
+        reader = self.unicode_csv_reader(open(book_filepath))
+        header = next(reader)
+        row_count = 1
+        for row in reader:
+            row_count += 1
+            verse_data = {
+                'contextId': None,
+                'row': row_count,
+                'alignments': {
+                    self.ult_id: None,
+                    self.ust_id: None
+                }
+            }
+            found = False
+            for idx, field in enumerate(header):
+                field = field.strip()
+                if idx >= len(row):
+                    self.logger.error(f'ERROR: {book_filepath} is malformed at row {row_count}: {row}')
+                    self.add_error_message(self.create_rc(f'{book_filename}#{row_count}'), f'Line {row_count}', f'Malformed row: {row}')
+                    found = False
+                    break
+                else:
+                    found = True
+                    verse_data[field] = row[idx]
+            if not found:
+                continue
+            chapter = verse_data['Chapter'].lstrip('0')
+            verse = verse_data['Verse'].lstrip('0')
+            if verse_data['Occurrence']:
+                occurrence = int(verse_data['Occurrence'])
+            else:
+                occurrence = 1
+            sq_rc_link = f'rc://{self.lang_code}/sq/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}/{verse_data["ID"]}'
+            sq_title = f'{verse_data["GLQuote"]}'
+            if verse_data['OrigQuote']:
+                context_id = None
+                if not context_id and chapter.isdigit() and verse.isdigit():
+                    context_id = {
+                        'reference': {
+                            'chapter': int(chapter),
+                            'verse': int(verse)
+                        },
+                        'rc': f'rc://{self.lang_code}/sq/help///{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}',
+                        'quote': verse_data['OrigQuote'],
+                        'occurrence': occurrence,
+                        'quoteString': verse_data['OrigQuote']
+                    }
+                if context_id:
+                    context_id['rc'] += f'/{verse_data["ID"]}'
+                    context_id['quoteString'] = verse_data['OrigQuote']
+                    verse_data['contextId'] = context_id
+                    verse_data['alignments'] = {
+                        self.ult_id: self.get_aligned_text(self.ult_id, context_id),
+                        self.ust_id: self.get_aligned_text(self.ust_id, context_id)
+                    }
+                if verse_data['alignments'][self.ult_id]:
+                    sq_title = flatten_alignment(verse_data['alignments'][self.ult_id]) + f' ({self.ult_id.upper()})'
+                    if verse_data['alignments'][self.ust_id]:
+                        sq_title += '<br/>' + flatten_alignment(verse_data['alignments'][self.ust_id]) + f' ({self.ust_id.upper()})'
+                else:
+                    sq_title = f'{verse_data["GLQuote"]}'
+            sq_rc = self.create_rc(sq_rc_link, title=sq_title)
+            verse_data['title'] = sq_title
+            verse_data['rc'] = sq_rc
+            if chapter not in book_data:
+                book_data[chapter] = OrderedDict()
+            if verse not in book_data[chapter]:
+                book_data[chapter][verse] = []
+            book_data[str(chapter)][str(verse)].append(verse_data)
+        self.sq_book_data = book_data
+
+    def get_sn_sq_html(self):
+        sn_html = f'''
+<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
+    <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
+        <img src="{self.main_resource.logo_url}" class="logo" alt="USN">
+        <h1 class="section-header">{self.title}</h1>
+        <h2 class="section-header no-heading">{self.project_title}</h2>
     </article>
 '''
-        for chapter_num in range(1, 51):
-            chapter_num = str(chapter_num).zfill(2)
-            sn_chapter_dir = os.path.join(self.resources['obs-sn'].repo_dir, 'content', chapter_num)
-            sq_chapter_file = os.path.join(self.resources['obs-sq'].repo_dir, 'content', f'{chapter_num}.md')
-            obs_chapter_data = obs_tools.get_obs_chapter_data(self.resources['obs'].repo_dir, chapter_num)
-            chapter_title = obs_chapter_data['title']
-            # HANDLE RC LINKS FOR OBS SN CHAPTER
-            obs_sn_chapter_rc_link = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}'
-            obs_sn_chapter_rc = self.add_rc(obs_sn_chapter_rc_link, title=chapter_title)
-            obs_sn_sq_html += f'''
-    <section id="{obs_sn_chapter_rc.article_id}">
-        <h2 class="section-header">{chapter_title}</h2>
-        <section id="{obs_sn_chapter_rc.article_id}-notes" class="no-break">
-            <h3 class="section-header no-break">{self.translate('study_notes')}</h3>
+        if 'front' in self.sn_book_data and 'intro' in self.sn_book_data['front']:
+            book_intro = markdown2.markdown(self.sn_book_data['front']['intro'][0]['OccurrenceNote'].replace('<br>', '\n'))
+            book_intro_title = html_tools.get_title_from_html(book_intro)
+            book_intro = self.fix_sn_links(book_intro, 'intro')
+            book_intro = html_tools.make_first_header_section_header(book_intro, level=3)
+            # HANDLE FRONT INTRO RC LINKS
+            book_intro_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/front/intro'
+            book_intro_rc = self.add_rc(book_intro_rc_link, title=book_intro_title)
+            book_intro = f'''
+    <article id="{book_intro_rc.article_id}">
+        {book_intro}
+    </article>
 '''
-            if 'bible_reference' in obs_chapter_data and obs_chapter_data['bible_reference']:
-                obs_sn_sq_html += f'''
-                    <div class="bible-reference" class="no-break">{obs_chapter_data['bible_reference']}</div>
-            '''
-            frames = obs_chapter_data['frames']
-            for frame_idx, frame in enumerate(frames):
-                image = frame['image']
-                frame_num = str(frame_idx + 1).zfill(2)
-                frame_title = f'{chapter_num}:{frame_num}'
-                obs_sn_file = os.path.join(sn_chapter_dir, f'{frame_num}.md')
+            book_intro_rc.set_article(book_intro)
+            sn_html += book_intro
 
-                if os.path.isfile(obs_sn_file):
-                    notes_html = markdown2.markdown_path(obs_sn_file)
-                    notes_html = html_tools.increment_headers(notes_html, 3)
-                else:
-                    no_study_notes = self.translate('no_study_notes_for_this_frame')
-                    notes_html = f'<div class="no-notes-message">({no_study_notes})</div>'
+        if 'front' in self.sq_book_data and 'intro' in self.sq_book_data['front']:
+            book_intro = markdown2.markdown(self.sq_book_data['front']['intro'][0]['OccurrenceNote'].replace('<br>', '\n'))
+            book_intro_title = html_tools.get_title_from_html(book_intro)
+            book_intro = self.fix_tsv_links(book_intro, 'intro')
+            book_intro = html_tools.make_first_header_section_header(book_intro, level=3)
+            # HANDLE FRONT INTRO RC LINKS
+            book_intro_rc_link = f'rc://{self.lang_code}/sq/help/{self.project_id}/front/intro'
+            book_intro_rc = self.add_rc(book_intro_rc_link, title=book_intro_title)
+            book_intro = f'''
+    <article id="{book_intro_rc.article_id}">
+        {book_intro}
+    </article>
+'''
+            book_intro_rc.set_article(book_intro)
+            sn_html += book_intro
 
-                # HANDLE RC LINKS FOR OBS SN FRAME
-                obs_sn_rc_link = f'rc://{self.lang_code}/obs-sn/help/obs/{chapter_num}/{frame_num}'
-                obs_sn_rc = self.add_rc(obs_sn_rc_link, title=frame_title, article=notes_html)
-                # HANDLE RC LINKS FOR OBS FRAME
-                obs_rc_link = f'rc://{self.lang_code}/obs/book/obs/{chapter_num}/{frame_num}'
-                self.add_rc(obs_rc_link, title=frame_title, article_id=obs_sn_rc.article_id)
-
-                obs_text = ''
-                if frame['text'] and notes_html:
-                    obs_text = frame['text']
-                    orig_obs_text = obs_text
-                    phrases = html_tools.get_phrases_to_highlight(notes_html, 'h4')
-                    if phrases:
-                        for phrase in phrases:
-                            alignment = alignment_tools.split_string_into_alignment(phrase)
-                            marked_obs_text = html_tools.mark_phrases_in_html(obs_text, alignment)
-                            if not marked_obs_text:
-                                self.add_bad_highlight(obs_sn_rc, orig_obs_text, obs_sn_rc.rc_link, phrase)
-                            else:
-                                obs_text = marked_obs_text
-
-                obs_sn_sq_html += f'''
-        <article id="{obs_sn_rc.article_id}">
-          <h4>{frame_title}</h4>
-          <div class="obs-img-and-text">
-            <img src="{image}" class="obs-img"/>
-            <div class="obs-text">
-                {obs_text}
-            </div>
-          </div>
-          <div class="obs-sn-notes">
-            {notes_html}
-          </div>
+        for chapter in BOOK_CHAPTER_VERSES[self.project_id]:
+            self.logger.info(f'Chapter {chapter}...')
+            chapter_title = f'{self.project_title} {chapter}'
+            # HANDLE INTRO RC LINK
+            sn_chapter_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/{self.pad(chapter)}'
+            sn_chapter_rc = self.add_rc(sn_chapter_rc_link, title=chapter_title)
+            sq_chapter_rc_link = f'rc://{self.lang_code}/sq/help/{self.project_id}/{self.pad(chapter)}'
+            sq_chapter_rc = self.add_rc(sq_chapter_rc_link, title=chapter_title)
+            sn_html += f'''
+    <section id="{sn_chapter_rc.article_id}" class="chapter">
+        <h3 class="section-header no-heading">{chapter_title}</h3>
+'''
+            if 'intro' in self.sn_book_data[chapter]:
+                self.logger.info('Generating SN chapter info...')
+                chapter_intro = markdown2.markdown(self.sn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
+                # Remove leading 0 from chapter heading
+                chapter_intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', chapter_intro, 1, flags=re.MULTILINE | re.IGNORECASE)
+                chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True)
+                chapter_intro_title = html_tools.get_title_from_html(chapter_intro)
+                chapter_intro = self.fix_sn_links(chapter_intro, chapter)
+                # HANDLE INTRO RC LINK
+                chapter_intro_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/{self.pad(chapter)}/intro'
+                chapter_intro_rc = self.add_rc(chapter_intro_rc_link, title=chapter_intro_title)
+                chapter_intro = f'''
+        <article id="{chapter_intro_rc.article_id}">
+            {chapter_intro}
         </article>
 '''
-            obs_sn_sq_html += '''
-    </section>
-'''
-            if os.path.isfile(sq_chapter_file):
-                obs_sq_title = f'{self.translate("study_questions")}'
-                obs_sq_html = markdown2.markdown_path(sq_chapter_file)
-                obs_sq_html = html_tools.increment_headers(obs_sq_html, 2)
-                soup = BeautifulSoup(obs_sq_html, 'html.parser')
-                header = soup.find(re.compile(r'^h\d'))
-                header.decompose()
-                obs_sq_html = str(soup)
-                # HANDLE RC LINKS FOR OBS SQ
-                obs_sq_rc_link = f'rc://{self.lang_code}/obs-sq/help/obs/{chapter_num}'
-                obs_sq_rc = self.add_rc(obs_sq_rc_link, title=obs_sq_title, article=obs_sq_html)
-                obs_sn_sq_html += f'''
-        <article id="{obs_sq_rc.article_id}">
-          <h3 class="section-header">{obs_sq_title}</h3>
-          {obs_sq_html}
+                chapter_intro_rc.set_article(chapter_intro)
+                sn_html += chapter_intro
+
+            if 'intro' in self.sq_book_data[chapter]:
+                self.logger.info('Generating SQ chapter info...')
+                chapter_intro = markdown2.markdown(self.sq_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
+                # Remove leading 0 from chapter heading
+                chapter_intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', chapter_intro, 1, flags=re.MULTILINE | re.IGNORECASE)
+                chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True)
+                chapter_intro_title = html_tools.get_title_from_html(chapter_intro)
+                chapter_intro = self.fix_sn_links(chapter_intro, chapter)
+                # HANDLE INTRO RC LINK
+                chapter_intro_rc_link = f'rc://{self.lang_code}/sq/help/{self.project_id}/{self.pad(chapter)}/intro'
+                chapter_intro_rc = self.add_rc(chapter_intro_rc_link, title=chapter_intro_title)
+                chapter_intro = f'''
+        <article id="{chapter_intro_rc.article_id}">
+            {chapter_intro}
         </article>
+'''
+                chapter_intro_rc.set_article(chapter_intro)
+                sn_html += chapter_intro
+
+            for verse in range(1,  int(BOOK_CHAPTER_VERSES[self.project_id][chapter]) + 1):
+                verse = str(verse)
+                self.logger.info(f'Generating verse {chapter}:{verse}...')
+                sn_html += self.get_sn_sq_article(chapter, verse)
+            sn_html += '''
     </section>
 '''
-        obs_sn_sq_html += '''
+        sn_html += '''
 </section>
 '''
-        return obs_sn_sq_html
+        self.logger.info('Done generating SN HTML.')
+        return sn_html
 
-    def fix_links(self, html):
-        # Changes references to chapter/frame in links
-        # <a href="1/10">Text</a> => <a href="rc://obs-sn/help/obs/01/10">Text</a>
-        # <a href="10-1">Text</a> => <a href="rc://obs-sn/help/obs/10/01">Text</a>
-        html = re.sub(r'href="(\d)/(\d+)"', r'href="0\1/\2"', html)  # prefix 0 on single-digit chapters
-        html = re.sub(r'href="(\d+)/(\d)"', r'href="\1/0\2"', html)  # prefix 0 on single-digit frames
-        html = re.sub(r'href="(\d\d)/(\d\d)"', fr'href="rc://{self.lang_code}/obs/book/obs/\1/\2"', html)
+    def get_sn_sq_article(self, chapter, verse):
+        sn_title = f'{self.project_title} {chapter}:{verse}'
+        sn_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
+        sn_rc = self.add_rc(sn_rc_link, title=sn_title)
+        sq_rc_link = f'rc://{self.lang_code}/sq/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
+        sq_rc = self.add_rc(sq_rc_link, title=sn_title)
+        ult_text = self.get_plain_scripture(self.ult_id, chapter, verse)
+        ult_text = self.get_scripture_with_sn_quotes(self.ult_id, chapter, verse, self.create_rc(f'rc://{self.lang_code}/ult/bible/{self.project_id}/{chapter}/{verse}', ult_text), ult_text)
+        ust_text = self.get_plain_scripture(self.ust_id, chapter, verse)
+        ust_text = self.get_scripture_with_sn_quotes(self.ust_id, chapter, verse, self.create_rc(f'rc://{self.lang_code}/ust/bible/{self.project_id}/{chapter}/{verse}', ult_text), ust_text)
 
-        # Changes references to chapter/frame that are just chapter/frame prefixed with a #
-        # #1:10 => <a href="rc://en/obs/book/obs/01/10">01:10</a>
-        # #10/1 => <a href="rc://en/obs/book/obs/10/01">10:01</a>
-        # #10/12 => <a href="rc://en/obs/book/obs/10/12">10:12</a>
-        html = re.sub(r'#(\d)[:/-](\d+)', r'#0\1-\2', html)  # prefix 0 on single-digit chapters
-        html = re.sub(r'#(\d+)[:/-](\d)\b', r'#\1-0\2', html)  # prefix 0 on single-digit frames
-        html = re.sub(r'#(\d\d)[:/-](\d\d)', rf'<a href="rc://{self.lang_code}/obs/book/obs/\1/\2">\1:\2</a>', html)
+        sn_article = f'''
+                <article id="{sn_rc.article_id}">
+                    <h4 class="section-header no-toc">{sn_title}</h4>
+                    <div class="notes">
+                            <div class="col1">
+                                <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
+                                <div class="bible-text">{ult_text}</div>
+                                <h3 class="bible-resource-title">{self.ust_id.upper()}</h3>
+                                <div class="bible-text">{ust_text}</div>
+                            </div>
+                            <div class="col2">
+                                <h3>{self.translate("study_notes")}</h3>
+                                {self.get_sn_article_text(chapter, verse)}
+                                <h3>{self.translate("study_questions")}</h3>
+                                {self.get_sq_article_text(chapter, verse)}
+                            </div>
+                    </div>
+                </article>
+'''
+        sn_rc.set_article(sn_article)
+        return sn_article
 
+    def get_sn_article_text(self, chapter, verse):
+        verse_notes = ''
+        if verse in self.sn_book_data[chapter]:
+            for sn_note in self.sn_book_data[chapter][verse]:
+                note = markdown2.markdown(sn_note['OccurrenceNote'].replace('<br>', "\n"))
+                note = re.sub(r'</*p[^>]*>', '', note, flags=re.IGNORECASE | re.MULTILINE)
+                verse_notes += f'''
+        <div id="{sn_note['rc'].article_id}" class="verse-note">
+            <h4 class="verse-note-title">{sn_note['title']}</h4>
+            <div class="verse-note-text">
+                {note}
+            </div>
+        </div>
+'''
+        else:
+            verse_notes += f'''
+        <div class="no-notes">
+            ({self.translate('no_notes_for_this_verse')})
+        </div>
+'''
+        verse_notes = self.fix_sn_links(verse_notes, chapter)
+        return verse_notes
+
+    def get_sq_article_text(self, chapter, verse):
+        verse_questions = ''
+        if verse in self.sn_book_data[chapter]:
+            for sq_question in self.sq_book_data[chapter][verse]:
+                question = markdown2.markdown(sq_question['OccurrenceNote'].replace('<br>', "\n"))
+                question = re.sub(r'</*p[^>]*>', '', question, flags=re.IGNORECASE | re.MULTILINE)
+                verse_questions += f'''
+        <div id="{sq_question['rc'].article_id}" class="verse-question">
+            <div class="verse-question-text">
+                {question}
+            </div>
+        </div>
+'''
+        else:
+            verse_questions += f'''
+        <div class="no-questions">
+            ({self.translate('no_questions_for_this_verse')})
+        </div>
+'''
+        verse_questions = self.fix_sn_links(verse_questions, chapter)
+        return verse_questions
+
+    def get_scripture_with_sn_quotes(self, bible_id, chapter, verse, rc, scripture):
+        if not scripture:
+            scripture = self.get_plain_scripture(bible_id, chapter, verse)
+        footnotes_split = re.compile('<div class="footnotes">', flags=re.IGNORECASE | re.MULTILINE)
+        verses_and_footnotes = re.split(footnotes_split, scripture, maxsplit=1)
+        scripture = verses_and_footnotes[0]
+        footnote = ''
+        if len(verses_and_footnotes) == 2:
+            footnote = f'<div class="footnotes">{verses_and_footnotes[1]}'
+        if verse in self.sn_book_data[chapter]:
+            sn_notes = self.sn_book_data[chapter][verse]
+        else:
+            sn_notes = []
+        orig_scripture = scripture
+        for sn_note_idx, sn_note in enumerate(sn_notes):
+            occurrence = 1
+            if RepresentsInt(sn_note['Occurrence']) and int(sn_note['Occurrence']) > 0:
+                occurrence = int(sn_note['Occurrence'])
+            gl_quote_phrase = [[{
+                'word': sn_note['GLQuote'],
+                'occurrence': occurrence
+            }]]
+            phrase = sn_note['alignments'][bible_id]
+            if not phrase:
+                phrase = gl_quote_phrase
+            if flatten_alignment(phrase).lower() in QUOTES_TO_IGNORE:
+                continue
+            split = ''
+            if len(phrase) > 1:
+                split = ' split'
+            tag = f'<span class="highlight phrase phrase-{sn_note_idx+1}{split}">'
+            marked_verse_html = html_tools.mark_phrases_in_html(scripture, phrase, tag=tag)
+            if not marked_verse_html:
+                fix = None
+                if flatten_alignment(phrase).lower() not in QUOTES_TO_IGNORE:
+                    if sn_note['GLQuote']:
+                        marked_with_gl_quote = html_tools.mark_phrases_in_html(scripture, gl_quote_phrase)
+                        if marked_with_gl_quote:
+                            fix = sn_note['GLQuote']
+                    self.add_bad_highlight(rc, orig_scripture, sn_note['rc'], sn_note['GLQuote'], fix)
+            else:
+                scripture = marked_verse_html
+        scripture += footnote
+        return scripture
+
+    def get_aligned_text(self, bible_id, context_id):
+        if not context_id or 'quote' not in context_id or not context_id['quote'] or 'reference' not in context_id or \
+                'chapter' not in context_id['reference'] or 'verse' not in context_id['reference']:
+            return None
+        chapter = str(context_id['reference']['chapter'])
+        verse = str(context_id['reference']['verse'])
+        verse_objects = self.get_verse_objects(bible_id, chapter, verse)
+        if not verse_objects:
+            return None
+        quote = context_id['quote']
+        occurrence = int(context_id['occurrence'])
+        alignment = get_alignment(verse_objects, quote, occurrence)
+        if not alignment:
+            title = f'{self.project_title} {chapter}:{verse}'
+            aligned_text_rc_link = f'rc://{self.lang_code}/{bible_id}/bible/{self.project_id}/{self.pad(chapter)}/{str(verse).zfill(3)}'
+            aligned_text_rc = self.create_rc(aligned_text_rc_link, title=title)
+            if 'quoteString' in context_id:
+                quote_string = context_id['quoteString']
+            else:
+                quote_string = context_id['quote']
+                if isinstance(quote_string, list):
+                    flatten_quote(context_id['quote'])
+            if int(self.book_number) > 40 or self.project_id.lower() == 'rut' or self.project_id.lower() == 'jon':
+                title = f'OL ({self.ol_lang_code.upper()}) quote not found in {bible_id.upper()} {self.project_title} {chapter}:{verse} alignment'
+                message = f'''
+VERSE: {self.project_title} {chapter}:{verse}
+RC: {context_id['rc']}
+QUOTE: {quote_string}
+{bible_id.upper()}: {self.book_data[bible_id][chapter][verse]['usfm']}
+{self.ol_bible_id.upper()}: {self.book_data[self.ol_bible_id][chapter][verse]['usfm']}
+'''
+                self.add_error_message(self.create_rc(context_id['rc']), title, message)
+        return alignment
+
+    def fix_sn_links(self, html, chapter):
+        html = self.fix_tsv_links(html, chapter)
         return html
 
 
 if __name__ == '__main__':
-    run_converter(['sn', 'sq', 'ult', 'ust', 'ugnt', 'uhb'], SnSqPdfConverter)
+    main(SnSqPdfConverter, ['sn', 'sq'])

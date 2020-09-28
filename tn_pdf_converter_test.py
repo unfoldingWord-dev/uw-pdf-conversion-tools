@@ -315,7 +315,7 @@ class TnPdfConverter(PdfConverter):
             chapter_rc_link = f'rc://{self.lang_code}/tn/help/{self.project_id}/{self.pad(chapter)}'
             chapter_rc = self.add_rc(chapter_rc_link, title=chapter_title)
             tn_html += f'''
-    <section id="{chapter_rc.article_id}" class="tn-chapter">
+    <section id="{chapter_rc.article_id}" class="chapter">
         <h3 class="section-header">{chapter_title}</h3>
 '''
             if 'intro' in self.tn_book_data[chapter]:

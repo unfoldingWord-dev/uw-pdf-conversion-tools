@@ -33,6 +33,8 @@ from resource import Resource, Resources, DEFAULT_REF, DEFAULT_OWNER
 from rc_link import ResourceContainerLink
 
 DEFAULT_LANG_CODE = 'en'
+DEFAULT_ULT_ID = 'ult'
+DEFAULT_UST_ID = 'ust'
 LANGUAGE_FILES = {
     'en': 'English-en_US.json',
     'fr': 'French-fr_FR.json',
@@ -197,8 +199,8 @@ class PdfConverter:
             return str(num).zfill(2)
 
     def add_style_sheet(self, style_sheet):
-        self.logger.info(f'Adding CSS style sheet: {style_sheet}')
         if style_sheet not in self.style_sheets:
+            self.logger.info(f'Adding CSS style sheet: {style_sheet}')
             self.style_sheets.append(style_sheet)
 
     def translate(self, key):
