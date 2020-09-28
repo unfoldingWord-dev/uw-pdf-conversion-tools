@@ -12,7 +12,6 @@ This script generates the HTML and PDF SQ documents
 """
 import os
 import re
-import argparse
 import markdown2
 import subprocess
 import general_tools.html_tools as html_tools
@@ -33,36 +32,9 @@ QUOTES_TO_IGNORE = ['general information:', 'connecting statement:']
 
 class SqPdfConverter(TsvPdfConverter):
 
-    def __init__(self, *args, ult_id=DEFAULT_ULT_ID, ust_id=DEFAULT_UST_ID, **kwargs):
-        self.project_id = kwargs['project_id']
-        self.book_number = BOOK_NUMBERS[self.project_id]
-
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.ult_id = ult_id
-        self.ust_id = ust_id
-
-        self.resources['ult'].resource_name = self.ult_id
-        self.resources['ult'].repo_name = f'{self.lang_code}_{self.ult_id}'
-        self.resources['ust'].resource_name = self.ust_id
-        self.resources['ust'].repo_name = f'{self.lang_code}_{self.ust_id}'
-        self.resources['ugnt'].repo_name = 'el-x-koine_ugnt'
-        self.resources['uhb'].repo_name = 'hbo_uhb'
-
-        self.resources_dir = None
-        self.book_data = OrderedDict()
         self.sq_book_data = OrderedDict()
-        self.last_ended_with_quote_tag = False
-        self.last_ended_with_paragraph_tag = False
-        self.open_quote = False
-        self.next_follows_quote = False
-
-        if int(self.book_number) < 40:
-            self.ol_bible_id = 'uhb'
-            self.ol_lang_code = 'hbo'
-        else:
-            self.ol_bible_id = 'ugnt'
-            self.ol_lang_code = 'el-x-koine'
 
     @property
     def name(self):
