@@ -329,10 +329,14 @@ class SnSqPdfConverter(TsvPdfConverter):
                                 <div class="bible-text">{ust_text}</div>
                             </div>
                             <div class="col2">
-                                <h3>{self.translate("study_notes")}</h3>
-                                {self.get_sn_article_text(chapter, verse)}
-                                <h3>{self.translate("study_questions")}</h3>
-                                {self.get_sq_article_text(chapter, verse)}
+                                <div class="study-notes">
+                                    <h3>{self.translate("study_notes")}</h3>
+                                    {self.get_sn_article_text(chapter, verse)}
+                                </div>
+                                <div class="study-questions">
+                                    <h3>{self.translate("study_questions")}</h3>
+                                    {self.get_sq_article_text(chapter, verse)}
+                                </div>
                             </div>
                     </div>
                 </article>

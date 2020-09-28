@@ -64,3 +64,7 @@ span.notes.highlight span.highlight {
 span.note.highlight span.highlight span.highlight {
     text-decoration: double;
 }
+
+.study-questions {
+    padding-top: 15px;
+}
