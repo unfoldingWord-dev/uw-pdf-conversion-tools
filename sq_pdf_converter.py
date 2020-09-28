@@ -280,7 +280,7 @@ class SqPdfConverter(TsvPdfConverter):
             chapter_rc_link = f'rc://{self.lang_code}/sq/help/{self.project_id}/{self.pad(chapter)}'
             chapter_rc = self.add_rc(chapter_rc_link, title=chapter_title)
             sq_html += f'''
-    <section id="{chapter_rc.article_id}" class="sq-chapter page-break">
+    <section id="{chapter_rc.article_id}" class="chapter page-break">
         <h3 class="section-header no-heading">{chapter_title}</h3>
 '''
             if 'intro' in self.sq_book_data[chapter]:
@@ -327,7 +327,7 @@ class SqPdfConverter(TsvPdfConverter):
         sq_article = f'''
                 <article id="{sq_rc.article_id}">
                     <h4 class="section-header no-toc">{sq_title}</h4>
-                    <div class="sq-notes">
+                    <div class="notes">
                             <div class="col1">
                                 <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
                                 <div class="bible-text">{ult_text}</div>
@@ -396,7 +396,7 @@ class SqPdfConverter(TsvPdfConverter):
             split = ''
             if len(phrase) > 1:
                 split = ' split'
-            tag = f'<span class="highlight sq-phrase sq-phrase-{sq_note_idx+1}{split}">'
+            tag = f'<span class="highlight phrase phrase-{sq_note_idx+1}{split}">'
             marked_verse_html = html_tools.mark_phrases_in_html(scripture, phrase, tag=tag)
             if not marked_verse_html:
                 fix = None
