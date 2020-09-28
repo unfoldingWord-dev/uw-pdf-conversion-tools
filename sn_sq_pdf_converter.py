@@ -36,8 +36,8 @@ class SnSqPdfConverter(TsvPdfConverter):
 
     @property
     def title(self):
-        sn_title = self.resources['obs-sn'].title
-        sq_title = self.resources['obs-sq'].title
+        sn_title = self.resources['sn'].title
+        sq_title = self.resources['sq'].title
         return f'{sn_title}\n<br/>\n&\n<br/>\n{sq_title}'
 
     @property
