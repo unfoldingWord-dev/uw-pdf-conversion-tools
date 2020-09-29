@@ -140,7 +140,7 @@ class TnPdfConverter(TsvPdfConverter):
     <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
         <img src="{self.main_resource.logo_url}" class="logo" alt="UTN">
         <h1 class="section-header">{self.title}</h1>
-        <h2 class="section-header no-heading">{self.project_title}</h2>
+        <h2 class="section-header no-header">{self.project_title}</h2>
     </article>
 '''
         if 'front' in self.tn_book_data and 'intro' in self.tn_book_data['front']:
@@ -166,12 +166,12 @@ class TnPdfConverter(TsvPdfConverter):
             chapter_rc = self.add_rc(chapter_rc_link, title=chapter_title)
             tn_html += f'''
     <section id="{chapter_rc.article_id}" class="chapter">
-        <h3 class="section-header no-heading">{chapter_title}</h3>
+        <h3 class="section-header no-header">{chapter_title}</h3>
 '''
             if 'intro' in self.tn_book_data[chapter]:
                 self.logger.info('Generating chapter info...')
                 chapter_intro = markdown2.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
-                # Remove leading 0 from chapter heading
+                # Remove leading 0 from chapter header
                 chapter_intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', chapter_intro, 1, flags=re.MULTILINE | re.IGNORECASE)
                 chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True)
                 chapter_intro_title = html_tools.get_title_from_html(chapter_intro)

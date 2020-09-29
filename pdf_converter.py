@@ -680,7 +680,7 @@ class PdfConverter:
         prev_toc_level = 0
         prev_header_level = 0
         soup = BeautifulSoup(body_html, 'html.parser')
-        heading_titles = [None, None, None, None, None, None]
+        header_titles = [None, None, None, None, None, None]
         headers = soup.find_all(re.compile(r'^h\d'), {'class': 'section-header'})
         for header in headers:
             if header.get('id'):
@@ -691,9 +691,9 @@ class PdfConverter:
 
             if article_id:
                 is_toc = not header.has_attr('class') or 'no-toc' not in header['class']
-                is_heading = not header.has_attr('class') or 'no-heading' not in header['class']
+                is_header = not header.has_attr('class') or 'no-header' not in header['class']
 
-                if not is_toc and not is_heading:
+                if not is_toc and not is_header:
                     continue
 
                 toc_level = int(header.get('toc-level', header.name[1]))
@@ -722,30 +722,30 @@ class PdfConverter:
                     toc_html += f'<li><a href="#{article_id}"><span>{toc_title}</span></a>\n'
                     prev_toc_level = toc_level
 
-                # Get the proper Heading title and add a heading tag
-                if is_heading:
+                # Get the proper Heading title and add a header tag
+                if is_header:
                     if header_level > prev_header_level:
                         for level in range(prev_header_level, header_level):
-                            heading_titles[level] = None
+                            header_titles[level] = None
                     elif header_level < prev_header_level:
                         for level in range(prev_header_level, header_level, -1):
-                            heading_titles[level - 1] = None
+                            header_titles[level - 1] = None
 
-                    if header.has_attr('heading_title'):
-                        heading_title = header['heading_title']
+                    if header.has_attr('header_title'):
+                        header_title = header['header_title']
                     else:
                         rc = self.get_rc_by_article_id(article_id)
                         if rc:
-                            heading_title = rc.toc_title
+                            header_title = rc.toc_title
                         else:
-                            heading_title = header.text
-                    heading_titles[header_level - 1] = heading_title
+                            header_title = header.text
+                    header_titles[header_level - 1] = header_title
 
-                    right_heading_string = ' :: '.join(filter(None, heading_titles[1:header_level]))
-                    if len(right_heading_string):
-                        right_heading_tag = soup.new_tag('span', **{'class': 'hidden heading-right'})
-                        right_heading_tag.string = right_heading_string
-                        header.insert_before(right_heading_tag)
+                    right_header_string = ' :: '.join(filter(None, header_titles[1:header_level]))
+                    if len(right_header_string):
+                        right_header_tag = soup.new_tag('span', **{'class': 'hidden header-right'})
+                        right_header_tag.string = right_header_string
+                        header.insert_before(right_header_tag)
                     prev_header_level = header_level
 
         for level in range(prev_toc_level, 0, -1):

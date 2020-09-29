@@ -321,7 +321,7 @@ class TnPdfConverter(PdfConverter):
             if 'intro' in self.tn_book_data[chapter]:
                 self.logger.info('Generating chapter info...')
                 chapter_intro = markdown2.markdown(self.tn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
-                # Remove leading 0 from chapter heading
+                # Remove leading 0 from chapter header
                 chapter_intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', chapter_intro, 1, flags=re.MULTILINE | re.IGNORECASE)
                 chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True)
                 chapter_intro_title = html_tools.get_title_from_html(chapter_intro)

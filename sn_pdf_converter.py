@@ -85,7 +85,7 @@ class SnPdfConverter(TsvPdfConverter):
                 occurrence = int(verse_data['Occurrence'])
             else:
                 occurrence = 1
-            sn_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}/{verse_data["ID"]}'
+            sn_rc_link = f'rc://{self.lang_code}/{self.main_resource.resource_name}/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}/{verse_data["ID"]}'
             sn_title = f'{verse_data["GLQuote"]}'
             if verse_data['OrigQuote']:
                 context_id = None
@@ -95,7 +95,7 @@ class SnPdfConverter(TsvPdfConverter):
                             'chapter': int(chapter),
                             'verse': int(verse)
                         },
-                        'rc': f'rc://{self.lang_code}/sn/help///{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}',
+                        'rc': f'rc://{self.lang_code}/{self.main_resource.resource_name}/help///{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}',
                         'quote': verse_data['OrigQuote'],
                         'occurrence': occurrence,
                         'quoteString': verse_data['OrigQuote']
@@ -126,12 +126,9 @@ class SnPdfConverter(TsvPdfConverter):
 
     def get_sn_html(self):
         sn_html = f'''
-<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name} no-break-articles">
-    <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
-        <img src="{self.main_resource.logo_url}" class="logo" alt="USN">
-        <h1 class="section-header">{self.title}</h1>
-        <h2 class="section-header no-heading">{self.project_title}</h2>
-    </article>
+<section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
+    <h1 class="section-header hidden">{self.simple_title}</h1>
+        <h2 class="section-header">{self.project_title}</h2>
 '''
         if 'front' in self.sn_book_data and 'intro' in self.sn_book_data['front']:
             book_intro = markdown2.markdown(self.sn_book_data['front']['intro'][0]['OccurrenceNote'].replace('<br>', '\n'))
@@ -139,7 +136,7 @@ class SnPdfConverter(TsvPdfConverter):
             book_intro = self.fix_sn_links(book_intro, 'intro')
             book_intro = html_tools.make_first_header_section_header(book_intro, level=3)
             # HANDLE FRONT INTRO RC LINKS
-            book_intro_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/front/intro'
+            book_intro_rc_link = f'rc://{self.lang_code}/{self.main_resource.resource_name}/help/{self.project_id}/front/intro'
             book_intro_rc = self.add_rc(book_intro_rc_link, title=book_intro_title)
             book_intro = f'''
     <article id="{book_intro_rc.article_id}">
@@ -152,22 +149,22 @@ class SnPdfConverter(TsvPdfConverter):
             self.logger.info(f'Chapter {chapter}...')
             chapter_title = f'{self.project_title} {chapter}'
             # HANDLE INTRO RC LINK
-            chapter_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/{self.pad(chapter)}'
+            chapter_rc_link = f'rc://{self.lang_code}/{self.main_resource.resource_name}/help/{self.project_id}/{self.pad(chapter)}'
             chapter_rc = self.add_rc(chapter_rc_link, title=chapter_title)
             sn_html += f'''
-    <section id="{chapter_rc.article_id}" class="chapter">
-        <h3 class="section-header no-heading">{chapter_title}</h3>
+    <section id="{chapter_rc.article_id}" class="chapter no-break-articles">
+        <h3 class="section-header" header-level="2">{chapter_title}</h3>
 '''
             if 'intro' in self.sn_book_data[chapter]:
                 self.logger.info('Generating chapter info...')
                 chapter_intro = markdown2.markdown(self.sn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
-                # Remove leading 0 from chapter heading
+                # Remove leading 0 from chapter header
                 chapter_intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', chapter_intro, 1, flags=re.MULTILINE | re.IGNORECASE)
-                chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True)
+                chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True, header_level=3)
                 chapter_intro_title = html_tools.get_title_from_html(chapter_intro)
                 chapter_intro = self.fix_sn_links(chapter_intro, chapter)
                 # HANDLE INTRO RC LINK
-                chapter_intro_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/{self.pad(chapter)}/chapter_intro'
+                chapter_intro_rc_link = f'rc://{self.lang_code}/{self.main_resource.resource_name}/help/{self.project_id}/{self.pad(chapter)}/chapter_intro'
                 chapter_intro_rc = self.add_rc(chapter_intro_rc_link, title=chapter_intro_title)
                 chapter_intro = f'''
         <article id="{chapter_intro_rc.article_id}">
@@ -192,16 +189,16 @@ class SnPdfConverter(TsvPdfConverter):
 
     def get_sn_article(self, chapter, verse):
         sn_title = f'{self.project_title} {chapter}:{verse}'
-        sn_rc_link = f'rc://{self.lang_code}/sn/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
+        sn_rc_link = f'rc://{self.lang_code}/{self.main_resource.resource_name}/help/{self.project_id}/{self.pad(chapter)}/{verse.zfill(3)}'
         sn_rc = self.add_rc(sn_rc_link, title=sn_title)
         ult_text = self.get_plain_scripture(self.ult_id, chapter, verse)
-        ult_text = self.get_scripture_with_sn_quotes(self.ult_id, chapter, verse, self.create_rc(f'rc://{self.lang_code}/ult/bible/{self.project_id}/{chapter}/{verse}', ult_text), ult_text)
+        ult_text = self.get_scripture_with_sn_quotes(self.ult_id, chapter, verse, self.create_rc(f'rc://{self.lang_code}/{self.ult_id}/bible/{self.project_id}/{chapter}/{verse}', ult_text), ult_text)
         ust_text = self.get_plain_scripture(self.ust_id, chapter, verse)
-        ust_text = self.get_scripture_with_sn_quotes(self.ust_id, chapter, verse, self.create_rc(f'rc://{self.lang_code}/ust/bible/{self.project_id}/{chapter}/{verse}', ult_text), ust_text)
+        ust_text = self.get_scripture_with_sn_quotes(self.ust_id, chapter, verse, self.create_rc(f'rc://{self.lang_code}/{self.ust_id}/bible/{self.project_id}/{chapter}/{verse}', ult_text), ust_text)
 
         sn_article = f'''
                 <article id="{sn_rc.article_id}">
-                    <h4 class="section-header no-toc">{sn_title}</h4>
+                    <h4 class="section-header no-toc" header-level="2">{sn_title}</h4>
                     <div class="notes">
                             <div class="col1">
                                 <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
@@ -226,7 +223,7 @@ class SnPdfConverter(TsvPdfConverter):
                 note = re.sub(r'</*p[^>]*>', '', note, flags=re.IGNORECASE | re.MULTILINE)
                 verse_notes += f'''
         <div id="{sn_note['rc'].article_id}" class="verse-note">
-            <h3 class="verse-note-title">{sn_note['title']}</h3>
+            <h5 class="verse-note-title">{sn_note['title']}</h5>
             <div class="verse-note-text">
                 {note}
             </div>

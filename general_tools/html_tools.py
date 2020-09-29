@@ -190,14 +190,18 @@ def decrement_headers(html, minimum_header=2, decrease=1):
     return html
 
 
-def make_first_header_section_header(html, level=None, no_toc=False):
+def make_first_header_section_header(html, level=None, no_toc=False, no_header=False, header_level=None):
     soup = BeautifulSoup(html, 'html.parser')
     header = soup.find(re.compile(r'^h\d'))
     classes = ['section-header']
     if no_toc:
         classes.append('no-toc')
+    if no_header:
+        classes.append('no-header')
     if header:
         header['class'] = header.get('class', []) + classes
         if level:
             header.name = f'h{level}'
+        if header_level:
+            header['header-level'] = header_level
     return str(soup)

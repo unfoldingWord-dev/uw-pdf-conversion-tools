@@ -128,18 +128,18 @@ class BiblePdfConverter(PdfConverter):
             book_header = soup.find('h1')
             book_title = book_header.text
             book_header['class'] = book_header.get('class', []) + ['section-header']
-            book_header['heading_title'] = self.title
+            book_header['header_title'] = self.title
             chapter_headers = soup.find_all('h2')
             for chapter_header in chapter_headers:
                 chapter_title = chapter_header.text
                 chapter = re.search(r'\d+', chapter_title).group()
-                heading_title = f'{book_title} {chapter}'
+                header_title = f'{book_title} {chapter}'
                 classes = ['section-header']
                 if len(projects) > 1:
                     classes += ['no-toc']
                 chapter_header['class'] = chapter_header.get('class', []) + classes
                 chapter_header['id'] = f'{self.lang_code}-{self.name}-{project_id}-{self.pad(chapter)}'
-                chapter_header['heading_title'] = heading_title
+                chapter_header['header_title'] = header_title
             article_html = ''.join(['%s' % x for x in soup.body.contents]).strip()
             bible_html += f'''
     <article id="{self.lang_code}-{self.name}-{project_id}" class="bible-book bible-book-{project_id} {self.name}-bible-book">

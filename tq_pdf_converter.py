@@ -65,7 +65,7 @@ class TqPdfConverter(PdfConverter):
     <article id="{self.lang_code}-{self.name}-{project_id}-cover" class="resource-title-page no-header-footer"">
         <img src="{self.main_resource.logo_url}" class="logo" alt="UTQ">
         <h1{' class="section-header"' if project_idx == 0 else ''}>{self.title}</h1>
-        <h2 class="section-header no-heading">{book_title}</h2>
+        <h2 class="section-header no-header">{book_title}</h2>
     </article>
 '''
             for chapter_dir in chapter_dirs:

@@ -218,11 +218,8 @@ class SnSqPdfConverter(TsvPdfConverter):
     def get_sn_sq_html(self):
         sn_html = f'''
 <section id="{self.lang_code}-{self.name}-{self.project_id}" class="{self.name}">
-    <article id="{self.lang_code}-{self.name}-{self.project_id}-cover" class="resource-title-page">
-        <img src="{self.main_resource.logo_url}" class="logo" alt="USN">
-        <h1 class="section-header">{self.simple_title}</h1>
-        <h2 class="section-header no-heading">{self.project_title}</h2>
-    </article>
+    <h1 class="section-header hidden">{self.simple_title}</h1>
+        <h2 class="section-header">{self.project_title}</h2>
 '''
         if 'front' in self.sn_book_data and 'intro' in self.sn_book_data['front']:
             book_intro = markdown2.markdown(self.sn_book_data['front']['intro'][0]['OccurrenceNote'].replace('<br>', '\n'))
@@ -266,14 +263,14 @@ class SnSqPdfConverter(TsvPdfConverter):
             sq_chapter_rc = self.add_rc(sq_chapter_rc_link, title=chapter_title)
             sn_html += f'''
     <section id="{sn_chapter_rc.article_id}" class="chapter">
-        <h3 class="section-header no-heading">{chapter_title}</h3>
+        <h3 class="section-header" header-level="2">{chapter_title}</h3>
 '''
             if 'intro' in self.sn_book_data[chapter]:
                 self.logger.info('Generating SN chapter info...')
                 chapter_intro = markdown2.markdown(self.sn_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
-                # Remove leading 0 from chapter heading
+                # Remove leading 0 from chapter header
                 chapter_intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', chapter_intro, 1, flags=re.MULTILINE | re.IGNORECASE)
-                chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True)
+                chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True, header_level=3)
                 chapter_intro_title = html_tools.get_title_from_html(chapter_intro)
                 chapter_intro = self.fix_sn_links(chapter_intro, chapter)
                 # HANDLE INTRO RC LINK
@@ -290,9 +287,9 @@ class SnSqPdfConverter(TsvPdfConverter):
             if 'intro' in self.sq_book_data[chapter]:
                 self.logger.info('Generating SQ chapter info...')
                 chapter_intro = markdown2.markdown(self.sq_book_data[chapter]['intro'][0]['OccurrenceNote'].replace('<br>', "\n"))
-                # Remove leading 0 from chapter heading
+                # Remove leading 0 from chapter header
                 chapter_intro = re.sub(r'<h(\d)>([^>]+) 0+([1-9])', r'<h\1>\2 \3', chapter_intro, 1, flags=re.MULTILINE | re.IGNORECASE)
-                chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True)
+                chapter_intro = html_tools.make_first_header_section_header(chapter_intro, level=4, no_toc=True, header_level=3)
                 chapter_intro_title = html_tools.get_title_from_html(chapter_intro)
                 chapter_intro = self.fix_sn_links(chapter_intro, chapter)
                 # HANDLE INTRO RC LINK
@@ -332,7 +329,7 @@ class SnSqPdfConverter(TsvPdfConverter):
 
         sn_article = f'''
                 <article id="{sn_rc.article_id}">
-                    <h4 class="section-header no-toc">{sn_title}</h4>
+                    <h4 class="section-header no-toc" header-level="2">{sn_title}</h4>
                     <div class="notes">
                             <div class="col1">
                                 <h3 class="bible-resource-title">{self.ult_id.upper()}</h3>
@@ -342,11 +339,11 @@ class SnSqPdfConverter(TsvPdfConverter):
                             </div>
                             <div class="col2">
                                 <div class="study-notes">
-                                    <h3>{self.translate("study_notes")}</h3>
+                                    <h5>{self.translate("study_notes")}</h5>
                                     {self.get_sn_article_text(chapter, verse)}
                                 </div>
                                 <div class="study-questions">
-                                    <h3>{self.translate("study_questions")}</h3>
+                                    <h5>{self.translate("study_questions")}</h5>
                                     {self.get_sq_article_text(chapter, verse)}
                                 </div>
                             </div>
@@ -364,7 +361,7 @@ class SnSqPdfConverter(TsvPdfConverter):
                 note = re.sub(r'</*p[^>]*>', '', note, flags=re.IGNORECASE | re.MULTILINE)
                 verse_notes += f'''
         <div id="{sn_note['rc'].article_id}" class="verse-note">
-            <h4 class="verse-note-title">{sn_note['title']}</h4>
+            <h6 class="verse-note-title">{sn_note['title']}</h6>
             <div class="verse-note-text">
                 {note}
             </div>

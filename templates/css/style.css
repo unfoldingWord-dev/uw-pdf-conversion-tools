@@ -36,11 +36,11 @@ html, body {
 .manual-cover h2,
 .resource-title-page h1,
 h1.section-header {
-    string-set: heading-left content()
+    string-set: header-left content()
 }
 
-.heading-right {
-    string-set: heading-right content();
+.header-right {
+    string-set: header-right content();
 }
 
 .cover,
@@ -63,7 +63,7 @@ h1.section-header {
     margin: 2cm;
 
     @top-left {
-        content: string(heading-left);
+        content: string(header-left);
         font-size: 12px;
         text-align: left;
         font-style: italic;
@@ -75,8 +75,8 @@ h1.section-header {
         padding-right: 10px;
     }
     @top-right {
-        /*content: string(heading2) string(heading3) string(heading4) string(heading5);*/
-        content: string(heading-right);
+        /*content: string(header2) string(header3) string(header4) string(header5);*/
+        content: string(header-right);
         font-size: 12px;
         text-align: right;
         font-style: italic;
@@ -192,29 +192,18 @@ h2 {
     font-size: 1.5em !important;
 }
 
-h3.section-header {
+h3.section-header, h3 {
     font-size: 1.4em;
 }
 
-h4.section-header {
+h4.section-header, h4 {
     font-size: 1.3em;
 }
 
 h5.section-header,
-h6.section-header {
+h6.section-header,
+h5, h6 {
     font-size: 1.2em;
-}
-
-section > section,
-section > article {
-    page-break-before: avoid !important;
-    break-before: avoid-page !important;
-}
-
-section > section + *, 
-section > article + * {
-    page-break-before: always !important;
-    break-before: page !important;
 }
 
 .cover {
@@ -241,24 +230,28 @@ section > article + * {
     break-before: avoid !important;
 }
 
-section.no-break-articles article + article,
-section.no-break-articles > section + *,
-section > article.no-break-articles + * {
-    page-break-before: auto !important;
-    break-before: auto !important;
+.break-after {
+    page-break-after: always !important;
+    break-after: page !important;
 }
 
-section article:first-child,
-section .section-header + article:nth-child(2),
-section.no-break-articles article:first-child,
-section.no-break-articles .section-header article:nth-child(2) {
+section section,
+section article {
     page-break-before: avoid !important;
-    break-before: avoid !important;
+    break-before: avoid-page !important;
     page-break-inside: auto !important;
     break-inside: auto !important;
 }
 
-section.no-break-articles article {
+section article + *,
+section section + * {
+    page-break-before: always !important;
+    break-before: page !important;
+}
+
+section.no-break-articles article + * {
+    page-break-before: auto !important;
+    break-before: auto !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
 }
