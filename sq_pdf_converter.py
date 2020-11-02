@@ -414,4 +414,4 @@ class SqPdfConverter(TsvPdfConverter):
 
 
 if __name__ == '__main__':
-    main(SqPdfConverter, ['sq'])
+    main(SqPdfConverter, ['sq', 'ta', 'tw'])
