@@ -1,10 +1,9 @@
-require("babel-polyfill"); // required for async/await
 import path from 'path-extra';
 import fs from 'fs-extra';
-import sourceContentUpdater from 'tc-source-content-updater';
+import Updater from './tc-source-content-updater'
 import yaml from 'js-yaml';
 
-let SourceContentUpdater = null;
+let updater = null;
 
 /**
  * Returns an array of versions found in the path that start with [vV]\d
@@ -62,10 +61,10 @@ const processOLBible = (resource) => {
   const version = manifest['dublin_core']['version'];
   const biblePath = path.join(resourcesPath, resource.languageId, 'bibles', resource.resourceId, 'v' + version);
   console.log("BIBLE " + resource.resourceId + ": " + biblePath + ", repoPath: " + repoPath)
-  SourceContentUpdater.parseBiblePackage(resource, repoPath, biblePath);
+  updater.parseBiblePackage(resource, repoPath, biblePath);
   const twGroupDataPath = path.join(resourcesPath, resource.languageId, 'translationHelps', 'translationWords', 'v' + version);
   console.log("TW " + resource.resourceId + ": " + twGroupDataPath);
-  SourceContentUpdater.generateTwGroupDataFromAlignedBible(resource, biblePath, twGroupDataPath);
+  updater.generateTwGroupDataFromAlignedBible(resource, biblePath, twGroupDataPath);
 };
 
 const processUWBible = (resource) => {
@@ -75,7 +74,7 @@ const processUWBible = (resource) => {
   const version = manifest['dublin_core']['version'];
   const biblePath = path.join(resourcesPath, resource.languageId, 'bibles', resource.resourceId, 'v' + version);
   console.log("BIBLE " + resource.resourceId + ": " + biblePath)
-  SourceContentUpdater.parseBiblePackage(resource, repoPath, biblePath);
+  updater.parseBiblePackage(resource, repoPath, biblePath);
 };
 
 const processTA = (resource) => {
@@ -85,7 +84,7 @@ const processTA = (resource) => {
   const taVersion = taManifest['dublin_core']['version'];
   const taGroupDataPath = path.join(resourcesPath, resource.languageId, 'translationHelps', 'translationAcademy', 'v' + taVersion);
   console.log("TA " + resource.resourceId + ": " + taGroupDataPath);
-  SourceContentUpdater.processTranslationAcademy(resource, taRepoPath, taGroupDataPath);
+  updater.processTranslationAcademy(resource, taRepoPath, taGroupDataPath);
 };
 
 const processTW = (resource) => {
@@ -95,7 +94,7 @@ const processTW = (resource) => {
   const twVersion = twManifest['dublin_core']['version'];
   const twGroupDataPath = path.join(resourcesPath, resource.languageId, 'translationHelps', 'translationWords', 'v' + twVersion);
   console.log("TW " + resource.resourceId + ": " + twGroupDataPath);
-  SourceContentUpdater.processTranslationWords(resource, twRepoPath, twGroupDataPath);
+  updater.processTranslationWords(resource, twRepoPath, twGroupDataPath);
 };
 
 const processTN = (resource) => {
@@ -105,28 +104,42 @@ const processTN = (resource) => {
   const tnVersion = tnManifest['dublin_core']['version'];
   const tnGroupDataPath = path.join(resourcesPath, resource.languageId, 'translationHelps', 'translationNotes', 'v' + tnVersion);
   console.log("TN: " + tnGroupDataPath);
-  SourceContentUpdater.processTranslationNotes(resource, tnRepoPath, tnGroupDataPath, resourcesPath);
+  updater.processTranslationNotes(resource, tnRepoPath, tnGroupDataPath, resourcesPath);
 };
 
-const processBibles = (langId, workingDir, resourcesPath, ultId, ustId) => {
-  SourceContentUpdater = new sourceContentUpdater();
+const processSN = (resource) => {
+  const snRepo = resource.languageId + '_sn';
+  const snRepoPath = path.join(workingDir, snRepo);
+  const snManifest = yaml.safeLoad(fs.readFileSync(path.join(snRepoPath, 'manifest.yaml'), 'utf8'));
+  const snVersion = snManifest['dublin_core']['version'];
+  const snGroupDataPath = path.join(resourcesPath, resource.languageId, 'translationHelps', 'studyNotes', 'v' + snVersion);
+  console.log("SN: " + snGroupDataPath);
+  updater.processTranslationNotes(resource, snRepoPath, snGroupDataPath, resourcesPath);
+};
+
+const processBibles = (langId, workingDir, resourcesPath, book, ultId, ustId) => {
+  updater = new Updater();
   fs.mkdirSync(resourcesPath, {recursive: true});
   processOLBible({
+    book: book,
     languageId: 'hbo',
     resourceId: 'uhb',
     downloadUrl: 'https://test.com'
   });
   processOLBible({
+    book: book,
     languageId: 'el-x-koine',
     resourceId: 'ugnt',
     downloadUrl: 'https://test.com'
   });
   processUWBible({
+    book: book,
     languageId: langId,
     resourceId: ultId,
     downloadUrl: 'https://test.com'
   });
   processUWBible({
+    book: book,
     languageId: langId,
     resourceId: ustId,
     downloadUrl: 'https://test.com'
@@ -142,29 +155,41 @@ const processBibles = (langId, workingDir, resourcesPath, ultId, ustId) => {
     downloadUrl: 'https://test.com'
   });
   processTN({
+    book: book,
     languageId: langId,
     resourceId: 'tn',
     downloadUrl: 'https://test.com'
   });
+  // processSN({
+  //   languageId: langId,
+  //   resourceId: 'sn',
+  //   downloadUrl: 'https://test.com'
+  // });
 };
 
 if (process.argv.length < 4) {
-  throw Error('Syntax: node processBibles.js <lang> <working_dir> [ult_id] [ust_id]');
+  throw Error('Syntax: node processBibles.js <lang> <working_dir> [book] [ult_id] [ust_id]');
 }
 const lang = process.argv[2];
 const resourcesPath = process.argv[3];
 const workingDir = path.dirname(resourcesPath)
 let ultId = 'ult';
 let ustId = 'ust';
+let book = null;
 if (process.argv.length > 4) {
-  ultId = process.argv[4];
+  book = process.argv[4];
+  if (book == 'all')
+    book = null;
 }
 if (process.argv.length > 5) {
-  ustId = process.argv[5];
+  ultId = process.argv[5];
+}
+if (process.argv.length > 6) {
+  ustId = process.argv[6];
 }
 if (!fs.existsSync(workingDir)) {
   throw Error('Parent of resources path does not exist: ' + workingDir);
 }
-processBibles(lang, workingDir, resourcesPath, ultId, ustId);
+processBibles(lang, workingDir, resourcesPath, book, ultId, ustId);
 // processTnData(lang, workingDir, ultId,ustId);
 

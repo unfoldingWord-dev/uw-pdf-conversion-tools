@@ -73,8 +73,8 @@ class TsvPdfConverter(PdfConverter):
             return ''
 
     def process_bibles(self):
-        resources = filter(lambda x: self.resources[x].resource_name in DEFAULT_RESOURCES, self.resources)
-        resources = sorted(resources, key=lambda x: self.resources[x].resource_name)
+        # resources = filter(lambda x: self.resources[x].resource_name in DEFAULT_RESOURCES, self.resources)
+        resources = sorted(self.resources, key=lambda x: self.resources[x].resource_name)
         resource_names_and_refs = '-'.join(list(map(lambda x: f'{self.resources[x].resource_name}_{self.resources[x].ref}' + (f'_{self.resources[x].commit}' if not self.resources[x].ref_is_tag else ''), resources)))
         self.resources_dir = os.path.join(self.working_dir, f'resources_{resource_names_and_refs}')
         if self.update or not os.path.exists(self.resources_dir):
