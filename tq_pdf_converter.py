@@ -57,7 +57,7 @@ class TqPdfConverter(PdfConverter):
         for project_idx, project_id in enumerate(project_ids):
             project = self.main_resource.find_project(project_id)
 # REMOVE TO HERE
-            book_title = self.get_book_title(project)
+            book_title = self.get_project_title(project)
             project_dir = os.path.join(self.main_resource.repo_dir, project_id)
             chapter_dirs = sorted(glob(os.path.join(project_dir, '*')))
             tq_html += f'''
