@@ -980,7 +980,7 @@ class PdfConverter:
         article_dir = os.path.join(self.resources[rc.resource].repo_dir, rc.project, rc.path)
         article_file = os.path.join(article_dir, '01.md')
         if os.path.isfile(article_file):
-            article_file_html = markdown2.markdown_path(article_file, extras=['markdown-in-html', 'tables'])
+            article_file_html = markdown2.markdown_path(article_file, extras=['markdown-in-html', 'tables', 'break-on-newline'])
         else:
             message = 'no corresponding article found'
             if os.path.isdir(article_dir):
