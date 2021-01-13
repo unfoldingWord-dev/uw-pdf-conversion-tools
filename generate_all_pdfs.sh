@@ -6,7 +6,6 @@ if ps -ef | grep -v grep | grep 'pdf_converter.py\|_checking.py'  ; then
 fi
 
 set -e
-set -x
 
 export WORKING_DIR=/home/rmahn/working
 export OUTPUT_DIR=/home/rmahn/output

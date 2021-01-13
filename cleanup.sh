@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if ps -ef | grep -v grep | grep 'pdf_converter.py\|_checking.py'  ; then
         echo "CURRENTLY GENERATING PDFS!"
         exit 0
