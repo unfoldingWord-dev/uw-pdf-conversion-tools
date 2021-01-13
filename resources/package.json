@@ -1,11 +1,11 @@
 {
-  "name": "generate_tn_pdf",
+  "name": "pdf_resources",
   "version": "1.0.0",
   "description": "",
   "main": "getResources.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "run": "node start.js en /Users/richmahn/working/resources ult ust"
+    "start": "node start.js en /Users/richmahn/working/resources tit ult ust"
   },
   "author": "",
   "license": "ISC",

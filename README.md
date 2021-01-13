@@ -3,14 +3,23 @@ Conversion tool for converting uW resources to PDF.
 
 NOTE: Python 3 Only
 
-# To run
+# To Install
+
+Python, cairo, Pango and GDK-PixBuf need to be installed separately. See
+platform-specific instructions for [Linux](https://weasyprint.readthedocs.io/en/stable/install.html#linux), [macOS](https://weasyprint.readthedocs.io/en/stable/install.html#macos) and [Windows](https://weasyprint.readthedocs.io/en/stable/install.html#windows).
 
 ```bash
-cd /opt && git clone https://github.com/unfoldingWord-dev/uw-pdf-conversion-tools.git
-cd /opt/uw-pdf-conversion-tools && pip3 install -r requirements.txt
-cd /opt/uw-pdf-conversion-tools
-./setup_resources.sh # only needed one time, for tn_* and sn_* PDF converters
-./run.sh <converter> [-hr] [-l <lang>] [-w <working_dir>] [-o <output_dir>] [-p <project>] [--owner <owner>] [--<resource>-tag <tag>] 
+git clone https://github.com/unfoldingWord-dev/uw-pdf-conversion-tools.git
+cd uw-pdf-conversion-tools
+pip3 install -r requirements.txt
+./setup_resources.sh #only needed one time, for tn_* and sn_* PDF converters
+```
+
+# To Run:
+
+```
+cd uw-pdf-conversion-tools
+./<converter>.py [-hr] [-l <lang>] [-w <working_dir>] [-o <output_dir>] [-p <project>] [--owner <owner>] [--<resource>-tag <tag>]
 ```
 
 `<converter>` can be the following:
