@@ -73,16 +73,18 @@ class Resource(object):
     def clone(self, working_dir):
         if not self.url:
             self.url = self.get_resource_git_url(self.repo_name, self.owner)
-        self.repo_dir = os.path.join(working_dir, self.repo_name)
+        self.repo_dir = os.path.join(working_dir, self.owner, self.repo_name)
         if not self.offline and not os.path.exists(self.repo_dir):
             try:
-                self.repo = git.Repo.clone_from(self.url, self.repo_dir)
+                self.repo = git.Repo.clone_from(self.url, self.repo_dir, depth=1)
             except git.GitCommandError as orig_err:
                 owners = OWNERS
                 for owner_idx, owner in enumerate(owners):
                     self.url = self.get_resource_git_url(self.repo_name, owner)
+                    self.repo_dir = os.path.join(working_dir, owner, self.repo_name)
                     try:
                         self.repo = git.Repo.clone_from(self.url, self.repo_dir, depth=1)
+                        self.owner = owner
                     except git.GitCommandError:
                         if owner_idx + 1 == len(owners):
                             raise orig_err
