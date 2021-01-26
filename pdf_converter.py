@@ -614,8 +614,7 @@ class PdfConverter:
                 new_commits = True
                 self.regenerate = True
             if new_commits:
-                resource_id = repo_name.split('_', maxsplit=1)[1]
-                self.resources[resource_id].new_commits = True
+                self.resources[self.main_resource.resource_name].new_commits = True
 
     def save_resource_data(self):
         save_file = os.path.join(self.save_dir, f'{self.file_project_and_unique_ref}_rcs.json')
@@ -1171,6 +1170,8 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                         help='Output directory. Will make a subdirectory with the resource name, e.g. `<output_dir>/obs` or `<output_dir>/tn`. Default: <current directory>')
     parser.add_argument('--owner', dest='owner', default=DEFAULT_OWNER, required=False,
                         help=f'Owner of the resource repo on GitHub. Default: {DEFAULT_OWNER}')
+    parser.add_argument('--repo', dest='repo', required=False,
+                        help=f'Repo name. If not provided, assumes <lang>_<resource>')
     parser.add_argument('-m', '--master', dest='master', action='store_true',
                         help='If resource ref not specified, will use master branch instead of latest tag')
     parser.add_argument('--offline', dest='offline', action='store_true',
@@ -1184,6 +1185,7 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
 
     lang_codes = args.lang_codes
     owner = args.owner
+    repo = args.repo
     offline = args.offline
     master = args.master
 
@@ -1216,7 +1218,10 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
         resources = Resources()
         update = not offline
         for resource_name in resource_names:
-            repo_name = f'{lang_code}_{resource_name}'
+            if not repo:
+                repo_name = f'{lang_code}_{resource_name}'
+            else:
+                repo_name = repo
             if resource_name == extra_resource_name:
                 ref = getattr(args, f'{extra_resource_id}_ref')
             else:
