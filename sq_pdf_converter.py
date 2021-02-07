@@ -50,18 +50,6 @@ class SqPdfConverter(TsvPdfConverter):
     def get_appendix_rcs(self):
         return
 
-    def process_bibles(self):
-        keys = sorted(list(self.resources.keys())[1:])
-        resource_refs = '-'.join(list(map(lambda x: f'{x}_{self.resources[x].ref}' + (f'_{self.resources[x].commit}' if not self.resources[x].ref_is_tag else ''), keys)))
-        self.resources_dir = os.path.join(self.working_dir, f'resources_{resource_refs}')
-        if self.update or not os.path.exists(self.resources_dir):
-            cmd = f'cd "{self.converters_dir}/resources" && node start.js {self.lang_code} "{self.resources_dir}" {self.ult_id} {self.ust_id}'
-            self.logger.info(f'Running: {cmd}')
-            ret = subprocess.call(cmd, shell=True)
-            if ret:
-                self.logger.error('Error running resources/processBibles.js. Exiting.')
-                exit(1)
-
     def get_body_html(self):
         self.logger.info('Creating SQ for {0}...'.format(self.file_project_and_ref))
         self.process_bibles()
