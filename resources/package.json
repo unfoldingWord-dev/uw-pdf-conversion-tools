@@ -1,14 +1,17 @@
 {
-  "name": "generate_tn_pdf",
+  "name": "pdf_converters_js_code",
   "version": "1.0.0",
   "description": "",
-  "main": "getResources.js",
+  "main": "processBibles.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@babel/core": "^7.11.6",
+    "@babel/preset-env": "^7.11.5",
+    "@babel/register": "^7.11.5",
     "babel-polyfill": "^6.26.0",
     "fs-extra": "^8.1.0",
     "js-yaml": "^3.14.0",
@@ -18,10 +21,5 @@
     "tc-source-content-updater": "^0.6.20",
     "tsv-groupdata-parser": "^0.9.17",
     "usfm-js": "^2.1.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.11.6",
-    "@babel/preset-env": "^7.11.5",
-    "@babel/register": "^7.11.5"
   }
 }
