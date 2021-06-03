@@ -29,7 +29,7 @@ import general_tools.html_tools as html_tools
 from typing import List, Type
 from bs4 import BeautifulSoup
 from abc import abstractmethod
-from weasyprint import HTML
+from weasyprint import HTML, CSS
 from general_tools.file_utils import write_file, read_file, load_json_object, symlink, unzip
 from general_tools.font_utils import get_font_html_with_local_fonts
 from general_tools.url_utils import download_file
@@ -472,7 +472,8 @@ class PdfConverter:
         if self.regenerate or not os.path.exists(self.pdf_file):
             self.logger.info(f'Generating PDF file {self.pdf_file}...')
             # Convert HTML to PDF with weasyprint
-            base_url = f'file://{self.output_dir}'
+            base_url = self.output_res_dir
+            self.logger.info(f'BASE_URL for PDF is: {base_url}')
             all_pages_fitted = False
             soup = BeautifulSoup(read_file(self.html_file), 'html.parser')
             all_pages_fit = False
@@ -507,7 +508,7 @@ class PdfConverter:
                             css = style.cssText
                             element['style'] = css
                             self.logger.info(f'RESIZING {anchor} to {font_size_str}... ({diff}, {page.anchors[anchor]})')
-                write_file(os.path.join(self.output_dir, f'{self.file_project_and_ref}_resized.html'),
+                write_file(os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_resized.html'),
                            str(soup))
             if doc:
                 doc.write_pdf(self.pdf_file)
