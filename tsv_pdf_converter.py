@@ -24,7 +24,7 @@ from general_tools.alignment_tools import get_alignment, flatten_quote
 from general_tools.file_utils import read_file, load_json_object, get_latest_version_path, get_child_directories
 from general_tools.usfm_utils import unalign_usfm
 
-DEFAULT_RESOURCES = ['ugnt', 'uhb', DEFAULT_UST_ID, DEFAULT_ULT_ID, 'tn']
+DEFAULT_RESOURCES = ['ugnt', 'uhb', 'tn', DEFAULT_ULT_ID, DEFAULT_UST_ID]
 
 class TsvPdfConverter(PdfConverter):
 
@@ -37,10 +37,10 @@ class TsvPdfConverter(PdfConverter):
         self.ult_id = ult_id
         self.ust_id = ust_id
 
-        self.resources['ult'].resource_name = self.ult_id
-        self.resources['ult'].repo_name = f'{self.lang_code}_{self.ult_id}'
-        self.resources['ust'].resource_name = self.ust_id
-        self.resources['ust'].repo_name = f'{self.lang_code}_{self.ust_id}'
+        self.resources[ult_id].resource_name = self.ult_id
+        self.resources[ult_id].repo_name = f'{self.lang_code}_{self.ult_id}'
+        self.resources[ust_id].resource_name = self.ust_id
+        self.resources[ust_id].repo_name = f'{self.lang_code}_{self.ust_id}'
         self.resources['ugnt'].repo_name = 'el-x-koine_ugnt'
         self.resources['uhb'].repo_name = 'hbo_uhb'
 
@@ -378,4 +378,4 @@ def main(tn_class, extra_resources=None):
     parser.add_argument('--ust-id', dest='ust_id', default=DEFAULT_UST_ID, required=False, help="UST ID")
     parser.add_argument('--ult-id', dest='ult_id', default=DEFAULT_ULT_ID, required=False, help="ULT ID")
     run_converter(resource_names, tn_class, project_ids_map={'': BOOK_NUMBERS.keys(), 'all': BOOK_NUMBERS.keys()},
-                  parser=parser)
+                  parser=parser, extra_resource_ids=['ult_id', 'ust_id'])
