@@ -29,6 +29,7 @@ from abc import abstractmethod
 from weasyprint import HTML
 from general_tools.file_utils import write_file, read_file, load_json_object, symlink
 from general_tools.url_utils import download_file
+from urllib.parse import urlsplit, urlunsplit, urlparse
 from resource import Resource, Resources, DEFAULT_REF, DEFAULT_OWNER
 from rc_link import ResourceContainerLink
 
@@ -651,11 +652,11 @@ class PdfConverter:
         soup = BeautifulSoup(html, 'html.parser')
         for img in soup.find_all('img'):
             if img['src'].startswith('http'):
-                url = img['src']
-                url_as_file_name = re.search(r'https*://([\w/_%.-]+[.](jpg|gif|png))', url, flags=re.IGNORECASE).group(1)
-                file_path = f'images/{url_as_file_name}'
+                u = urlsplit(img['src'])._replace(query="", fragment="")
+                url = urlunsplit(u)
+                file_path = f'images/{u.netloc}{u.path}'
                 full_file_path = os.path.join(self.output_dir, file_path)
-                if not os.path.exists(full_file_path) and not self.offline:
+                if not os.path.exists(full_file_path) and not self.offline and all(ord(c) < 128 for c in url):
                     os.makedirs(os.path.dirname(full_file_path), exist_ok=True)
                     self.logger.info(f'Downloading {url} to {full_file_path}...')
                     download_file(url, full_file_path)
@@ -1155,7 +1156,7 @@ class PdfConverter:
 
 
 def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConverter], logo_url=None,
-                  project_ids_map=None, parser=None, extra_resource_id=None):
+                  project_ids_map=None, parser=None, extra_resource_ids=None):
     if not parser:
         parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-r', '--regenerate', dest='regenerate', action='store_true',
@@ -1189,10 +1190,14 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     offline = args.offline
     master = args.master
 
-    extra_resource_name = None
-    if extra_resource_id and hasattr(args, extra_resource_id):
-        extra_resource_name = getattr(args, extra_resource_id)
-        resource_names += [extra_resource_name]
+    orig_names = {}
+    if extra_resource_ids:
+      for extra_resource_id in extra_resource_ids:
+        orig_name = extra_resource_id.split('_')[0].split('-')[0]
+        if hasattr(args, extra_resource_id):
+           resource_names.remove(orig_name)
+           resource_names += [getattr(args, extra_resource_id)]
+           orig_names[getattr(args, extra_resource_id)] =  orig_name
     if not lang_codes:
         lang_codes = [DEFAULT_LANG_CODE]
     project_ids = args.project_ids
@@ -1214,6 +1219,7 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
     converter_args = vars(args)
     converter_args['logger'] = logger
 
+    print(resource_names)
     for lang_code in lang_codes:
         resources = Resources()
         update = not offline
@@ -1222,8 +1228,8 @@ def run_converter(resource_names: List[str], pdf_converter_class: Type[PdfConver
                 repo_name = f'{lang_code}_{resource_name}'
             else:
                 repo_name = repo
-            if resource_name == extra_resource_name:
-                ref = getattr(args, f'{extra_resource_id}_ref')
+            if resource_name in orig_names:
+                ref = getattr(args, f'{orig_names[resource_name]}_ref')
             else:
                 ref = getattr(args, f'{resource_name}_ref')
             if not ref and master:
