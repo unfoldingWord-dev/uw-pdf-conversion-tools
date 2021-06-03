@@ -1,13 +1,10 @@
-html, body {
-    font-size: 12px;
-}
-
 @page:first {
     counter-reset: page -1;
 }
 
 .obs-page {
     page: footer;
+    text-align: center;
 }
 
 @page {
@@ -39,26 +36,22 @@ html, body {
 .cover img {
     padding-top: 0 !important;
     width: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
-    margin: 0 !important;
+    max-width: 640px !important;
 }
 
 .cover .language {
-    padding-top: 260px;
+    padding-top: 200px;
     font-size: 16px;
 }
 
-.obs-frame-even {
-    padding-top: 5px;
+.obs-frame {
+    width: 100%;
 }
 
 .obs-img {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    max-width: none;
-    max-height: none;
+    padding: 0 0 5px 0;
+    width: 100% !important;
+    max-width: 640px;
     display: inline;
 }
 
@@ -74,16 +67,13 @@ div.obs-text > p:first-child {
 }
 
 .cover {
-    padding-top: 90px;
+    padding-top: 115px;
     text-align: center;
+    width: 100%;
 }
 
 #contents > ul > li > a {
     font-weight: normal !important;
-}
-
-#contents {
-    font-size: 16px;
 }
 
 #back {
@@ -91,7 +81,7 @@ div.obs-text > p:first-child {
 }
 
 article .section-header {
-    font-size: 18px;
+    font-size: 18px !important;
     font-weight: bold;
     text-align: center;
 }
@@ -106,4 +96,15 @@ article .section-header {
 
 .bible-reference {
     padding: 5px 0 0 0 !important;
+    text-align: left !important;
+    font-size: 0.9em !important;;
+}
+
+#contents h1 {
+    font-size: 20px !important;
+    font-weight: normal !important;
+}
+
+.obs-frame:nth-child(2) p {
+    margin-bottom: 0 !important;
 }

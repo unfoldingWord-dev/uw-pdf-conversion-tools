@@ -21,13 +21,17 @@ import sys
 import argparse
 import jsonpickle
 import yaml
+from cssutils import parseStyle
+from cssutils.css import CSSStyleDeclaration
 # import pypandoc
+import json
 import general_tools.html_tools as html_tools
 from typing import List, Type
 from bs4 import BeautifulSoup
 from abc import abstractmethod
 from weasyprint import HTML
-from general_tools.file_utils import write_file, read_file, load_json_object, symlink
+from general_tools.file_utils import write_file, read_file, load_json_object, symlink, unzip
+from general_tools.font_utils import get_font_html_with_local_fonts
 from general_tools.url_utils import download_file
 from resource import Resource, Resources, DEFAULT_REF, DEFAULT_OWNER
 from rc_link import ResourceContainerLink
@@ -84,6 +88,7 @@ class PdfConverter:
         self.remove_working_dir = False
         self.converters_dir = os.path.dirname(os.path.realpath(__file__))
         self.style_sheets = []
+        self._font_html = ''
 
         self._project = None
 
@@ -197,6 +202,28 @@ class PdfConverter:
             return str(num).zfill(3)
         else:
             return str(num).zfill(2)
+
+    @property
+    def font_html(self):
+        if not self._font_html:
+            self._font_html = get_font_html_with_local_fonts(self.lang_code, self.output_dir)
+        return self._font_html
+
+    @property
+    def language_direction(self):
+        if self.main_resource and self.main_resource.language_direction:
+            return self.main_resource.language_direction
+        else:
+            return 'auto'
+
+    @property
+    def head_html(self):
+        html = f'''{self.font_html}
+        <meta name="keywords" content={json.dumps(f'{self.main_resource.identifier},{self.main_resource.type},{self.lang_code},{self.main_resource.language_title},unfoldingWord')} />
+        <meta name="author" content={json.dumps(self.main_resource.owner)} />
+        <meta name="dcterms.created" content={json.dumps(self.main_resource.issued)} />
+'''
+        return html
 
     def add_style_sheet(self, style_sheet):
         if style_sheet not in self.style_sheets:
@@ -319,6 +346,13 @@ class PdfConverter:
         if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
         self.logger.info(f'Images directory is {self.images_dir}')
+        if self.main_resource.resource_name == 'obs':
+            jpg_dir = os.path.join(self.images_dir, 'cdn.door43.org', 'obs', 'jpg')
+            if not os.path.exists(jpg_dir):
+                download_file('http://cdn.door43.org/obs/jpg/obs-images-360px-compressed.zip',
+                              os.path.join(self.images_dir, 'images.zip'))
+                unzip(os.path.join(self.images_dir, 'images.zip'), jpg_dir)
+                os.unlink(os.path.join(self.images_dir, 'images.zip'))
 
         self.save_dir = os.path.join(self.output_dir, 'save')
         if not os.path.exists(self.save_dir):
@@ -417,8 +451,10 @@ class PdfConverter:
             body_html = '\n'.join([cover_html, license_html, toc_html, body_html])
             if not self.offline:
                 body_html = self.download_all_images(body_html)
-            link = '\n'.join([f'<link href="{style}" rel="stylesheet">' for style in self.style_sheets])
-            html = html_template.safe_substitute(lang=self.lang_code, title=title, link=link, body=body_html)
+            head = '\n'.join([f'<link href="{style}" rel="stylesheet">' for style in self.style_sheets])
+            head += self.head_html
+            html = html_template.safe_substitute(lang=self.lang_code, dir=self.language_direction, title=title, 
+                                                 head=head, body=body_html)
             write_file(self.html_file, html)
 
             link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_latest.html')
@@ -433,16 +469,49 @@ class PdfConverter:
 
     def generate_pdf(self):
         if self.regenerate or not os.path.exists(self.pdf_file):
-            if os.path.islink(self.pdf_file):
-                os.unlink(self.pdf_file)
             self.logger.info(f'Generating PDF file {self.pdf_file}...')
             # Convert HTML to PDF with weasyprint
-            HTML(filename=self.html_file, base_url=f'file://{self.output_res_dir}/').write_pdf(self.pdf_file)
-            self.logger.info('Generated PDF file.')
-            self.logger.info(f'PDF file located at {self.pdf_file}')
-
-            link_file_path = os.path.join(self.output_res_dir, f'{self.file_project_and_ref}_latest.pdf')
-            symlink(self.pdf_file, link_file_path, True)
+            base_url = f'file://{self.output_dir}'
+            all_pages_fitted = False
+            soup = BeautifulSoup(read_file(self.html_file), 'html.parser')
+            all_pages_fit = False
+            doc = None
+            tries = 0
+            while not all_pages_fit and tries < 10:
+                all_pages_fit = True
+                tries += 1
+                doc = HTML(string=str(soup), base_url=base_url).render()
+                for page_idx, page in enumerate(doc.pages):
+                    for anchor in page.anchors:
+                        if anchor.startswith('fit-to-page-'):
+                            if anchor not in doc.pages[page_idx - 1].anchors:
+                                continue
+                            all_pages_fit = False
+                            diff = 0.05
+                            if page.anchors[anchor][1] > 90:
+                                diff = 0.1
+                            element = soup.find(id=anchor)
+                            if not element:
+                                continue
+                            if element.has_attr('style'):
+                                style = parseStyle(element['style'])
+                            else:
+                                style = CSSStyleDeclaration()
+                            if 'font-size' in style and style['font-size'] and style['font-size'].endswith('em'):
+                                font_size = float(style['font-size'].removesuffix('em'))
+                            else:
+                                font_size = 1.0
+                            font_size_str = f'{"%.2f" % (font_size - diff)}em'
+                            style['font-size'] = font_size_str
+                            css = style.cssText
+                            element['style'] = css
+                            self.logger.info(f'RESIZING {anchor} to {font_size_str}... ({diff}, {page.anchors[anchor]})')
+                write_file(os.path.join(self.output_dir, f'{self.file_project_and_ref}_resized.html'),
+                           str(soup))
+            if doc:
+                doc.write_pdf(self.pdf_file)
+                self.logger.info('Generated PDF file.')
+                self.logger.info(f'PDF file located at {self.pdf_file}')
         else:
             self.logger.info(
                 f'PDF file {self.pdf_file} is already there. Not generating. Use -r to force regeneration.')
@@ -512,7 +581,9 @@ class PdfConverter:
 '''
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
-        html = html_template.safe_substitute(title=f'ERRORS FOR {self.file_project_and_unique_ref}', link='', body=errors_html)
+        html = html_template.safe_substitute(title=f'ERRORS FOR {self.file_project_and_unique_ref}',
+                                             lang='auto', dir='ltr', head=self.head_html,
+                                             body=errors_html)
         write_file(save_file, html)
         symlink(save_file, link_file_path, True)
 
@@ -569,7 +640,8 @@ class PdfConverter:
 '''
         with open(os.path.join(self.converters_dir, 'templates/template.html')) as template_file:
             html_template = string.Template(template_file.read())
-        html = html_template.safe_substitute(title=f'BAD HIGHLIGHTS FOR {self.file_project_and_unique_ref}', link='',
+        html = html_template.safe_substitute(title=f'BAD HIGHLIGHTS FOR {self.file_project_and_unique_ref}',
+                                             lang='auto', dir='ltr', head=self.head_html,
                                              body=bad_highlights_html)
         write_file(save_file, html)
         symlink(save_file, link_file_path, True)
@@ -659,7 +731,7 @@ class PdfConverter:
                     os.makedirs(os.path.dirname(full_file_path), exist_ok=True)
                     self.logger.info(f'Downloading {url} to {full_file_path}...')
                     download_file(url, full_file_path)
-                    img['src'] = f'../{file_path}'
+                img['src'] = f'../{file_path}'
         return str(soup)
 
     @abstractmethod

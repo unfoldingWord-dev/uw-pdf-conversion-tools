@@ -13,9 +13,12 @@ Class for a resource
 """
 import os
 import git
+import shutil
 from collections import OrderedDict
 from datetime import datetime
+from general_tools.url_utils import download_file
 from general_tools.file_utils import load_yaml_object
+from obs_ts_to_md_converter import do_preprocess
 
 DEFAULT_OWNER = 'unfoldingWord'
 DEFAULT_REF = 'master'
@@ -73,7 +76,7 @@ class Resource(object):
     def clone(self, working_dir):
         if not self.url:
             self.url = self.get_resource_git_url(self.repo_name, self.owner)
-        self.repo_dir = os.path.join(working_dir, self.owner, self.repo_name)
+        self.repo_dir = os.path.join(working_dir, self.repo_name)
         if not self.offline and not os.path.exists(self.repo_dir):
             try:
                 self.repo = git.Repo.clone_from(self.url, self.repo_dir, depth=1)
@@ -105,6 +108,32 @@ class Resource(object):
         if self.ref == DEFAULT_REF and self.update:
             self.repo.git.pull()
 
+        if self.resource_name == 'obs' and \
+                not os.path.exists(os.path.join(self.repo_dir, 'manifest.yaml')) and \
+                os.path.exists(os.path.join(self.repo_dir, 'manifest.json')) and \
+                os.path.exists(os.path.join(self.repo_dir, '01', '01.txt')):
+            new_repo_dir = self.repo_dir + '_rc'
+            if os.path.exists(new_repo_dir):
+                shutil.rmtree(new_repo_dir)
+            do_preprocess(self.repo_dir, new_repo_dir)
+            download_file('https://git.door43.org/api/v1/repos/unfoldingword/en_obs/raw/LICENSE.md',
+                          os.path.join(new_repo_dir, 'LICENSE.md'))
+            download_file('https://git.door43.org/api/v1/repos/unfoldingword/en_obs/raw/LICENSE.md',
+                          os.path.join(new_repo_dir, 'README.md'))
+            front_dir = os.path.join(new_repo_dir, 'content', 'front')
+            if not os.path.exists(front_dir):
+                os.mkdir(front_dir)
+                download_file('https://git.door43.org/api/v1/repos/unfoldingword/en_obs/raw/content/front/intro.md',
+                              os.path.join(front_dir, 'intro.md'))
+                download_file('https://git.door43.org/api/v1/repos/unfoldingword/en_obs/raw/content/front/title.md',
+                            os.path.join(front_dir, 'title.md'))
+            back_dir = os.path.join(new_repo_dir, 'content', 'back')
+            if not os.path.exists(back_dir):
+                os.mkdir(back_dir)
+                download_file('https://git.door43.org/api/v1/repos/unfoldingword/en_obs/raw/content/back/intro.md',
+                              os.path.join(new_repo_dir, 'content', 'back', 'intro.md'))
+            self.repo_dir = new_repo_dir
+
     @property
     def tags(self):
         return sorted(self.repo.tags, key=lambda t: t.commit.committed_datetime)
@@ -130,12 +159,19 @@ class Resource(object):
     def commit_date(self):
         return datetime.utcfromtimestamp(self.repo.head.commit.committed_date).strftime('%Y-%m-%d %H:%M:%S')
 
-
     @property
     def manifest(self):
         if not self._manifest and self.repo_dir:
             self._manifest = load_yaml_object(os.path.join(self.repo_dir, 'manifest.yaml'))
         return self._manifest
+
+    @property
+    def identifier(self):
+        manifest_identifier = self.manifest['dublin_core']['identifier']
+        if manifest_identifier and manifest_identifier.count('_'):
+            return manifest_identifier.split('_')[1]
+        else:
+            return manifest_identifier
 
     @property
     def title(self):
@@ -146,8 +182,16 @@ class Resource(object):
         return self.manifest['dublin_core']['language']['title']
 
     @property
+    def language_title(self):
+        return self.manifest['dublin_core']['language']['title']
+
+    @property
     def language_id(self):
         return self.manifest['dublin_core']['language']['identifier']
+
+    @property
+    def language_direction(self):
+        return self.manifest['dublin_core']['language']['direction']
 
     @property
     def simple_title(self):

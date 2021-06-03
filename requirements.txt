@@ -17,4 +17,4 @@ prettierfier
 jsonpickle
 weasyprint
 pypandoc
-
+cssutils
